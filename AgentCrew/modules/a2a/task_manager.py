@@ -37,7 +37,6 @@ from AgentCrew.modules.agents import LocalAgent
 from .adapters import (
     convert_a2a_message_to_agent,
     convert_agent_response_to_a2a_artifact,
-    convert_agent_message_to_a2a,
 )
 from .common.server.task_manager import TaskManager
 from .errors import A2AError
@@ -342,60 +341,72 @@ class AgentTaskManager(TaskManager):
             output_tokens = 0
 
             async def _process_task():
-                current_response = ""
-                response_message = ""
-                thinking_content = ""
-                thinking_signature = ""
-                tool_uses = []
+                try:
+                    current_response = ""
+                    response_message = ""
+                    thinking_content = ""
+                    thinking_signature = ""
+                    tool_uses = []
 
-                def process_result(_tool_uses, _input_tokens, _output_tokens):
-                    nonlocal tool_uses, input_tokens, output_tokens
-                    tool_uses = _tool_uses
-                    input_tokens += _input_tokens
-                    output_tokens += _output_tokens
+                    def process_result(_tool_uses, _input_tokens, _output_tokens):
+                        nonlocal tool_uses, input_tokens, output_tokens
+                        tool_uses = _tool_uses
+                        input_tokens += _input_tokens
+                        output_tokens += _output_tokens
 
-                task_history = await self.store.get_task_history(task.context_id)
-                async for (
-                    response_message,
-                    chunk_text,
-                    thinking_chunk,
-                ) in agent.process_messages(task_history, callback=process_result):
-                    if response_message:
-                        current_response = response_message
+                    task_history = await self.store.get_task_history(task.context_id)
+                    async for (
+                        response_message,
+                        chunk_text,
+                        thinking_chunk,
+                    ) in agent.process_messages(task_history, callback=process_result):
+                        if response_message:
+                            current_response = response_message
 
-                    task.status.state = TaskState.working
-                    task.status.timestamp = datetime.now().isoformat()
+                        task.status.state = TaskState.working
+                        task.status.timestamp = datetime.now().isoformat()
 
-                    if task.id in self.streaming_enabled_tasks:
-                        if thinking_chunk:
-                            think_text_chunk, signature = thinking_chunk
-                            if think_text_chunk:
-                                thinking_content += think_text_chunk
+                        if task.id in self.streaming_enabled_tasks:
+                            if thinking_chunk:
+                                think_text_chunk, signature = thinking_chunk
+                                if think_text_chunk:
+                                    thinking_content += think_text_chunk
+
+                                    thinking_artifact = convert_agent_response_to_a2a_artifact(
+                                        think_text_chunk,
+                                        artifact_id=f"thinking_{task.id}_{datetime.now()}",
+                                    )
+                                    await self._record_and_emit_event(
+                                        task.id,
+                                        TaskArtifactUpdateEvent(
+                                            task_id=task.id,
+                                            context_id=task.context_id,
+                                            artifact=thinking_artifact,
+                                        ),
+                                    )
+                                if signature:
+                                    thinking_signature += signature
+
+                            if chunk_text:
+                                artifact = convert_agent_response_to_a2a_artifact(
+                                    chunk_text,
+                                    artifact_id=f"artifact_{task.id}_{len(artifacts)}",
+                                )
                                 await self._record_and_emit_event(
                                     task.id,
-                                    TaskStatusUpdateEvent(
+                                    TaskArtifactUpdateEvent(
                                         task_id=task.id,
                                         context_id=task.context_id,
-                                        status=TaskStatus(
-                                            state=TaskState.working,
-                                            message=convert_agent_message_to_a2a(
-                                                {
-                                                    "role": "agent",
-                                                    "content": think_text_chunk,
-                                                },
-                                                f"msg_thinking_{hash(think_text_chunk)}",
-                                            ),
-                                        ),
-                                        final=False,
+                                        artifact=artifact,
                                     ),
                                 )
-                            if signature:
-                                thinking_signature += signature
 
-                        if chunk_text:
+                    if tool_uses and len(tool_uses) > 0:
+                        if task.id in self.streaming_enabled_tasks:
                             artifact = convert_agent_response_to_a2a_artifact(
-                                chunk_text,
+                                "",
                                 artifact_id=f"artifact_{task.id}_{len(artifacts)}",
+                                tool_uses=tool_uses,
                             )
                             await self._record_and_emit_event(
                                 task.id,
@@ -405,119 +416,81 @@ class AgentTaskManager(TaskManager):
                                     artifact=artifact,
                                 ),
                             )
+                            await asyncio.sleep(0.7)
 
-                if tool_uses and len(tool_uses) > 0:
-                    if task.id in self.streaming_enabled_tasks:
-                        artifact = convert_agent_response_to_a2a_artifact(
-                            "",
-                            artifact_id=f"artifact_{task.id}_{len(artifacts)}",
-                            tool_uses=tool_uses,
+                        thinking_data = (
+                            (thinking_content, thinking_signature)
+                            if thinking_content
+                            else None
                         )
-                        await self._record_and_emit_event(
-                            task.id,
-                            TaskArtifactUpdateEvent(
-                                task_id=task.id,
-                                context_id=task.context_id,
-                                artifact=artifact,
-                            ),
+                        thinking_message = agent.format_message(
+                            MessageType.Thinking, {"thinking": thinking_data}
                         )
-                        await asyncio.sleep(0.7)
-
-                    thinking_data = (
-                        (thinking_content, thinking_signature)
-                        if thinking_content
-                        else None
-                    )
-                    thinking_message = agent.format_message(
-                        MessageType.Thinking, {"thinking": thinking_data}
-                    )
-                    if thinking_message:
-                        await self.store.append_task_history_message(
-                            task.context_id, thinking_message
-                        )
-
-                    assistant_message = agent.format_message(
-                        MessageType.Assistant,
-                        {
-                            "message": response_message,
-                            "tool_uses": [
-                                t for t in tool_uses if t["name"] != "transfer"
-                            ],
-                        },
-                    )
-                    if assistant_message:
-                        await self.store.append_task_history_message(
-                            task.context_id, assistant_message
-                        )
-
-                    for tool_use in tool_uses:
-                        tool_name = tool_use["name"]
-
-                        if tool_name == "ask":
-                            question = tool_use["input"].get("question", "")
-                            guided_answers = tool_use["input"].get("guided_answers", [])
-
-                            task.status.state = TaskState.input_required
-                            task.status.timestamp = datetime.now().isoformat()
-                            task.status.message = self._create_ask_tool_message(
-                                question, guided_answers
+                        if thinking_message:
+                            await self.store.append_task_history_message(
+                                task.context_id, thinking_message
                             )
 
-                            await self._record_and_emit_event(
-                                task.id,
-                                TaskStatusUpdateEvent(
-                                    task_id=task.id,
-                                    context_id=task.context_id,
-                                    status=task.status,
-                                    final=False,
-                                ),
+                        assistant_message = agent.format_message(
+                            MessageType.Assistant,
+                            {
+                                "message": response_message,
+                                "tool_uses": [
+                                    t for t in tool_uses if t["name"] != "transfer"
+                                ],
+                            },
+                        )
+                        if assistant_message:
+                            await self.store.append_task_history_message(
+                                task.context_id, assistant_message
                             )
 
-                            wait_event = asyncio.Event()
-                            self.pending_ask_responses[task.id] = wait_event
+                        for tool_use in tool_uses:
+                            tool_name = tool_use["name"]
 
-                            try:
-                                await asyncio.wait_for(wait_event.wait(), timeout=300)
-                                user_answer = self.ask_responses.get(
-                                    task.id, "No response received"
-                                )
-                            except asyncio.TimeoutError:
-                                user_answer = "User did not respond in time."
-                            finally:
-                                self.pending_ask_responses.pop(task.id, None)
-                                self.ask_responses.pop(task.id, None)
-
-                            tool_result = f"User's answer: {user_answer}"
-
-                            task.status.state = TaskState.working
-                            task.status.timestamp = datetime.now().isoformat()
-                            task.status.message = None
-
-                            tool_result_message = agent.format_message(
-                                MessageType.ToolResult,
-                                {"tool_use": tool_use, "tool_result": tool_result},
-                            )
-                            if tool_result_message:
-                                await self.store.append_task_history_message(
-                                    task.context_id, tool_result_message
+                            if tool_name == "ask":
+                                question = tool_use["input"].get("question", "")
+                                guided_answers = tool_use["input"].get(
+                                    "guided_answers", []
                                 )
 
-                            await self._record_and_emit_event(
-                                task.id,
-                                TaskStatusUpdateEvent(
-                                    task_id=task.id,
-                                    context_id=task.context_id,
-                                    status=task.status,
-                                    final=False,
-                                ),
-                            )
-
-                        else:
-                            try:
-                                tool_result = await agent.execute_tool_call(
-                                    tool_name,
-                                    tool_use["input"],
+                                task.status.state = TaskState.input_required
+                                task.status.timestamp = datetime.now().isoformat()
+                                task.status.message = self._create_ask_tool_message(
+                                    question, guided_answers
                                 )
+
+                                await self._record_and_emit_event(
+                                    task.id,
+                                    TaskStatusUpdateEvent(
+                                        task_id=task.id,
+                                        context_id=task.context_id,
+                                        status=task.status,
+                                        final=False,
+                                    ),
+                                )
+
+                                wait_event = asyncio.Event()
+                                self.pending_ask_responses[task.id] = wait_event
+
+                                try:
+                                    await asyncio.wait_for(
+                                        wait_event.wait(), timeout=300
+                                    )
+                                    user_answer = self.ask_responses.get(
+                                        task.id, "No response received"
+                                    )
+                                except asyncio.TimeoutError:
+                                    user_answer = "User did not respond in time."
+                                finally:
+                                    self.pending_ask_responses.pop(task.id, None)
+                                    self.ask_responses.pop(task.id, None)
+
+                                tool_result = f"User's answer: {user_answer}"
+
+                                task.status.state = TaskState.working
+                                task.status.timestamp = datetime.now().isoformat()
+                                task.status.message = None
 
                                 tool_result_message = agent.format_message(
                                     MessageType.ToolResult,
@@ -528,22 +501,68 @@ class AgentTaskManager(TaskManager):
                                         task.context_id, tool_result_message
                                     )
 
-                            except Exception as e:
-                                error_message = agent.format_message(
-                                    MessageType.ToolResult,
-                                    {
-                                        "tool_use": tool_use,
-                                        "tool_result": str(e),
-                                        "is_error": True,
-                                    },
+                                await self._record_and_emit_event(
+                                    task.id,
+                                    TaskStatusUpdateEvent(
+                                        task_id=task.id,
+                                        context_id=task.context_id,
+                                        status=task.status,
+                                        final=False,
+                                    ),
                                 )
-                                if error_message:
-                                    await self.store.append_task_history_message(
-                                        task.context_id, error_message
+
+                            else:
+                                try:
+                                    tool_result = await agent.execute_tool_call(
+                                        tool_name,
+                                        tool_use["input"],
                                     )
 
-                    return await _process_task()
-                return current_response
+                                    tool_result_message = agent.format_message(
+                                        MessageType.ToolResult,
+                                        {
+                                            "tool_use": tool_use,
+                                            "tool_result": tool_result,
+                                        },
+                                    )
+                                    if tool_result_message:
+                                        await self.store.append_task_history_message(
+                                            task.context_id, tool_result_message
+                                        )
+
+                                except Exception as e:
+                                    error_message = agent.format_message(
+                                        MessageType.ToolResult,
+                                        {
+                                            "tool_use": tool_use,
+                                            "tool_result": str(e),
+                                            "is_error": True,
+                                        },
+                                    )
+                                    if error_message:
+                                        await self.store.append_task_history_message(
+                                            task.context_id, error_message
+                                        )
+
+                        return await _process_task()
+                    return current_response
+                except Exception as e:
+                    from openai import BadRequestError
+
+                    if isinstance(e, BadRequestError):
+                        if e.code == "model_max_prompt_tokens_exceeded":
+                            from AgentCrew.modules.agents import LocalAgent
+                            from AgentCrew.modules.llm.model_registry import (
+                                ModelRegistry,
+                            )
+
+                            if isinstance(agent, LocalAgent):
+                                max_token = ModelRegistry.get_model_limit(
+                                    agent.get_model()
+                                )
+                                agent.input_tokens_usage = max_token
+                                return await _process_task()
+                    raise e
 
             current_response = await _process_task()
             if current_response.strip():
