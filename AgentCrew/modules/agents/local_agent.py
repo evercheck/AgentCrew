@@ -13,9 +13,6 @@ if TYPE_CHECKING:
     from AgentCrew.modules.llm import BaseLLMService
     from typing import Dict, Any, Optional, Callable, Literal, Union
 
-SHRINK_LENGTH_THRESHOLD = 15
-
-
 class LocalAgent(BaseAgent):
     """Base class for all specialized agents."""
 
@@ -63,6 +60,12 @@ class LocalAgent(BaseAgent):
         self._defer_tool_registration = False
         self.mcps_loading = []
 
+        from .tool_registrar import AgentToolRegistrar
+        from .context_manager import AgentContextManager
+
+        self._tool_registrar = AgentToolRegistrar(self)
+        self._context_manager = AgentContextManager(self)
+
     def _extract_tool_name(self, tool_def: Any) -> str:
         """Extract tool name from definition regardless of format."""
         from AgentCrew.modules.tools.utils import extract_tool_name
@@ -77,130 +80,12 @@ class LocalAgent(BaseAgent):
             self.history.append(copy_messages)
 
     def register_tools(self):
-        """
-        Register tools for this agent using the services dictionary.
-        """
-
-        if (
-            self.services.get("agent_manager")
-            and self.services["agent_manager"].enforce_transfer
-        ):
-            # from AgentCrew.modules.agents.tools.delegate import (
-            #     register as register_delegate,
-            #     delegate_tool_prompt,
-            # )
-            #
-            # register_delegate(self.services["agent_manager"], self)
-            # self.tool_prompts.append(
-            #     delegate_tool_prompt(self.services["agent_manager"])
-            # )
-            from AgentCrew.modules.agents.tools.ask import (
-                register as register_ask,
-                ask_tool_prompt,
-            )
-
-            register_ask(self)
-            self.tool_prompts.append(ask_tool_prompt())
-
-            if not self.is_remoting_mode:
-                from AgentCrew.modules.agents.tools.transfer import (
-                    register as register_transfer,
-                    transfer_tool_prompt,
-                )
-
-                self.tool_prompts.append(
-                    self.services["agent_manager"].get_agents_list_prompt()
-                )
-
-                register_transfer(self.services["agent_manager"], self)
-                self.tool_prompts.append(
-                    transfer_tool_prompt(self.services["agent_manager"])
-                )
-
-        for tool_name in self.tools:
-            if self.services and tool_name in self.services:
-                service = self.services[tool_name]
-                if service:
-                    if tool_name == "memory" and not self.is_remoting_mode:
-                        from AgentCrew.modules.memory.tool import (
-                            register as register_memory,
-                            adaptive_instruction_prompt,
-                            memory_instruction_prompt,
-                        )
-
-                        register_memory(
-                            service, self.services.get("context_persistent", None), self
-                        )
-                        self.tool_prompts.append(memory_instruction_prompt())
-                        self.tool_prompts.append(adaptive_instruction_prompt())
-                    elif tool_name == "clipboard":
-                        from AgentCrew.modules.clipboard.tool import (
-                            register as register_clipboard,
-                        )
-
-                        register_clipboard(service, self)
-                    elif tool_name == "code_analysis":
-                        from AgentCrew.modules.code_analysis.tool import (
-                            register as register_code_analysis,
-                        )
-
-                        register_code_analysis(service, self)
-                    elif tool_name == "web_search":
-                        from AgentCrew.modules.web_search.tool import (
-                            register as register_web_search,
-                        )
-
-                        register_web_search(service, self)
-                    elif tool_name == "image_generation":
-                        from AgentCrew.modules.image_generation.tool import (
-                            register as register_image_generation,
-                        )
-
-                        register_image_generation(service, self)
-                    elif tool_name == "browser":
-                        from AgentCrew.modules.browser_automation.tool import (
-                            register as register_browser,
-                        )
-
-                        register_browser(service, self)
-                    elif tool_name == "file_editing":
-                        from AgentCrew.modules.file_editing.tool import (
-                            register as register_file_editing,
-                        )
-
-                        register_file_editing(service, self)
-                    elif tool_name == "command_execution":
-                        from AgentCrew.modules.command_execution.tool import (
-                            register as register_command_execution,
-                        )
-
-                        register_command_execution(service, self)
-                    else:
-                        logger.warning(f"⚠️ Tool {tool_name} not found in services")
-            else:
-                logger.warning(
-                    f"⚠️ Service {tool_name} not available for tool registration"
-                )
+        """Register tools for this agent using the services dictionary."""
+        self._tool_registrar.register_tools()
 
     def register_tool(self, definition_func, handler_factory, service_instance=None):
-        """
-        Register a tool with this agent.
-
-        Args:
-            definition_func: Function that returns tool definition given a provider or direct definition
-            handler_factory: Function that creates a handler function or direct handler
-            service_instance: Service instance needed by the handler (optional)
-        """
-        # Get the tool definition to extract the name
-        tool_def = definition_func() if callable(definition_func) else definition_func
-        tool_name = self._extract_tool_name(tool_def)
-
-        # Store the definition function, handler factory, and service instance
-        self.tool_definitions[tool_name] = (
-            definition_func,
-            handler_factory,
-            service_instance,
-        )
+        """Register a tool with this agent."""
+        self._tool_registrar.register_tool(definition_func, handler_factory, service_instance)
 
     def set_system_prompt(self, prompt: str):
         """
@@ -305,59 +190,12 @@ class LocalAgent(BaseAgent):
         return True
 
     def _register_tools_with_llm(self):
-        """
-        Register all of this agent's tools with the LLM service.
-        """
-        if not self.llm:
-            return
-
-        # Clear existing tools first to avoid duplicates
-        self._clear_tools_from_llm()
-
-        # Get the provider name if available
-        provider = getattr(self.llm, "provider_name", None)
-
-        for tool_name, (
-            definition_func,
-            handler_factory,
-            service_instance,
-        ) in self.tool_definitions.items():
-            try:
-                # Get provider-specific definition if possible
-                if callable(definition_func) and provider:
-                    try:
-                        tool_def = definition_func(provider)
-                    except TypeError:
-                        # If definition_func doesn't accept provider argument
-                        tool_def = definition_func()
-                else:
-                    tool_def = definition_func
-
-                # Get handler function
-                if callable(handler_factory):
-                    handler = (
-                        handler_factory(service_instance)
-                        if service_instance
-                        else handler_factory()
-                    )
-                else:
-                    handler = handler_factory
-
-                # Register with LLM
-                self.llm.register_tool(tool_def, handler)
-                self.registered_tools.add(tool_name)
-            except Exception as e:
-                logger.error(f"Error registering tool {tool_name}: {e}")
-        self._defer_tool_registration = False
+        """Register all of this agent's tools with the LLM service."""
+        self._tool_registrar.sync_to_llm()
 
     def _clear_tools_from_llm(self):
-        """
-        Clear all tools from the LLM service.
-        """
-        if self.llm:
-            self.llm.clear_tools()
-            self.registered_tools.clear()
-            # Note: We don't clear self.tool_definitions as we want to keep the definitions
+        """Clear all tools from the LLM service."""
+        self._tool_registrar._clear_from_llm()
 
     @property
     def clean_history(self):
@@ -525,237 +363,16 @@ class LocalAgent(BaseAgent):
         return True
 
     def _build_adaptive_behavior_context(self) -> Dict[str, Any]:
-        from AgentCrew.modules.memory.context_persistent import (
-            ContextPersistenceService,
-        )
-
-        adaptive_messages = {
-            "role": "user",
-            "content": [],
-        }
-        if "context_persistent" not in self.services or not isinstance(
-            self.services["context_persistent"], ContextPersistenceService
-        ):
-            return adaptive_messages
-        if (
-            self.services.get("agent_manager")
-            and self.services["agent_manager"].one_turn_process
-        ):
-            adaptive_messages["content"].append(
-                {
-                    "type": "text",
-                    "text": """My next request is single-turn conversation.
-You must analyze then execute it with your available tools and give answer without asking for confirmation or clarification.""",
-                }
-            )
-
-        adaptive_text = []
-        adaptive_behaviors = self.services["context_persistent"].get_adaptive_behaviors(
-            self.name
-        )
-
-        if len(adaptive_behaviors.keys()) > 0:
-            adaptive_text.extend(
-                [
-                    f"<Global_Behavior id='{key}'>{value}</Global_Behavior>"
-                    for key, value in adaptive_behaviors.items()
-                ]
-            )
-        local_adaptive_behaviors = self.services[
-            "context_persistent"
-        ].get_adaptive_behaviors(self.name, is_local=True)
-        if len(local_adaptive_behaviors.keys()) > 0:
-            adaptive_text.extend(
-                [
-                    f"<Project_Behavior id='{key}'>{value}</Project_Behavior>"
-                    for key, value in local_adaptive_behaviors.items()
-                ]
-            )
-        adaptive_text.extend(
-            [
-                "<Global_Behavior id='transfer'>When working on my request, consider whether if any other agents is more suitable, if yes, transfer to that agent.</Global_Behavior>",
-                "<Global_Behavior id='default'>When encountering tasks that you have no data in the context and you don't know the anwser, say I don't know and ask user for helping you find the solution.</Global_Behavior>",
-            ]
-        )
-        if len(adaptive_text) > 0:
-            adaptive_messages["content"].append(
-                {
-                    "type": "text",
-                    "text": f"""Read through all behaviors in the <Adaptive_Behaviors> tags before generating responses. 
-Whenever condition on `when` clause in a **Behavior** matches, tailor your responses with that **Behavior** immediately, override default instruction.
-<Project_Behavior> has higher priority than <Global_Behavior>.
-<Adaptive_Behaviors>
-{"  \n".join(adaptive_text)}
-</Adaptive_Behaviors>""",
-                }
-            )
-        return adaptive_messages
+        return self._context_manager.build_adaptive_context()
 
     def _get_directory_structure(self) -> str:
-        try:
-            cwd = os.getcwd()
-            entries = []
-            for entry in sorted(os.listdir(cwd)):
-                full_path = os.path.join(cwd, entry)
-                if os.path.isdir(full_path):
-                    entries.append(f"{entry}/")
-                else:
-                    entries.append(entry)
-            return "\n".join(entries) if entries else ""
-        except Exception as e:
-            logger.warning(f"Failed to get directory structure: {e}")
-            return ""
+        return self._context_manager._get_directory_structure()
 
-    def _enhance_agent_context_messages(self, final_messages: List[Dict[str, Any]]):
-        last_user_index = next(
-            (
-                i
-                for i, msg in enumerate(reversed(final_messages))
-                if msg.get("role") == "user"
-            ),
-            None,
-        )
-        if last_user_index is None:
-            return
-        last_user_index = len(final_messages) - 1 - last_user_index
-        adaptive_messages = self._build_adaptive_behavior_context()
-        if (
-            len(final_messages[last_user_index].get("content", [])) > 0
-            and final_messages[last_user_index]["content"][0]
-            .get("text", "")
-            .find("<Transfer_Tool>")
-            != 0
-        ):
-            if not self.is_remoting_mode and self.services.get("memory"):
-                memory_headers = self.services["memory"].list_memory_headers(
-                    agent_name=self.name
-                )
-                if memory_headers:
-                    adaptive_messages["content"].append(
-                        {
-                            "type": "text",
-                            "text": f"Belows are our last 20 discussion headlines:\n - {'\n - '.join(memory_headers)}",
-                        }
-                    )
-            if (
-                self.services.get("agent_manager")
-                and self.services["agent_manager"].enforce_transfer
-            ):
-                adaptive_messages["content"].insert(
-                    0,
-                    {
-                        "type": "text",
-                        "text": """Before processing my request:
-            - Break my request into actionable sub-tasks by evaluating your tools and plan tool strategy for acquiring the context you need when applicable.
-            - Make sure each sub-tasks is assigned with the most suitable agent if you have multiple agents under your control.
-            - Action subsequent steps base on your plan.
-            - Keep the evaluating quick and concise using xml format within <agent_evaluation> tags.
-            - Skip agent evaluation if user request is when...,[action]... related to adaptive behaviors call `learn_behavior` tool instead.""",
-                    },
-                )
-        if last_user_index == 0:
-            dir_structure = self._get_directory_structure()
-            if dir_structure:
-                adaptive_messages["content"].append(
-                    {
-                        "type": "text",
-                        "text": f"current directory `{os.getcwd()}` has structure:\n{dir_structure}",
-                    }
-                )
+    def _enhance_agent_context_messages(self, final_messages: List[Dict[str, Any]]) -> None:
+        self._context_manager.enhance_messages(final_messages)
 
-        if len(adaptive_messages["content"]) > 0:
-            final_messages.insert(last_user_index, adaptive_messages)
-
-    def _clean_shrinkable_tool_result(self, final_messages: List[Dict[str, Any]]):
-        """
-        Clean unique tool results by replacing all but the last [UNIQUE] tool result with "[INVALIDATED]".
-
-        Args:
-            final_messages: List of message dictionaries to process
-        """
-        # Find all indices of tool messages that start with [UNIQUE]
-        from AgentCrew.modules.llm.model_registry import ModelRegistry
-
-        shrink_context_threshold = (
-            ModelRegistry.get_model_limit(self.get_model()) * 0.85
-        )
-
-        unique_tool_indices = []
-        agent_manager = self.services.get("agent_manager", None)
-
-        is_shrinkable = (
-            agent_manager.context_shrink_enabled if agent_manager else False
-        ) and self.input_tokens_usage > shrink_context_threshold
-        shrink_threshold = len(final_messages) - SHRINK_LENGTH_THRESHOLD
-        shrink_excluded = (
-            set(agent_manager.shrink_excluded_list) if agent_manager else []
-        )
-
-        for i, msg in enumerate(final_messages):
-            # Check different message formats for tool results
-            content = None
-
-            if msg.get("role") == "assistant":
-                if len(msg.get("tool_calls", [])) == 0:
-                    continue
-
-                if is_shrinkable and i < shrink_threshold:
-                    for tool_call in msg.get("tool_calls", []):
-                        if tool_call.get("name") in shrink_excluded:
-                            continue
-                        tool_call["arguments"] = {}
-
-            elif msg.get("role") == "tool":
-                tool_name = msg.get("tool_name", "")
-
-                # Check if content starts with [UNIQUE]
-                content = msg.get("content", "")
-                if (
-                    content
-                    and isinstance(content, str)
-                    and content.startswith("[UNIQUE]")
-                ):
-                    unique_tool_indices.append(i)
-                elif content and isinstance(content, list):
-                    if (
-                        len(
-                            [
-                                d.get("text", "")
-                                for d in content
-                                if isinstance(d, dict)
-                                and d.get("text", "").startswith("[UNIQUE]")
-                            ]
-                        )
-                        > 0
-                    ):
-                        unique_tool_indices.append(i)
-                        continue
-
-                if tool_name in shrink_excluded:
-                    continue
-
-                if is_shrinkable and i < shrink_threshold:
-                    msg["content"] = "[PRUNED]"
-                    continue
-
-        # Replace all but the last [UNIQUE] tool result with "[INVALIDATED]"
-        if len(unique_tool_indices) > 1:
-            for i in unique_tool_indices[:-1]:  # All except the last one
-                msg = final_messages[i]
-
-                # Update content based on message format
-                if msg.get("role") == "tool" and "content" in msg:
-                    msg["content"] = "[INVALIDATED]"
-
-                elif msg.get("role") == "user" and isinstance(msg.get("content"), list):
-                    for content_item in msg["content"]:
-                        if (
-                            isinstance(content_item, dict)
-                            and content_item.get("type") == "tool_result"
-                            and "content" in content_item
-                        ):
-                            content_item["content"] = "[INVALIDATED]"
-                            break
+    def _clean_shrinkable_tool_result(self, final_messages: List[Dict[str, Any]]) -> None:
+        self._context_manager.shrink_tool_results(final_messages)
 
     async def process_messages(
         self,

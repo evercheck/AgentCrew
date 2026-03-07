@@ -505,99 +505,28 @@ When system access is requested:
             str: A formatted string containing transfer instructions and available agents
         """
         transfer_prompt = """<Transfer_Tool_Rules>
-  <Instruction>
-    - You are a specialized agent operating within a multi-agent system
-    - MANDATORY: Before any response, perform a systematic evaluation of all available agents
-    - Analyze the user's message for domain keywords, technical terms, and task indicators
-    - Cross-reference these against each Transferable_Agents > agent > description and capabilities
-    - When a more appropriate specialist exists, immediately transfer the task using the `transfer` tool
-    - Craft precise, actionable task descriptions that enable the target agent to execute effectively without requiring additional clarification
-  </Instruction>
+  <Decision_Rule>
+    When a specialist agent from <Transferable_Agents> is better suited for the user's request,
+    transfer immediately using the `transfer` tool. Stay engaged only if no better-suited
+    specialist exists or the task is squarely within your own expertise.
+  </Decision_Rule>
 
-  <Agent_Evaluation_Protocol>
-    <Step_1_Keyword_Extraction>
-      Extract key indicators from user message:
-      • Expertise Domains (Coding, Writing, Finance, Marketing, etc.)
-      • Task types (testing, architecture, research, presentation, etc.)
-      • Industry contexts (business analysis, career creation, etc.)
-      • Specific tools or frameworks mentioned
-    </Step_1_Keyword_Extraction>
+  <Transfer_Execution>
+    When transferring:
+    1. Tell the user why you are transferring and what the target agent will deliver.
+    2. Write a precise task_description: start with an action verb, include all deliverables,
+       constraints, and a full summary of any tool/function call results (they are omitted
+       during transfer and must be summarised in the description).
+    3. Set post_action when a logical next step exists (e.g. "transfer back to [agent] for implementation").
+       Omit if the transfer is the final step.
+  </Transfer_Execution>
 
-    <Step_2_Agent_Matching>
-      For each Transferable_Agents:
-      • Compare extracted keywords against name and description tags
-      • Identify direct matches in name or description tags
-      • Identify semantic matches in name or description tags
-      • Assess capability overlap with your own expertise
-    </Step_2_Agent_Matching>
-
-    <Step_3_Transfer_Decision>
-      Transfer immediately if:
-      • Another agent has more expertise in the requested task
-      • Keywords directly match an agent's specialization
-      • The task falls outside your core competencies
-      • Other agent can deliver significantly better results
-
-      Stay engaged only if:
-      • No better-suited specialist exists
-      • The task is within your primary expertise
-      • You can add significant value beyond delegation
-    </Step_3_Transfer_Decision>
-  </Agent_Evaluation_Protocol>
-
-  <Transfer_Protocol>
-    <Core_Transfer_Principle>
-      Provide clear, executable instructions that define exactly what the target agent must accomplish. Focus on outcomes, constraints, and success criteria.
-    </Core_Transfer_Principle>
-
-    <Transfer_Execution_Rules>
-      1. **AGENT_SELECTION_JUSTIFICATION:**
-         • Explicitly state which keywords/indicators triggered the transfer
-         • Reference the specialist's relevant capabilities from their description
-         • Explain why they are better suited than you for this task
-
-      2. **TASK_DESCRIPTION REQUIREMENTS:**
-         • Start with action verbs (Create, Analyze, Design, Implement, etc.)
-         • Include specific deliverables and success criteria
-         • Specify any constraints, preferences, or requirements
-         • Reference triggering keywords that prompted the transfer
-         • Include all relevant context from the user's original message
-         • Tool/Function call results will be omitted during trasnfer. Make sure you always have a compreshensive summary about tool/function call results when transfering
-
-      3. **PRE-TRANSFER COMMUNICATION:**
-         • Explain to the user why transfer is necessary
-         • Identify the specialist's relevant expertise
-         • Set clear expectations about what the specialist will deliver
-
-      4. **POST_ACTION_SPECIFICATION:**
-         • Define next steps following Post_Action_Templates when logical continuation exists
-         • Examples: "transfer to [specific agent] for implementation"
-         • Omit if task completion is the final objective
-    </Transfer_Execution_Rules>
-    
-    <Post_Action_Templates>
-        <Handback_Protocol>
-            When task requires return to original agent:
-            • Define clear handback conditions
-            • Specify expected deliverables format
-            • Include success/failure criteria
-        </Handback_Protocol>
-
-        <Chain_Transfer>
-            For multi-agent workflows:
-            • Define transfer chain: Agent A → B → C
-            • Set checkpoint validations between transfers
-            • Allow for conditional branching
-        </Chain_Transfer>
-    </Post_Action_Templates>
-
-    <Tool_Usage>
-      Required parameters for `transfer` tool:
-      • `target_agent`: Exact agent name from Transferable_Agents
-      • `task_description`: Action-oriented, specific task with clear objectives and full context
-      • `post_action`: (Optional) Next step after task completion
-    </Tool_Usage>
-  </Transfer_Protocol>
+  <Tool_Usage>
+    Required parameters for the `transfer` tool:
+    • `target_agent`  — exact agent name from <Transferable_Agents>
+    • `task_description` — action-oriented, self-contained objective with full context
+    • `post_action`  — (optional) next step after task completion
+  </Tool_Usage>
 </Transfer_Tool_Rules>"""
 
         return transfer_prompt
