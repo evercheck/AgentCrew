@@ -95,6 +95,25 @@ Apply matching behaviors from <Adaptive_Behaviors> immediately, overriding defau
                 }
             )
 
+        skills_service = agent.services.get("skills")
+        if skills_service and skills_service.has_skills():
+            catalog = skills_service.get_catalog()
+            skills_xml = "\n".join(
+                f"  <skill><name>{s['name']}</name><description>{s['description']}</description></skill>"
+                for s in catalog
+            )
+            adaptive_messages["content"].append(
+                {
+                    "type": "text",
+                    "text": (
+                        f"<available_skills>\n{skills_xml}\n</available_skills>\n"
+                        "When a task matches a skill's description, call the "
+                        "`activate_skill` tool with the skill's name to load its "
+                        "full instructions before proceeding."
+                    ),
+                }
+            )
+
         return adaptive_messages
 
     def _get_directory_structure(self) -> str:
@@ -194,9 +213,10 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
             agent_manager.context_shrink_enabled if agent_manager else False
         ) and agent.input_tokens_usage > shrink_context_threshold
         shrink_threshold = len(final_messages) - SHRINK_LENGTH_THRESHOLD
-        shrink_excluded = (
-            set(agent_manager.shrink_excluded_list) if agent_manager else []
+        shrink_excluded = set(
+            agent_manager.shrink_excluded_list if agent_manager else []
         )
+        shrink_excluded.add("activate_skill")
 
         for i, msg in enumerate(final_messages):
             content = None

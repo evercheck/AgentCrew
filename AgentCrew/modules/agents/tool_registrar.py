@@ -35,6 +35,12 @@ class AgentToolRegistrar:
         register_ask(agent)
         agent.tool_prompts.append(ask_tool_prompt())
 
+        skills_service = agent.services.get("skills")
+        if skills_service and skills_service.has_skills():
+            from AgentCrew.modules.skills.tool import register as register_skills
+
+            register_skills(skills_service, agent)
+
         if (
             agent.services.get("agent_manager")
             and agent.services["agent_manager"].enforce_transfer

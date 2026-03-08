@@ -15,8 +15,6 @@
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](https://hub.docker.com/r/daltonnyx/agentcrew)
 
----
-
 ## What is AgentCrew?
 
 AgentCrew is a framework for building specialized AI assistant teams. Instead of
@@ -31,8 +29,6 @@ what they do best. AgentCrew applies this principle to AI assistants.
 **Demo**
 
 <https://github.com/user-attachments/assets/32876eac-b5e6-4608-bd5e-82d6fa4db80f>
-
----
 
 ## Why AgentCrew?
 
@@ -64,8 +60,6 @@ workflows.
 **Control and Safety**  
 Approve or deny tool usage before execution. Configure permissions, rate limits,
 and access controls. Review what your agents are doing before they do it.
-
----
 
 ## Core Capabilities
 
@@ -129,8 +123,6 @@ updated anytime.
 - Smart paste detection for images and binary files
 - File attachment support for text, images, PDFs, Office documents
 
----
-
 ## Getting Started
 
 ### Prerequisites
@@ -186,8 +178,6 @@ docker run -it --rm \
 
 Configure API keys and agents through the Settings menu in the GUI, or edit
 configuration files in `~/.AgentCrew/`.
-
----
 
 ## Usage Modes
 
@@ -330,8 +320,6 @@ Agents expose their capabilities through agent cards at
 `/.well-known/agent.json` and accept tasks via JSON-RPC. Other AgentCrew
 instances or compatible clients can discover and invoke these agents.
 
----
-
 ## Configuration
 
 Configuration is stored in `~/.AgentCrew/` and can be managed through the GUI or
@@ -366,8 +354,6 @@ temperature = 0.7
 ```
 
 See `CONFIGURATION.md` for detailed configuration documentation.
-
----
 
 ## 📦 Agent Sharing & Reuse
 
@@ -438,8 +424,6 @@ git commit -m "Add specialized agent for X domain"
 git push origin add-awesome-agent
 ```
 
----
-
 ## Console Commands
 
 Available in both GUI and console interfaces:
@@ -455,8 +439,6 @@ Available in both GUI and console interfaces:
 - `/export <agents> <file>` - Export agent configurations
 - `/import <file>` - Import agent configurations
 - `exit` or `quit` - Close AgentCrew
-
----
 
 ## Development
 
@@ -481,8 +463,6 @@ code.
 - Import from files or URLs
 
 See `DEVELOPMENT.md` for contribution guidelines and architecture documentation.
-
----
 
 ## Security Considerations
 
@@ -509,8 +489,6 @@ You control what your agents can do. Review these guidelines:
 AgentCrew provides the framework. You are responsible for safe configuration and
 usage.
 
----
-
 ## Documentation
 
 - `CONFIGURATION.md` - Detailed configuration guide
@@ -518,7 +496,9 @@ usage.
 - `docker/DOCKER.md` - Docker-specific documentation
 - `examples/agents/` - Example agent configurations
 
----
+## Star History
+
+[![Star History Chart](https://api.star-history.com/image?repos=saigontechnology/AgentCrew&type=date&legend=top-left)](https://www.star-history.com/?repos=saigontechnology%2FAgentCrew&type=date&legend=top-left)
 
 ## Contributing
 

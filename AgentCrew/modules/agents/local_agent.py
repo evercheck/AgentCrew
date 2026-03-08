@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from AgentCrew.modules.llm import BaseLLMService
     from typing import Dict, Any, Optional, Callable, Literal, Union
 
+
 class LocalAgent(BaseAgent):
     """Base class for all specialized agents."""
 
@@ -85,7 +86,9 @@ class LocalAgent(BaseAgent):
 
     def register_tool(self, definition_func, handler_factory, service_instance=None):
         """Register a tool with this agent."""
-        self._tool_registrar.register_tool(definition_func, handler_factory, service_instance)
+        self._tool_registrar.register_tool(
+            definition_func, handler_factory, service_instance
+        )
 
     def set_system_prompt(self, prompt: str):
         """
@@ -368,10 +371,14 @@ class LocalAgent(BaseAgent):
     def _get_directory_structure(self) -> str:
         return self._context_manager._get_directory_structure()
 
-    def _enhance_agent_context_messages(self, final_messages: List[Dict[str, Any]]) -> None:
+    def _enhance_agent_context_messages(
+        self, final_messages: List[Dict[str, Any]]
+    ) -> None:
         self._context_manager.enhance_messages(final_messages)
 
-    def _clean_shrinkable_tool_result(self, final_messages: List[Dict[str, Any]]) -> None:
+    def _clean_shrinkable_tool_result(
+        self, final_messages: List[Dict[str, Any]]
+    ) -> None:
         self._context_manager.shrink_tool_results(final_messages)
 
     async def process_messages(

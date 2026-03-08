@@ -229,6 +229,16 @@ class ApplicationSetup:
             )
             command_execution_service = None
 
+        try:
+            from AgentCrew.modules.skills import SkillsService
+
+            skills_service = SkillsService()
+            if not skills_service.has_skills():
+                skills_service = None
+        except Exception as e:
+            click.echo(f"\u26a0\ufe0f Skills service not available: {str(e)}")
+            skills_service = None
+
         self.services = {
             "llm": llm_service,
             "memory": memory_service,
@@ -240,6 +250,7 @@ class ApplicationSetup:
             "browser": browser_automation_service,
             "file_editing": file_editing_service,
             "command_execution": command_execution_service,
+            "skills": skills_service,
         }
         return self.services
 
