@@ -56,7 +56,7 @@ class MessageBubble(QFrame):
         # Add streaming support
         self.is_streaming = False
         self.raw_text_buffer = ""
-        self.streaming_timer = QTimer()
+        self.streaming_timer = QTimer(self)
         self.streaming_timer.timeout.connect(self._render_next_character)
         self.streaming_text = ""
 
@@ -569,7 +569,8 @@ class MessageBubble(QFrame):
     def _finalize_streaming(self):
         """Convert to formatted text once streaming is complete."""
         self.is_streaming = False
-        self.streaming_timer.stop()
+        if self.streaming_timer.isActive():
+            self.streaming_timer.stop()
 
         self.message_label.setTextFormat(Qt.TextFormat.RichText)
         # Now convert to markdown with full formatting
