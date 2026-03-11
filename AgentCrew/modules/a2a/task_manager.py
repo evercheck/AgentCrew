@@ -213,7 +213,6 @@ class AgentTaskManager(TaskManager):
             while True:
                 event = await queue.get()
                 if event is None:
-                    await self.store.delete_task(task_id)
                     break
                 yield SendStreamingMessageResponse(
                     root=SendStreamingMessageSuccessResponse(
@@ -322,7 +321,6 @@ class AgentTaskManager(TaskManager):
             while True:
                 event = await queue.get()
                 if event is None:
-                    await self.store.delete_task(task_id)
                     break
 
                 yield SendStreamingMessageResponse(
@@ -339,6 +337,14 @@ class AgentTaskManager(TaskManager):
 
     async def on_send_task(self, request: SendMessageRequest) -> SendMessageResponse:
         return await self.on_send_message(request)
+
+    async def cleanup_terminal_tasks(self) -> None:
+        task_ids = await self.store.list_task_ids()
+        for task_id in task_ids:
+            task = await self.store.get_task(task_id)
+            if task and self._is_terminal_state(task.status.state):
+                await self.store.cleanup_task(task_id)
+                self.streaming.cleanup(task_id)
 
     async def on_send_task_subscribe(
         self, request: SendStreamingMessageRequest
@@ -366,6 +372,10 @@ class MultiAgentTaskManager:
 
     def get_task_manager(self, agent_name: str) -> Optional[AgentTaskManager]:
         return self.agent_task_managers.get(agent_name)
+
+    async def initialize(self) -> None:
+        for manager in self.agent_task_managers.values():
+            await manager.cleanup_terminal_tasks()
 
     async def close(self) -> None:
         for manager in self.agent_task_managers.values():

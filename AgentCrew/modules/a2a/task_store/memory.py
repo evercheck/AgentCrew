@@ -78,3 +78,7 @@ class InMemoryTaskStore(TaskStore):
         async with self.lock:
             self.tasks.pop(task_id, None)
             self.task_events.pop(task_id, None)
+
+    async def list_task_ids(self) -> list:
+        async with self.lock:
+            return list(self.tasks.keys())

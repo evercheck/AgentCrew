@@ -119,3 +119,10 @@ class FileTaskStore(TaskStore):
             ]:
                 if path.exists():
                     path.unlink()
+
+    async def list_task_ids(self) -> List[str]:
+        async with self.lock:
+            tasks_dir = self.base_dir / "tasks"
+            if not tasks_dir.exists():
+                return []
+            return [p.stem for p in tasks_dir.glob("*.json")]

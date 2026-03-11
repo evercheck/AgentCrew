@@ -128,3 +128,15 @@ class RedisTaskStore(TaskStore):
             self._key("task", task_id),
             self._key("events", task_id),
         )
+
+    async def list_task_ids(self) -> list:
+        r = await self._get_redis()
+        prefix = self._key("task", "")
+        task_ids = []
+        cursor = 0
+        while True:
+            cursor, keys = await r.scan(cursor, match=f"{prefix}*", count=100)
+            task_ids.extend(k[len(prefix):] for k in keys)
+            if cursor == 0:
+                break
+        return task_ids

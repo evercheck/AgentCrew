@@ -65,6 +65,10 @@ class TaskStore(ABC):
     async def cleanup_task(self, task_id: str) -> None:
         pass
 
+    async def list_task_ids(self) -> List[str]:
+        """Return all task IDs currently in the store. Override in implementations."""
+        return []
+
     async def close(self) -> None:
         """Release any resources held by the store (e.g. connection pools).
         Default is a no-op; override in stores that manage connections.
