@@ -132,9 +132,7 @@ class InputComponents:
             Qt.CaseSensitivity.CaseInsensitive
         )
         self.chat_window.at_agent_completer.setWidget(self.chat_window.message_input)
-        self.chat_window.at_agent_completer.activated.connect(
-            self.insert_at_completion
-        )
+        self.chat_window.at_agent_completer.activated.connect(self.insert_at_completion)
 
         self.chat_window.message_input.textChanged.connect(
             self.check_for_path_completion
@@ -155,7 +153,7 @@ class InputComponents:
 
         # Check for @agent mention first (only when actively typing after @)
         at_idx = text_to_cursor.rfind("@")
-        has_active_at = at_idx != -1 and " " not in text_to_cursor[at_idx + 1:]
+        has_active_at = at_idx != -1 and " " not in text_to_cursor[at_idx + 1 :]
         if has_active_at and not text_to_cursor.startswith("/"):
             self._check_for_at_completion(text_to_cursor)
             return

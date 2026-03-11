@@ -22,7 +22,7 @@ from .conversation import ConversationManager
 from .base import Observable
 
 
-_AT_AGENT_RE = re.compile(r'@([\.\w-]+)')
+_AT_AGENT_RE = re.compile(r"@([\.\w-]+)")
 
 
 def _resolve_at_mention(user_input: str, agent_manager) -> tuple:

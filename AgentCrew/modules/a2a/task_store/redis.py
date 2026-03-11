@@ -136,7 +136,7 @@ class RedisTaskStore(TaskStore):
         cursor = 0
         while True:
             cursor, keys = await r.scan(cursor, match=f"{prefix}*", count=100)
-            task_ids.extend(k[len(prefix):] for k in keys)
+            task_ids.extend(k[len(prefix) :] for k in keys)
             if cursor == 0:
                 break
         return task_ids

@@ -131,9 +131,7 @@ class AtAgentCompleter(Completer):
 
         for agent_name in self.agent_manager.agents:
             if agent_name.lower().startswith(word_after_at.lower()):
-                desc = getattr(
-                    self.agent_manager.agents[agent_name], "description", ""
-                )
+                desc = getattr(self.agent_manager.agents[agent_name], "description", "")
                 yield Completion(
                     agent_name,
                     start_position=-len(word_after_at),
@@ -159,7 +157,11 @@ class ChatCompleter(Completer):
 
         text_before = document.text_before_cursor
         at_idx = text_before.rfind("@")
-        if at_idx != -1 and " " not in text_before[at_idx + 1:] and not text.startswith("/"):
+        if (
+            at_idx != -1
+            and " " not in text_before[at_idx + 1 :]
+            and not text.startswith("/")
+        ):
             yield from self.at_agent_completer.get_completions(document, complete_event)
             return
 
