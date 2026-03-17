@@ -303,7 +303,8 @@ class AgentCrewApplication:
         memory_llm: Optional[str] = None,
         output_schema: Optional[str] = None,
     ) -> str:
-        from AgentCrew.modules.chat import MessageHandler
+        from AgentCrew.modules.agents.agent_runner import run_agent_loop
+        from AgentCrew.modules.agents.base import MessageType
         from AgentCrew.modules.mcpclient import MCPSessionManager
         from AgentCrew.modules.llm.model_registry import ModelRegistry
 
@@ -361,37 +362,63 @@ class AgentCrewApplication:
 
                 self.agent_manager.select_agent(current_agent.name)
 
-                message_handler = MessageHandler(
-                    services["memory"], services["context_persistent"]
-                )
-                message_handler.is_non_interactive = True
-                message_handler.agent = current_agent
+                history: List[Dict[str, Any]] = []
 
                 if files:
+                    from AgentCrew.modules.utils.file_handler import FileHandler
+
+                    file_handler = FileHandler()
+                    all_file_contents: List[Dict[str, Any]] = []
                     for file_path in files:
-                        asyncio.run(
-                            message_handler.process_user_input(f"/file {file_path}")
+                        file_path = os.path.expanduser(file_path.strip())
+                        file_content = file_handler.process_file(file_path)
+                        if not file_content:
+                            file_content = current_agent.format_message(
+                                MessageType.FileContent, {"file_uri": file_path}
+                            )
+                        if file_content:
+                            all_file_contents.append(file_content)
+                    if all_file_contents:
+                        history.append(
+                            {
+                                "role": "user",
+                                "content": all_file_contents,
+                            }
                         )
+
+                history.append(
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": task}],
+                    }
+                )
 
                 max_attempts = 4
                 attempt = 0
                 response = None
 
-                asyncio.run(message_handler.process_user_input(task))
-
                 while attempt < max_attempts:
                     attempt += 1
-                    response, _, _ = asyncio.run(
-                        message_handler.get_assistant_response()
+                    response = asyncio.run(
+                        run_agent_loop(
+                            agent=current_agent,
+                            history=history,
+                        )
                     )
                     if not output_schema or not schema_dict:
                         break
 
                     if response is None:
-                        asyncio.run(
-                            message_handler.process_user_input(
-                                "No response was generated. Please try again."
-                            )
+                        history.append(
+                            {
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "No response was generated. Please try again.",
+                                    }
+                                ],
+                            }
                         )
                         continue
 
@@ -402,12 +429,17 @@ class AgentCrewApplication:
                         break
                     else:
                         if retry_message:
-                            asyncio.run(
-                                message_handler.process_user_input(retry_message)
+                            history.append(
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {"type": "text", "text": retry_message}
+                                    ],
+                                }
                             )
 
                 MCPSessionManager.get_instance().cleanup()
-                return response.strip() if response else ""
+                return self._clean_json_response(response).strip() if response else ""
             else:
                 raise ValueError(f"Agent '{agent}' not found")
 

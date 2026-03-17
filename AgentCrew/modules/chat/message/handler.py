@@ -9,7 +9,7 @@ from loguru import logger
 from AgentCrew.modules.agents.base import MessageType
 from AgentCrew.modules.chat.history import ChatHistoryManager
 from AgentCrew.modules.agents import AgentManager
-from AgentCrew.modules.chat.file_handler import FileHandler
+from AgentCrew.modules.utils.file_handler import FileHandler
 
 from AgentCrew.modules.memory import (
     BaseMemoryService,
@@ -74,7 +74,6 @@ class MessageHandler(Observable):
         self._queued_attached_files = []
         self.stop_streaming = False
         self.streamline_messages = []
-        self.is_non_interactive = False
         self.current_conversation_id: Optional[str] = None  # ID for persistence
 
         # Initialize components
@@ -419,11 +418,6 @@ class MessageHandler(Observable):
             # Final assistant message
             self._notify("response_completed", assistant_response)
 
-            if self.is_non_interactive:
-                # No need to persist or store conversation turn since is single turn task
-                return assistant_response, input_tokens, output_tokens
-
-            # --- Start of Persistence Logic ---
             if self.current_conversation_id and self.last_assisstant_response_idx >= 0:
                 try:
                     messages_for_this_turn = self.get_recent_agent_responses()

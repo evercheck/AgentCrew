@@ -800,7 +800,7 @@ Keep it under 500 words."""
             - dict: {"type": "image_url", "image_url": {"url": "data:mime;base64,..."}} for images
         """
 
-        from AgentCrew.modules.chat.file_handler import (
+        from AgentCrew.modules.utils.file_handler import (
             FileHandler,
             ALLOWED_MIME_TYPES,
         )

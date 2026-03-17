@@ -1,4 +1,4 @@
-# AgentCrew.modules/chat/file_handler.py
+
 
 import os
 import mimetypes

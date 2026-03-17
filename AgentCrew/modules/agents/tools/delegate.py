@@ -2,9 +2,7 @@ from typing import Dict, Any, Callable
 import asyncio
 
 from AgentCrew.modules.agents import AgentManager
-
-# from AgentCrew.modules.llm.message import MessageTransformer
-from AgentCrew.modules.agents.base import MessageType
+from AgentCrew.modules.agents.agent_runner import run_agent_loop
 
 
 def get_delegate_tool_definition(provider="claude") -> Dict[str, Any]:
@@ -121,10 +119,10 @@ def get_delegate_tool_handler(agent_manager: AgentManager) -> Callable:
 
         try:
             # Get the target agent
-            target_agent = agent_manager.get_agent(target_agent_name)
+            target_agent = agent_manager.get_local_agent(target_agent_name)
             if not target_agent:
                 raise ValueError(
-                    f"Error: Could not retrieve agent '{target_agent_name}'"
+                    f"Error: Could not retrieve local agent '{target_agent_name}'"
                 )
 
             # Prepare context from current conversation
@@ -177,106 +175,14 @@ def get_delegate_tool_handler(agent_manager: AgentManager) -> Callable:
 
             try:
 
-                async def _process_delegation():
-                    """Process delegation similar to _process_agent_task - runs until no tool uses"""
+                async def _do_delegation():
+                    return await run_agent_loop(
+                        agent=target_agent,
+                        history=delegate_history,
+                        tool_filter=lambda t: t["name"] not in ["transfer", "delegate"],
+                    )
 
-                    current_response = ""
-                    tool_uses = []
-                    input_tokens = 0
-                    output_tokens = 0
-                    thinking_content = ""
-
-                    def process_result(_tool_uses, _input_tokens, _output_tokens):
-                        nonlocal tool_uses, input_tokens, output_tokens
-                        tool_uses = _tool_uses
-                        input_tokens += _input_tokens
-                        output_tokens += _output_tokens
-
-                    if not target_agent:
-                        return current_response
-                    async for (
-                        response_message,
-                        chunk_text,
-                        thinking_chunk,
-                    ) in target_agent.process_messages(
-                        delegate_history, callback=process_result
-                    ):
-                        if response_message:
-                            current_response = response_message
-
-                        if thinking_chunk:
-                            think_text_chunk, _ = thinking_chunk
-                            if think_text_chunk:
-                                thinking_content += think_text_chunk
-
-                    if tool_uses and len(tool_uses) > 0:
-                        filtered_tool_uses = [
-                            t
-                            for t in tool_uses
-                            if t["name"] not in ["transfer", "delegate"]
-                        ]
-
-                        if not filtered_tool_uses:
-                            return current_response
-
-                        # Add thinking content as a separate message if available
-                        thinking_data = (
-                            (thinking_content, None) if thinking_content else None
-                        )
-                        if thinking_data:
-                            thinking_message = target_agent.format_message(
-                                MessageType.Thinking, {"thinking": thinking_data}
-                            )
-                            if thinking_message:
-                                delegate_history.append(thinking_message)
-
-                        # Format assistant message with the response and tool uses
-                        assistant_message = target_agent.format_message(
-                            MessageType.Assistant,
-                            {
-                                "message": current_response,
-                                "tool_uses": filtered_tool_uses,
-                            },
-                        )
-                        if assistant_message:
-                            delegate_history.append(assistant_message)
-
-                        # Process each tool use
-                        for tool_use in filtered_tool_uses:
-                            try:
-                                tool_result = await target_agent.execute_tool_call(
-                                    tool_use["name"],
-                                    tool_use["input"],
-                                )
-
-                                tool_result_message = target_agent.format_message(
-                                    MessageType.ToolResult,
-                                    {
-                                        "tool_use": tool_use,
-                                        "tool_result": tool_result,
-                                    },
-                                )
-                                if tool_result_message:
-                                    delegate_history.append(tool_result_message)
-
-                            except Exception as e:
-                                error_message = target_agent.format_message(
-                                    MessageType.ToolResult,
-                                    {
-                                        "tool_use": tool_use,
-                                        "tool_result": str(e),
-                                        "is_error": True,
-                                    },
-                                )
-                                if error_message:
-                                    delegate_history.append(error_message)
-
-                        # Continue the loop to process more messages
-                        return await _process_delegation()
-
-                    return current_response
-
-                response = asyncio.run(_process_delegation())
+                response = asyncio.run(_do_delegation())
 
             except Exception as e:
                 raise ValueError(

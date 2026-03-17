@@ -1,0 +1,87 @@
+from typing import Any, Callable, Dict, List, Optional
+
+from AgentCrew.modules.agents.local_agent import LocalAgent
+from AgentCrew.modules.agents.base import MessageType
+
+
+async def run_agent_loop(
+    agent: LocalAgent,
+    history: List[Dict[str, Any]],
+    *,
+    tool_filter: Optional[Callable[[Dict[str, Any]], bool]] = None,
+) -> str:
+    current_response = ""
+    thinking_content = ""
+    thinking_signature = ""
+    tool_uses: List[Dict[str, Any]] = []
+    input_tokens = 0
+    output_tokens = 0
+
+    def process_result(_tool_uses, _input_tokens, _output_tokens):
+        nonlocal tool_uses, input_tokens, output_tokens
+        tool_uses = _tool_uses
+        input_tokens += _input_tokens
+        output_tokens += _output_tokens
+
+    async for (
+        response_message,
+        chunk_text,
+        thinking_chunk,
+    ) in agent.process_messages(history, callback=process_result):
+        if response_message:
+            current_response = response_message
+        if thinking_chunk:
+            think_text_chunk, signature = thinking_chunk
+            if think_text_chunk:
+                thinking_content += think_text_chunk
+            if signature:
+                thinking_signature += signature
+
+    if not tool_uses:
+        return current_response
+
+    if tool_filter:
+        filtered = [t for t in tool_uses if tool_filter(t)]
+    else:
+        filtered = tool_uses
+
+    if not filtered:
+        return current_response
+
+    thinking_data = (thinking_content, thinking_signature) if thinking_content else None
+    thinking_message = agent.format_message(
+        MessageType.Thinking, {"thinking": thinking_data}
+    )
+    if thinking_message:
+        history.append(thinking_message)
+
+    assistant_message = agent.format_message(
+        MessageType.Assistant,
+        {"message": current_response, "tool_uses": filtered},
+    )
+    if assistant_message:
+        history.append(assistant_message)
+
+    for tool_use in filtered:
+        try:
+            tool_result = await agent.execute_tool_call(
+                tool_use["name"], tool_use["input"]
+            )
+        except Exception as e:
+            tool_result = str(e)
+            error_msg = agent.format_message(
+                MessageType.ToolResult,
+                {"tool_use": tool_use, "tool_result": tool_result, "is_error": True},
+            )
+            if error_msg:
+                history.append(error_msg)
+            continue
+
+        result_msg = agent.format_message(
+            MessageType.ToolResult,
+            {"tool_use": tool_use, "tool_result": tool_result},
+        )
+        if result_msg:
+            history.append(result_msg)
+
+    return await run_agent_loop(agent, history, tool_filter=tool_filter)

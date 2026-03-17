@@ -156,7 +156,7 @@ class AgentTaskManager(TaskManager):
             (m for m in message.get("content", []) if m.get("type", "text") == "file"),
             None,
         ):
-            from AgentCrew.modules.chat.file_handler import FileHandler
+            from AgentCrew.modules.utils.file_handler import FileHandler
 
             new_parts = []
             if self.file_handler is None:

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, List, Dict, Any
 import os
 
-from AgentCrew.modules.chat.file_handler import FileHandler
+from AgentCrew.modules.utils.file_handler import FileHandler
 from AgentCrew.modules.llm.model_registry import ModelRegistry
 from AgentCrew.modules.llm.service_manager import ServiceManager
 from AgentCrew.modules.chat.consolidation import ConversationConsolidator

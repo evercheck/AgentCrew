@@ -125,8 +125,7 @@ class ToolManager:
             return
 
         if (
-            not self.message_handler.is_non_interactive
-            and not self.get_effective_yolo_mode()
+            not self.get_effective_yolo_mode()
             and tool_name not in self._auto_approved_tools
         ):
             # Request confirmation from the user
