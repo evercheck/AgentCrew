@@ -127,7 +127,30 @@ class RedisTaskStore(TaskStore):
         await r.delete(
             self._key("task", task_id),
             self._key("events", task_id),
+            self._key("pending", task_id),
         )
+
+    async def save_pending_tools(
+        self, task_id: str, ask_tool_use: dict, remaining_tools: list
+    ) -> None:
+        r = await self._get_redis()
+        key = self._key("pending", task_id)
+        data = {
+            "ask_tool_use": ask_tool_use,
+            "remaining_tools": remaining_tools,
+        }
+        await r.set(key, json.dumps(data, default=str), ex=self.ttl)
+
+    async def get_pending_tools(self, task_id: str) -> dict | None:
+        r = await self._get_redis()
+        data = await r.get(self._key("pending", task_id))
+        if data is None:
+            return None
+        return json.loads(data)
+
+    async def clear_pending_tools(self, task_id: str) -> None:
+        r = await self._get_redis()
+        await r.delete(self._key("pending", task_id))
 
     async def list_task_ids(self) -> list:
         r = await self._get_redis()

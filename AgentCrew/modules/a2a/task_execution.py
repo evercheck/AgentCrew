@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -19,6 +20,12 @@ from AgentCrew.modules.tools.parallel_executor import (
 )
 from .adapters import convert_agent_response_to_a2a_artifact
 from .exceptions import TaskCanceledException
+
+
+class ToolCallResult(Enum):
+    CONTINUE = "continue"
+    INPUT_REQUIRED = "input_required"
+
 
 if TYPE_CHECKING:
     from typing import Any, Dict, List, Optional, Tuple
@@ -70,6 +77,10 @@ class TaskExecutionEngine:
             )
 
             if self.cancellation.is_canceled(task.id):
+                return
+
+            if task.status.state == TaskState.input_required:
+                logger.info(f"Task {task.id} paused for user input")
                 return
 
             await self._finalize_task(
@@ -202,7 +213,12 @@ class TaskExecutionEngine:
                         task.context_id, assistant_message, task_history
                     )
 
-                await self._execute_tool_calls(agent, task, tool_uses, task_history)
+                tool_call_result = await self._execute_tool_calls(
+                    agent, task, tool_uses, task_history
+                )
+
+                if tool_call_result == ToolCallResult.INPUT_REQUIRED:
+                    return ""
 
                 return await self._process_task(
                     agent, task, task_history, artifacts, retried_count
@@ -275,10 +291,10 @@ class TaskExecutionEngine:
         task: Task,
         tool_uses: List[Dict[str, Any]],
         task_history: List[Dict[str, Any]],
-    ) -> None:
+    ) -> ToolCallResult:
         parallel_buffer: List[Dict[str, Any]] = []
 
-        for tool_use in tool_uses:
+        for i, tool_use in enumerate(tool_uses):
             if self.cancellation.is_canceled(task.id):
                 raise TaskCanceledException(
                     f"Task {task.id} was canceled during tool execution"
@@ -290,12 +306,20 @@ class TaskExecutionEngine:
                         agent, task, parallel_buffer, task_history
                     )
                     parallel_buffer = []
-                await self._execute_single_tool(agent, task, tool_use, task_history)
+                result = await self._execute_single_tool(
+                    agent, task, tool_use, task_history
+                )
+                if result == ToolCallResult.INPUT_REQUIRED:
+                    remaining = tool_uses[i + 1 :]
+                    await self._save_pending_tools(task.id, tool_use, remaining)
+                    return ToolCallResult.INPUT_REQUIRED
             else:
                 parallel_buffer.append(tool_use)
 
         if parallel_buffer:
             await self._flush_parallel(agent, task, parallel_buffer, task_history)
+
+        return ToolCallResult.CONTINUE
 
     async def _execute_single_tool(
         self,
@@ -303,10 +327,10 @@ class TaskExecutionEngine:
         task: Task,
         tool_use: Dict[str, Any],
         task_history: List[Dict[str, Any]],
-    ) -> None:
+    ) -> ToolCallResult:
         tool_name = tool_use["name"]
         if tool_name == "ask":
-            await self._handle_ask_tool(agent, task, tool_use, task_history)
+            return await self._handle_ask_tool(agent, task, tool_use, task_history)
         else:
             try:
                 tool_result = await agent.execute_tool_call(
@@ -333,6 +357,7 @@ class TaskExecutionEngine:
                     await self._append_history_message(
                         task.context_id, error_message, task_history
                     )
+            return ToolCallResult.CONTINUE
 
     async def _flush_parallel(
         self,
@@ -360,7 +385,7 @@ class TaskExecutionEngine:
         task: Task,
         tool_use: Dict[str, Any],
         task_history: List[Dict[str, Any]],
-    ) -> None:
+    ) -> ToolCallResult:
         question = tool_use["input"].get("question", "")
         guided_answers = tool_use["input"].get("guided_answers", [])
 
@@ -381,37 +406,8 @@ class TaskExecutionEngine:
             ),
         )
 
-        user_answer = await self.interaction.wait_for_answer(task.id)
-
-        if self.cancellation.is_canceled(task.id):
-            raise TaskCanceledException(
-                f"Task {task.id} was canceled while waiting for input"
-            )
-
-        tool_result = f"User's answer: {user_answer}"
-
-        task.status.state = TaskState.working
-        task.status.timestamp = datetime.now().isoformat()
-        task.status.message = None
-
-        tool_result_message = agent.format_message(
-            MessageType.ToolResult,
-            {"tool_use": tool_use, "tool_result": tool_result},
-        )
-        if tool_result_message:
-            await self._append_history_message(
-                task.context_id, tool_result_message, task_history
-            )
-
-        await self.streaming.record_and_emit_event(
-            task.id,
-            TaskStatusUpdateEvent(
-                task_id=task.id,
-                context_id=task.context_id,
-                status=task.status,
-                final=False,
-            ),
-        )
+        await self.streaming.signal_end(task.id)
+        return ToolCallResult.INPUT_REQUIRED
 
     async def _finalize_task(
         self,
@@ -456,6 +452,14 @@ class TaskExecutionEngine:
                 ),
             )
             await self.streaming.signal_end(task.id)
+
+    async def _save_pending_tools(
+        self,
+        task_id: str,
+        ask_tool_use: Dict[str, Any],
+        remaining_tools: List[Dict[str, Any]],
+    ) -> None:
+        await self.store.save_pending_tools(task_id, ask_tool_use, remaining_tools)
 
     async def _append_history_message(
         self,

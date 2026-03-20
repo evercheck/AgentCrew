@@ -32,6 +32,9 @@ class FileTaskStore(TaskStore):
     def _events_path(self, task_id: str) -> Path:
         return self.base_dir / "events" / f"{task_id}.json"
 
+    def _pending_path(self, task_id: str) -> Path:
+        return self.base_dir / "tasks" / f"{task_id}_pending.json"
+
     def _safe_filename(self, name: str) -> str:
         return name.replace("/", "_").replace("\\", "_").replace("..", "_")
 
@@ -116,9 +119,34 @@ class FileTaskStore(TaskStore):
             for path in [
                 self._task_path(safe_id),
                 self._events_path(safe_id),
+                self._pending_path(safe_id),
             ]:
                 if path.exists():
                     path.unlink()
+
+    async def save_pending_tools(
+        self, task_id: str, ask_tool_use: dict, remaining_tools: list
+    ) -> None:
+        async with self.lock:
+            path = self._pending_path(self._safe_filename(task_id))
+            data = {
+                "ask_tool_use": ask_tool_use,
+                "remaining_tools": remaining_tools,
+            }
+            path.write_text(json.dumps(data, default=str))
+
+    async def get_pending_tools(self, task_id: str) -> dict | None:
+        async with self.lock:
+            path = self._pending_path(self._safe_filename(task_id))
+            if not path.exists():
+                return None
+            return json.loads(path.read_text())
+
+    async def clear_pending_tools(self, task_id: str) -> None:
+        async with self.lock:
+            path = self._pending_path(self._safe_filename(task_id))
+            if path.exists():
+                path.unlink()
 
     async def list_task_ids(self) -> List[str]:
         async with self.lock:

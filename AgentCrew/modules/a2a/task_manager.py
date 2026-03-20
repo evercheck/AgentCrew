@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import TYPE_CHECKING
 import tempfile
 import os
@@ -34,7 +34,7 @@ from .task_store import TaskStore
 from .task_cancellation import TaskCancellationManager
 from .task_streaming import TaskStreamingManager
 from .task_interaction import TaskInteractionHandler
-from .task_execution import TaskExecutionEngine
+from .task_execution import TaskExecutionEngine, ToolCallResult
 
 if TYPE_CHECKING:
     from typing import Any, AsyncIterable, Dict, Optional, Union
@@ -71,7 +71,7 @@ class AgentTaskManager(TaskManager):
 
         self.cancellation = TaskCancellationManager()
         self.streaming = TaskStreamingManager(store)
-        self.interaction = TaskInteractionHandler(self.cancellation)
+        self.interaction = TaskInteractionHandler()
         self.execution = TaskExecutionEngine(
             agent_name,
             store,
@@ -132,7 +132,55 @@ class AgentTaskManager(TaskManager):
             if existing_task.status.state in INPUT_REQUIRED_STATES:
                 message = convert_a2a_message_to_agent(request.params.message)
                 user_response = self._extract_text_from_message(message)
-                self.interaction.submit_answer(task_id, user_response)
+
+                pending = await self.store.get_pending_tools(task_id)
+                if pending:
+                    ask_tool_use = pending["ask_tool_use"]
+                    remaining_tools = pending["remaining_tools"]
+
+                    tool_result = f"User's answer: {user_response}"
+                    tool_result_message = self.agent.format_message(
+                        MessageType.ToolResult,
+                        {"tool_use": ask_tool_use, "tool_result": tool_result},
+                    )
+                    if tool_result_message:
+                        await self.store.append_task_history_message(
+                            existing_task.context_id, tool_result_message
+                        )
+
+                    if remaining_tools:
+                        task_history = await self.store.get_task_history(
+                            existing_task.context_id
+                        )
+                        for remaining_tool in remaining_tools:
+                            result = await self.execution._execute_single_tool(
+                                self.agent, existing_task, remaining_tool, task_history
+                            )
+                            if result == ToolCallResult.INPUT_REQUIRED:
+                                new_remaining = remaining_tools[
+                                    remaining_tools.index(remaining_tool) + 1 :
+                                ]
+                                await self.store.save_pending_tools(
+                                    task_id, remaining_tool, new_remaining
+                                )
+                                return SendMessageResponse(
+                                    root=SendMessageSuccessResponse(
+                                        id=request.id, result=existing_task
+                                    )
+                                )
+
+                    await self.store.clear_pending_tools(task_id)
+
+                existing_task.status.state = TaskState.working
+                existing_task.status.timestamp = datetime.now().isoformat()
+                existing_task.status.message = None
+                await self.store.save_task(existing_task)
+
+                bg_task = asyncio.create_task(
+                    self.execution.run(self.agent, existing_task)
+                )
+                self.cancellation.register(task_id, bg_task)
+
                 return SendMessageResponse(
                     root=SendMessageSuccessResponse(id=request.id, result=existing_task)
                 )
@@ -250,7 +298,6 @@ class AgentTaskManager(TaskManager):
             )
 
         self.cancellation.signal_cancel(task_id)
-        self.interaction.cancel_pending(task_id)
 
         task.status.state = TaskState.canceled
         task.status.timestamp = datetime.now().isoformat()
@@ -303,6 +350,9 @@ class AgentTaskManager(TaskManager):
         if self._is_terminal_state(task.status.state):
             return
 
+        if task.status.state in INPUT_REQUIRED_STATES:
+            return
+
         if not self.streaming.is_streaming_enabled(task_id):
             yield SendStreamingMessageResponse(
                 root=JSONRPCErrorResponse(
@@ -338,13 +388,25 @@ class AgentTaskManager(TaskManager):
     async def on_send_task(self, request: SendMessageRequest) -> SendMessageResponse:
         return await self.on_send_message(request)
 
-    async def cleanup_terminal_tasks(self) -> None:
+    def _is_expired(self, timestamp: str, retention: timedelta) -> bool:
+        try:
+            ts = datetime.fromisoformat(timestamp)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            return datetime.now(timezone.utc) - ts > retention
+        except (ValueError, TypeError):
+            return True
+
+    async def cleanup_terminal_tasks(
+        self, retention: timedelta = timedelta(hours=24)
+    ) -> None:
         task_ids = await self.store.list_task_ids()
         for task_id in task_ids:
             task = await self.store.get_task(task_id)
             if task and self._is_terminal_state(task.status.state):
-                await self.store.cleanup_task(task_id)
-                self.streaming.cleanup(task_id)
+                if self._is_expired(task.status.timestamp, retention):
+                    await self.store.cleanup_task(task_id)
+                    self.streaming.cleanup(task_id)
 
     async def on_send_task_subscribe(
         self, request: SendStreamingMessageRequest

@@ -1,115 +1,60 @@
+# Instructions injected when there IS previous conversation context (merge mode)
+MERGE_INSTRUCTIONS = """When PREVIOUS_CONVERSATION_CONTEXT is provided:
+- Update HEAD to reflect the full conversation so far
+- Merge CONTEXT with new information from CONVERSATION_TURN
+- Append new INSIGHTS, ENTITIES, DOMAINS, RESOURCES from CONVERSATION_TURN
+- Keep ALL existing CONVERSATION_NOTES intact, append new ones from this turn"""
+
+# Instructions injected when there is NO previous context (first turn)
+FIRST_TURN_INSTRUCTIONS = """Create a new memory record from this conversation turn."""
+
 PRE_ANALYZE_PROMPT = """
-<MEMORY_PROCESSING_REQUEST>
-    Extract this conversation for AI memory storage. Create a comprehensive xml record must start with <MEMORY> that includes all fields in <OUTPUT_FORMAT> below.
-    <OUTPUT_FORMAT>
-    1. HEAD: one short sentence that describe this conversation.
-    2. DATE: {current_date}
-    3. CONTEXT: Background information relevant to understanding this exchange
-    4. INSIGHTS: Important insights, lessons learned, or conclusions drawn from the conversation
-    5. ENTITIES: Important people, organizations, products, or concepts mentioned including essential facts, concepts, or data points discussed about that entity
-    6. DOMAINS: The subject domain(s) this conversation relates to
-    7. RESOURCES: Important urls, file paths has been mentioned in conversation.
-    8. CONVERSATION_NOTES: The key extracted information from conversation.
-    </OUTPUT_FORMAT>
+Extract this conversation into an XML <MEMORY> record.
+Date: {current_date}
+{context_instructions}
+{conversation_context}
+<CONVERSATION_TURN>
+<USER>
+{user_message}
+</USER>
+<ASSISTANT>
+{assistant_response}
+</ASSISTANT>
+</CONVERSATION_TURN>
 
-    <CONVERSATION_TURN>
-        <USER>
-        {user_message}
-        </USER>
-        <ASSISTANT>
-        {assistant_response}
-        </ASSISTANT>
-    </CONVERSATION_TURN>
+Rules:
+- Output ONLY the <MEMORY> XML block. No other text.
+- Use "" for any field with nothing relevant.
+- CONVERSATION_NOTES: capture ONLY actionable notes for future reference — caveats, edge cases, workarounds (note what they fix and when removable), non-obvious decisions with rationale, constraints, unresolved issues, user corrections/preferences. NO generic summaries like "user asked X, assistant answered Y".
 
-    <PROCESSING_INSTRUCTIONS>
-    1. Format each section with its heading in ALL CAPS as a tag wrapped around the content.
-    2. If a section would be empty, include the heading with empty text "" as the content.
-    3. Focus on extracting factual information rather than making assumptions.
-    4. <CONVERSATION_NOTES> should capture all the key points and the direction of flow of the whole conversation in concise.
-    5. No explanations or additional text.
-    </PROCESSING_INSTRUCTIONS>
-
-    <EXAMPLES>
-        <MEMORY>
-            <HEAD>discussion about donald trump</HEAD>
-            <DATE>2025-01-03</DATE>
-            <CONTEXT>discussed with user about details and facts around Donald Trump</CONTEXT>
-            <INSIGHTS>
-                <INSIGHT>To get accurate information, assistant need to collect from multi sources</INSIGHT>
-            </INSIGHTS>
-            <ENTITIES>
-                <ENTITY>
-                    <NAME>DONALP TRUMP</NAME>
-                    <DESC>President of United States</DESC>
-                </ENTITY>
-            </ENTITIES>
-            <DOMAINS>
-                <DOMAIN>Politics</DOMAIN>
-            </DOMAINS>
-            <RESOURCES>
-                <RESOURCE>https://en.wikipedia.org/wiki/Donald_Trump</RESOURCE>
-            </RESOURCES>
-            <CONVERSATION_NOTES>
-                <NOTE>User asked about Donald Trump's background. Assistant provided details on his presidency and key events.</NOTE>
-            </CONVERSATION_NOTES>
-        </MEMORY>
-    </EXAMPLES>
-</MEMORY_PROCESSING_REQUEST>
-"""
-
-PRE_ANALYZE_WITH_CONTEXT_PROMPT = """
-<MEMORY_PROCESSING_REQUEST>
-    Extract this conversation for AI memory storage. Create a comprehensive xml record must start with <MEMORY> following INSTRUCTIONS that includes all fields in <OUTPUT_FORMAT> below. No explanations or additional text.
-
-    <INSTRUCTIONS>
-    1. HEAD: update existed HEAD from <PREVIOUS_CONVERSATION_CONTEXT> if available or create one short sentence that describe this conversation.
-    2. DATE: {current_date}
-    3. CONTEXT: Merge the CONTEXT of <PREVIOUS_CONVERSATION_CONTEXT> with new context in CONVERSATION_TURN
-    4. INSIGHTS: Add to the INSIGHTS of <PREVIOUS_CONVERSATION_CONTEXT> for new important insights, lessons learned, or conclusions drawn from CONVERSATION_TURN.
-    5. ENTITIES: Add to the ENTITIES of <PREVIOUS_CONVERSATION_CONTEXT> for new important people, organizations, products, or concepts mentioned in CONVERSATION_TURN including essential facts, concepts, or data points discussed about that entity
-    6. DOMAINS: Add to the DOMAINS of <PREVIOUS_CONVERSATION_CONTEXT> for new subject domain(s) in CONVERSATION_TURN related
-    7. RESOURCES: Add to the RESOURCES of <PREVIOUS_CONVERSATION_CONTEXT> for new important urls, file paths, mentioned in CONVERSATION_TURN
-    8. CONVERSATION_NOTES: Add the CONVERSATION_NOTES of <PREVIOUS_CONVERSATION_CONTEXT> for new key notes extracted information from CONVERSATION_TURN. PREVIOUS_CONVERSATION_CONTEXT CONVERSATION_NOTES must be keep intact.
-    </INSTRUCTIONS>
-
-    {conversation_context}
-
-    <CONVERSATION_TURN>
-        <USER>
-        {user_message}
-        </USER>
-        <ASSISTANT>
-        {assistant_response}
-        </ASSISTANT>
-    </CONVERSATION_TURN>
-
-    <OUTPUT_FORMAT>
-        <MEMORY>
-            <HEAD>[head]</HEAD>
-            <DATE>[current_date]</DATE>
-            <SUMMARY>[merged_summary]</SUMMARY>
-            <CONTEXT>[merged_context]</CONTEXT>
-            <INSIGHTS>
-                <INSIGHT>[added_insight]</INSIGHT>
-            </INSIGHTS>
-            <ENTITIES>
-                <ENTITY>
-                    <NAME>[added_entity_name]</NAME>
-                    <DESC>[added_entity_description]</DESC>
-                </ENTITY>
-            </ENTITIES>
-            <DOMAINS>
-                <DOMAIN>[added_domain]</DOMAIN>
-            </DOMAINS>
-            <RESOURCES>
-                </RESOURCE>[added_resource]</RESOURCE>
-            </RESOURCES>
-            <CONVERSATION_NOTES>
-                <NOTE>[added_notes]</NOTE>
-            </CONVERSATION_NOTES>
-        </MEMORY>
-    </OUTPUT_FORMAT>
-</MEMORY_PROCESSING_REQUEST>
+<EXAMPLE>
+<MEMORY>
+    <HEAD>debugging async streaming issue in task_manager</HEAD>
+    <DATE>2025-06-15</DATE>
+    <CONTEXT>User debugging a race condition in async generator streaming where task state was being mutated during iteration</CONTEXT>
+    <INSIGHTS>
+        <INSIGHT>Async generators in Python need explicit cleanup — relying on GC causes resource leaks in long-running services</INSIGHT>
+    </INSIGHTS>
+    <ENTITIES>
+        <ENTITY>
+            <NAME>task_manager.py</NAME>
+            <DESC>Core module handling task lifecycle and async streaming, ~800 lines</DESC>
+        </ENTITY>
+    </ENTITIES>
+    <DOMAINS>
+        <DOMAIN>Software Development</DOMAIN>
+        <DOMAIN>Async Programming</DOMAIN>
+    </DOMAINS>
+    <RESOURCES>
+        <RESOURCE>AgentCrew/modules/a2a/task_manager.py</RESOURCE>
+    </RESOURCES>
+    <CONVERSATION_NOTES>
+        <NOTE>Caveat: task state dict must not be mutated while an async generator is yielding from it — causes RuntimeError. Deep copy before yielding.</NOTE>
+        <NOTE>Workaround: added asyncio.Lock around state access — temporary fix until task state is refactored to immutable snapshots.</NOTE>
+        <NOTE>Unresolved: memory leak when client disconnects mid-stream — generator cleanup not triggered reliably.</NOTE>
+    </CONVERSATION_NOTES>
+</MEMORY>
+</EXAMPLE>
 """
 
 POST_RETRIEVE_MEMORY = """

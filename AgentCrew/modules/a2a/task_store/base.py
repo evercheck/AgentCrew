@@ -62,6 +62,20 @@ class TaskStore(ABC):
         pass
 
     @abstractmethod
+    async def save_pending_tools(
+        self, task_id: str, ask_tool_use: dict, remaining_tools: list
+    ) -> None:
+        pass
+
+    @abstractmethod
+    async def get_pending_tools(self, task_id: str) -> Optional[dict]:
+        pass
+
+    @abstractmethod
+    async def clear_pending_tools(self, task_id: str) -> None:
+        pass
+
+    @abstractmethod
     async def cleanup_task(self, task_id: str) -> None:
         pass
 

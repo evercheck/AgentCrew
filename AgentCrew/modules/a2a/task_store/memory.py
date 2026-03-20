@@ -20,6 +20,7 @@ class InMemoryTaskStore(TaskStore):
         self.task_events: Dict[
             str, List[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]
         ] = defaultdict(list)
+        self.pending_tools: Dict[str, dict] = {}
         self.lock = asyncio.Lock()
 
     async def get_task(self, task_id: str) -> Optional[Task]:
@@ -78,6 +79,24 @@ class InMemoryTaskStore(TaskStore):
         async with self.lock:
             self.tasks.pop(task_id, None)
             self.task_events.pop(task_id, None)
+            self.pending_tools.pop(task_id, None)
+
+    async def save_pending_tools(
+        self, task_id: str, ask_tool_use: dict, remaining_tools: list
+    ) -> None:
+        async with self.lock:
+            self.pending_tools[task_id] = {
+                "ask_tool_use": ask_tool_use,
+                "remaining_tools": remaining_tools,
+            }
+
+    async def get_pending_tools(self, task_id: str) -> dict | None:
+        async with self.lock:
+            return self.pending_tools.get(task_id)
+
+    async def clear_pending_tools(self, task_id: str) -> None:
+        async with self.lock:
+            self.pending_tools.pop(task_id, None)
 
     async def list_task_ids(self) -> list:
         async with self.lock:
