@@ -65,7 +65,7 @@ class ChromaMemoryService(BaseMemoryService):
             elif self.llm_service.provider_name == "deepinfra":
                 self.llm_service.model = "google/gemma-3-27b-it"
             elif self.llm_service.provider_name == "github_copilot":
-                self.llm_service.model = "gpt-4o-mini"
+                self.llm_service.model = "gpt-5-mini"
 
         self._collection = None
         self.collection_name = collection_name
@@ -246,8 +246,9 @@ class ChromaMemoryService(BaseMemoryService):
             retried = 0
             if self.llm_service:
                 while retried < 3:
+                    analyzed_text = None
+                    xml_content = None
                     try:
-                        # Process with LLM using asyncio.run to handle async call in worker thread
                         if self.current_conversation_context.get(session_id, ""):
                             analyzed_prompt = PRE_ANALYZE_PROMPT.replace(
                                 "{context_instructions}",
@@ -274,6 +275,13 @@ class ChromaMemoryService(BaseMemoryService):
                         analyzed_text = await self.llm_service.process_message(
                             analyzed_prompt
                         )
+                        if (
+                            "<MEMORY>" not in analyzed_text
+                            or "</MEMORY>" not in analyzed_text
+                        ):
+                            raise ValueError(
+                                "LLM response missing <MEMORY>...</MEMORY> block"
+                            )
                         start_xml = analyzed_text.index("<MEMORY>")
                         end_xml = analyzed_text.index("</MEMORY>")
                         xml_content = analyzed_text[
@@ -288,8 +296,11 @@ class ChromaMemoryService(BaseMemoryService):
                         memory_data = xmltodict.parse(xml_content)
                         break
                     except Exception as e:
+                        analyzed_preview = None
+                        if isinstance(analyzed_text, str):
+                            analyzed_preview = analyzed_text[:500]
                         logger.warning(
-                            f"Error processing conversation with LLM: {e} {xml_content}"  # type: ignore
+                            f"Error processing conversation with LLM on retry {retried + 1}/3: {str(e)} | xml_content={xml_content} | analyzed_preview={analyzed_preview}",
                         )
                         retried += 1
                         continue
