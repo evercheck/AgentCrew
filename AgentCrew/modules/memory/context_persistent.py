@@ -162,7 +162,22 @@ class ContextPersistenceService:
             True if the file was deleted or did not exist, False on error.
         """
         file_path = os.path.join(self.conversations_dir, f"{conversation_id}.json")
+        metadata_path = os.path.join(
+            self.conversations_dir, f"{conversation_id}.metadata.json"
+        )
         try:
+            metadata = self.get_conversation_metadata(conversation_id)
+            parent_id = metadata.get("parent_id")
+            if parent_id:
+                parent_metadata = self.get_conversation_metadata(parent_id)
+                fork_children = parent_metadata.get("fork_children", [])
+                parent_metadata["fork_children"] = [
+                    c
+                    for c in fork_children
+                    if c.get("conversation_id") != conversation_id
+                ]
+                self.store_conversation_metadata(parent_id, parent_metadata)
+
             if os.path.exists(file_path):
                 os.remove(file_path)
                 logger.info(f"INFO: Deleted conversation file: {file_path}")
@@ -170,6 +185,11 @@ class ContextPersistenceService:
                 logger.info(
                     f"INFO: Conversation file not found (already deleted?): {file_path}"
                 )
+
+            if os.path.exists(metadata_path):
+                os.remove(metadata_path)
+                logger.info(f"INFO: Deleted metadata file: {metadata_path}")
+
             return True
         except OSError as e:
             logger.error(f"ERROR: Failed to delete conversation file {file_path}: {e}")
@@ -224,13 +244,13 @@ class ContextPersistenceService:
         if force:
             history = new_messages
         else:
-            # Append the new messages
             history.extend(new_messages)
 
         self._write_json_file(file_path, history)
-        # print(
-        #     f"INFO: Appended {len(new_messages)} message(s) to conversation: {conversation_id}"
-        # )
+
+        preview = self._extract_preview(history)
+        if preview != "Empty Conversation":
+            self.store_conversation_metadata(conversation_id, {"preview": preview})
 
     def get_conversation_history(
         self, conversation_id: str
@@ -260,11 +280,16 @@ class ContextPersistenceService:
         self, conversation_id: str, metadata: Dict[str, Any]
     ) -> bool:
         """
-        Stores metadata for a conversation as a separate JSON file.
+        Merges metadata into a conversation's existing metadata file.
+
+        Reads the current metadata, updates it with the provided dict,
+        then writes the result back. This preserves fork relationship
+        fields (parent_id, fork_children, etc.) that callers may not
+        be aware of.
 
         Args:
             conversation_id: The ID of the conversation.
-            metadata: Dictionary containing metadata to store.
+            metadata: Dictionary containing metadata fields to upsert.
 
         Returns:
             True if successful, False otherwise.
@@ -281,7 +306,11 @@ class ContextPersistenceService:
         )
 
         try:
-            self._write_json_file(file_path, metadata)
+            existing = self._read_json_file(file_path, default_value={})
+            if not isinstance(existing, dict):
+                existing = {}
+            existing.update(metadata)
+            self._write_json_file(file_path, existing)
             logger.info(f"INFO: Stored metadata for conversation: {conversation_id}")
             return True
         except Exception as e:
@@ -312,6 +341,58 @@ class ContextPersistenceService:
 
         return metadata
 
+    def _extract_preview(self, history: List[Dict[str, Any]]) -> str:
+        """
+        Extracts a preview string from a conversation history.
+
+        Returns the first meaningful user message text (up to 50 chars),
+        skipping memory-injection and file-content messages.
+        """
+        preview = "Empty Conversation"
+        if not isinstance(history, list) or len(history) == 0:
+            return preview
+
+        user_msgs = (
+            msg
+            for msg in history
+            if isinstance(msg, dict) and msg.get("role") == "user"
+        )
+        for _ in range(len(history)):
+            first_user_msg = next(user_msgs, None)
+            if first_user_msg is None:
+                preview = "[No User Message Found]"
+                break
+
+            content = first_user_msg.get("content", "")
+            if isinstance(content, str) and content:
+                preview = (content[:50] + "...") if len(content) > 50 else content
+            elif isinstance(content, list):
+                first_text_block = next(
+                    (
+                        block.get("text", "")
+                        for block in content
+                        if isinstance(block, dict) and block.get("type") == "text"
+                    ),
+                    "",
+                )
+                if first_text_block:
+                    preview = (
+                        (first_text_block[:50] + "...")
+                        if len(first_text_block) > 50
+                        else first_text_block
+                    )
+                else:
+                    preview = "[Image/Tool Data]"
+            else:
+                preview = "[Non-text Content]"
+
+            if not preview.startswith(
+                "Memories related to the user request:"
+            ) and not preview.startswith("Content of "):
+                break
+
+        return preview
+
     def list_conversations(self) -> List[Dict[str, Any]]:
         """
         Scans the conversations directory and returns metadata for available conversations.
@@ -335,59 +416,14 @@ class ContextPersistenceService:
                     conversation_id = filename[:-5]  # Remove .json extension
                     file_path = os.path.join(self.conversations_dir, filename)
                     try:
-                        # getmtime raises OSError if file not found or inaccessible
                         mtime = os.path.getmtime(file_path)
                         timestamp = datetime.datetime.fromtimestamp(mtime).isoformat()
 
-                        # _read_json_file handles its own errors internally
-                        history = self._read_json_file(file_path, default_value=[])
-                        preview = "Empty Conversation"
-                        if isinstance(history, list) and len(history) > 0:
-                            user_msgs = (
-                                msg
-                                for msg in history
-                                if isinstance(msg, dict) and msg.get("role") == "user"
-                            )
-                            while True:
-                                first_user_msg = next(
-                                    user_msgs,
-                                    None,
-                                )
-                                if first_user_msg:
-                                    content = first_user_msg.get("content", "")
-                                    if isinstance(content, str) and content:
-                                        preview = (
-                                            (content[:50] + "...")
-                                            if len(content) > 50
-                                            else content
-                                        )
-                                    elif isinstance(content, list):
-                                        first_text_block = next(
-                                            (
-                                                block.get("text", "")
-                                                for block in content
-                                                if isinstance(block, dict)
-                                                and block.get("type") == "text"
-                                            ),
-                                            "",
-                                        )
-                                        if first_text_block:
-                                            preview = (
-                                                (first_text_block[:50] + "...")
-                                                if len(first_text_block) > 50
-                                                else first_text_block
-                                            )
-                                        else:
-                                            preview = "[Image/Tool Data]"
-                                    else:
-                                        preview = "[Non-text Content]"
-                                else:
-                                    preview = "[No User Message Found]"
-
-                                if not preview.startswith(
-                                    "Memories related to the user request:"
-                                ) and not preview.startswith("Content of "):
-                                    break
+                        metadata = self.get_conversation_metadata(conversation_id)
+                        preview = metadata.get("preview")
+                        if not preview:
+                            history = self._read_json_file(file_path, default_value=[])
+                            preview = self._extract_preview(history)
 
                         conversations.append(
                             {
@@ -557,6 +593,199 @@ class ContextPersistenceService:
                 return False
 
         return True  # Behavior didn't exist, consider it successful
+
+    def fork_conversation(
+        self, parent_conversation_id: str, message_index: int
+    ) -> Optional[str]:
+        """
+        Creates a fork of an existing conversation at a specific message index.
+
+        Copies messages up to (but not including) message_index into a new conversation,
+        updates both parent and child metadata with fork relationship info.
+
+        Args:
+            parent_conversation_id: The ID of the conversation to fork from.
+            message_index: The message index to fork at (messages before this index are copied).
+
+        Returns:
+            The new conversation ID if successful, None otherwise.
+        """
+        try:
+            parent_history = self.get_conversation_history(parent_conversation_id)
+            if parent_history is None:
+                logger.error(
+                    f"Cannot fork: parent conversation {parent_conversation_id} not found."
+                )
+                return None
+
+            forked_messages = parent_history[:message_index]
+
+            new_conversation_id = self.start_conversation()
+            self.append_conversation_messages(
+                new_conversation_id, forked_messages, force=True
+            )
+
+            now = datetime.datetime.now().isoformat()
+
+            child_metadata = self.get_conversation_metadata(new_conversation_id)
+            child_metadata["parent_id"] = parent_conversation_id
+            child_metadata["fork_point"] = message_index
+            child_metadata["fork_title"] = None
+            child_metadata["created_from"] = {
+                "conversation_id": parent_conversation_id,
+                "message_index": message_index,
+                "timestamp": now,
+            }
+            self.store_conversation_metadata(new_conversation_id, child_metadata)
+
+            parent_metadata = self.get_conversation_metadata(parent_conversation_id)
+            fork_children = parent_metadata.get("fork_children", [])
+            fork_children.append(
+                {
+                    "conversation_id": new_conversation_id,
+                    "fork_point": message_index,
+                    "timestamp": now,
+                }
+            )
+            parent_metadata["fork_children"] = fork_children
+            self.store_conversation_metadata(parent_conversation_id, parent_metadata)
+
+            logger.info(
+                f"Forked conversation {parent_conversation_id} at index {message_index} -> {new_conversation_id}"
+            )
+            return new_conversation_id
+
+        except Exception as e:
+            logger.error(f"Error forking conversation: {e}")
+            return None
+
+    def get_fork_info(self, conversation_id: str) -> Dict[str, Any]:
+        """
+        Gets fork-related information for a conversation from its metadata.
+
+        Args:
+            conversation_id: The ID of the conversation.
+
+        Returns:
+            Dictionary with 'is_fork', 'parent_id', 'fork_children', etc.
+        """
+        metadata = self.get_conversation_metadata(conversation_id)
+        parent_id = metadata.get("parent_id")
+        fork_children = metadata.get("fork_children", [])
+        return {
+            "is_fork": parent_id is not None,
+            "parent_id": parent_id,
+            "fork_point": metadata.get("fork_point"),
+            "fork_children": fork_children,
+        }
+
+    def list_conversations_with_forks(self) -> List[Dict[str, Any]]:
+        """
+        Lists all conversations with fork relationship info, ordered as a tree.
+
+        Root conversations (no parent) appear sorted by timestamp descending.
+        Fork children are inserted immediately after their parent, recursively,
+        sorted by fork creation timestamp. Each entry includes 'is_fork',
+        'fork_children', and 'indent_level' for UI rendering.
+
+        Single directory scan: reads both conversation data and metadata in one pass
+        to avoid redundant I/O from calling list_conversations() + get_conversation_metadata().
+
+        Returns:
+            A flat list of conversation dicts in tree-display order.
+        """
+        base_conversations: List[Dict[str, Any]] = []
+
+        try:
+            filenames = os.listdir(self.conversations_dir)
+            conv_filenames = [
+                f
+                for f in filenames
+                if f.endswith(".json") and not f.endswith(".metadata.json")
+            ]
+
+            for filename in conv_filenames:
+                conversation_id = filename[:-5]
+                file_path = os.path.join(self.conversations_dir, filename)
+                try:
+                    mtime = os.path.getmtime(file_path)
+                    timestamp = datetime.datetime.fromtimestamp(mtime).isoformat()
+
+                    metadata = self.get_conversation_metadata(conversation_id)
+                    preview = metadata.get("preview")
+                    if not preview:
+                        history = self._read_json_file(file_path, default_value=[])
+                        preview = self._extract_preview(history)
+
+                    parent_id = metadata.get("parent_id")
+                    fork_children = metadata.get("fork_children", [])
+
+                    base_conversations.append(
+                        {
+                            "id": conversation_id,
+                            "timestamp": timestamp,
+                            "title": preview,
+                            "preview": preview,
+                            "is_fork": False,
+                            "parent_id": parent_id,
+                            "fork_children": fork_children,
+                        }
+                    )
+                except OSError as e:
+                    logger.warning(f"WARNING: Could not access {filename}: {e}")
+                except Exception as e:
+                    logger.warning(
+                        f"WARNING: Error processing {filename} for listing: {e}"
+                    )
+        except FileNotFoundError:
+            logger.warning(
+                f"WARNING: Conversations directory not found: {self.conversations_dir}"
+            )
+            return []
+        except OSError as e:
+            logger.warning(
+                f"ERROR: Could not list conversations directory {self.conversations_dir}: {e}"
+            )
+            raise
+
+        conv_by_id: Dict[str, Dict[str, Any]] = {}
+        for conv in base_conversations:
+            conv_by_id[conv["id"]] = conv
+
+        children_map: Dict[str, List[str]] = {}
+        created_from_ts: Dict[str, str] = {}
+
+        for conv in base_conversations:
+            parent_id = conv.pop("parent_id")
+            if parent_id and parent_id in conv_by_id:
+                conv["is_fork"] = True
+                children_map.setdefault(parent_id, []).append(conv["id"])
+                created_from_ts[conv["id"]] = conv["timestamp"]
+
+        roots = [c for c in base_conversations if not c.get("is_fork")]
+        roots.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        result: List[Dict[str, Any]] = []
+
+        def _insert_subtree(conv_id: str, indent: int):
+            conv = conv_by_id.get(conv_id)
+            if conv is None:
+                return
+            conv["indent_level"] = indent
+            result.append(conv)
+
+            child_ids = children_map.get(conv_id, [])
+            child_ids.sort(
+                key=lambda cid: created_from_ts.get(cid, ""),
+                reverse=True,
+            )
+            for child_id in child_ids:
+                _insert_subtree(child_id, indent + 1)
+
+        for root in roots:
+            _insert_subtree(root["id"], 0)
+
+        return result
 
     def list_all_adaptive_behaviors(self) -> Dict[str, Dict[str, str]]:
         """

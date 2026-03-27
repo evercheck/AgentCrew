@@ -139,6 +139,8 @@ class ConversationManager:
                     self.message_handler.streamline_messages
                 )
 
+                self.message_handler.conversation_turns = []
+
                 for i, message in enumerate(self.message_handler.streamline_messages):
                     role = message.get("role")
                     if role == "user":
@@ -248,3 +250,145 @@ class ConversationManager:
             logger.error(f"ERROR: {error_msg}")
             self.message_handler._notify("error", {"message": error_msg})
             return False
+
+    def fork_conversation(self, turn_number: int) -> Optional[str]:
+        """
+        Creates a fork of the current conversation at a specific turn.
+
+        Unlike jump (which rolls back and overwrites), fork creates a new
+        conversation with messages up to the specified turn, preserving
+        the original conversation.
+
+        Args:
+            turn_number: The turn number to fork at (1-indexed).
+
+        Returns:
+            The new conversation ID if successful, None otherwise.
+        """
+        try:
+            # Validate turn number
+            if turn_number < 1 or turn_number > len(
+                self.message_handler.conversation_turns
+            ):
+                self.message_handler._notify(
+                    "error",
+                    f"Invalid turn number. Available turns: 1-{len(self.message_handler.conversation_turns)}",
+                )
+                return None
+
+            # Check if we have a current conversation
+            if not self.message_handler.current_conversation_id:
+                self.message_handler._notify("error", "No active conversation to fork.")
+                return None
+
+            # Check if persistence service is available
+            if not self.message_handler.persistent_service:
+                self.message_handler._notify(
+                    "error", "Persistence service not available for forking."
+                )
+                return None
+
+            # Get the selected turn
+            selected_turn = self.message_handler.conversation_turns[turn_number - 1]
+
+            # Create the fork
+            new_conversation_id = (
+                self.message_handler.persistent_service.fork_conversation(
+                    self.message_handler.current_conversation_id,
+                    selected_turn.message_index,
+                )
+            )
+
+            if new_conversation_id:
+                # Get preview for notification
+                preview = selected_turn.get_preview(100)
+
+                self.message_handler._notify(
+                    "fork_created",
+                    {
+                        "new_conversation_id": new_conversation_id,
+                        "parent_conversation_id": self.message_handler.current_conversation_id,
+                        "turn_number": turn_number,
+                        "preview": preview,
+                    },
+                )
+
+                self.message_handler._notify(
+                    "system_message",
+                    f"Forked conversation at turn {turn_number}. New ID: {new_conversation_id[:8]}...",
+                )
+
+                # Notify that conversations list changed
+                self.message_handler._notify("conversations_changed", None)
+
+                logger.info(
+                    f"INFO: Forked conversation {self.message_handler.current_conversation_id} at turn {turn_number} -> {new_conversation_id}"
+                )
+                return new_conversation_id
+            else:
+                self.message_handler._notify(
+                    "error", "Failed to create conversation fork."
+                )
+                return None
+
+        except Exception as e:
+            logger.error(f"Error forking conversation: {e}")
+            self.message_handler._notify(
+                "error", f"Failed to fork conversation: {str(e)}"
+            )
+            return None
+
+    def fork_and_switch(self, turn_number: int) -> bool:
+        """
+        Creates a fork and switches to the new conversation.
+
+        This is similar to jump behavior but creates a new conversation
+        instead of overwriting the current one.
+
+        Args:
+            turn_number: The turn number to fork at (1-indexed).
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        new_conversation_id = self.fork_conversation(turn_number)
+        if new_conversation_id:
+            # Switch to the new forked conversation
+            self.load_conversation(new_conversation_id)
+            return True
+        return False
+
+    def list_conversations_with_forks(self) -> List[Dict[str, Any]]:
+        """
+        Lists conversations with fork relationship information.
+
+        Returns:
+            A list of dictionaries with conversation info including fork data.
+        """
+        try:
+            if self.message_handler.persistent_service:
+                return self.message_handler.persistent_service.list_conversations_with_forks()
+            return []
+        except Exception as e:
+            logger.error(f"Error listing conversations with forks: {e}")
+            return []
+
+    def get_fork_info(self, conversation_id: str) -> Dict[str, Any]:
+        """
+        Gets fork-related information for a conversation.
+
+        Args:
+            conversation_id: The ID of the conversation.
+
+        Returns:
+            Dictionary containing fork information.
+        """
+        try:
+            if self.message_handler.persistent_service:
+                return self.message_handler.persistent_service.get_fork_info(
+                    conversation_id
+                )
+            return {"is_fork": False, "fork_children": []}
+        except Exception as e:
+            logger.error(f"Error getting fork info: {e}")
+            return {"is_fork": False, "fork_children": []}

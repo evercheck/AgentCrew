@@ -473,7 +473,9 @@ class ConsoleUI(Observer):
                         self.input_handler.stop()
                         raise SystemExit(0)
                     elif user_input.strip() == "/list":
-                        conversations = self.message_handler.list_conversations()
+                        conversations = (
+                            self.message_handler.list_conversations_with_forks()
+                        )
                         self.conversation_handler.update_cached_conversations(
                             conversations
                         )

@@ -109,8 +109,8 @@ class TogetherAIService(BaseLLMService):
                         if isinstance(item, dict):
                             if item.get("type") == "thinking":
                                 # Convert thinking blocks to text
-                                thinking_text = (
-                                    item.get("thinking", "") or item.get("text", "")
+                                thinking_text = item.get("thinking", "") or item.get(
+                                    "text", ""
                                 )
                                 if thinking_text:
                                     cleaned_content.append(

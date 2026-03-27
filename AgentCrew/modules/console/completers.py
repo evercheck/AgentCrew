@@ -40,6 +40,38 @@ class JumpCompleter(Completer):
                     )
 
 
+class ForkCompleter(Completer):
+    """Completer that shows available conversation turns when typing /fork command."""
+
+    def __init__(self, message_handler=None):
+        self.message_handler = message_handler
+
+    def get_completions(self, document, complete_event):
+        text = document.text
+
+        # Only provide completions for the /fork command
+        if text.startswith("/fork "):
+            word_before_cursor = document.get_word_before_cursor(
+                pattern=COMPLETER_PATTERN
+            )
+
+            conversation_turns = (
+                self.message_handler.conversation_turns if self.message_handler else []
+            )
+            # Get all available turn numbers
+            for i, turn in enumerate(conversation_turns, 1):
+                turn_str = str(i)
+                if turn_str.startswith(word_before_cursor):
+                    # Use the stored preview
+                    preview = turn.get_preview(40)
+                    display = f"{turn_str}: {preview}"
+                    yield Completion(
+                        turn_str,
+                        start_position=-len(word_before_cursor),
+                        display=display,
+                    )
+
+
 class ModelCompleter(Completer):
     """Completer that shows available models when typing /model command."""
 
@@ -148,6 +180,7 @@ class ChatCompleter(Completer):
         self.agent_completer = AgentCompleter()
         self.at_agent_completer = AtAgentCompleter()
         self.jump_completer = JumpCompleter(message_handler)
+        self.fork_completer = ForkCompleter(message_handler)
         self.mcp_completer = MCPCompleter(message_handler)
         self.drop_completer = DropCompleter(message_handler)
         self.behavior_completer = BehaviorIDCompleter(message_handler)
@@ -174,6 +207,9 @@ class ChatCompleter(Completer):
         elif text.startswith("/jump "):
             # Use jump completer for /jump command
             yield from self.jump_completer.get_completions(document, complete_event)
+        elif text.startswith("/fork "):
+            # Use fork completer for /fork command
+            yield from self.fork_completer.get_completions(document, complete_event)
         elif text.startswith("/mcp"):
             yield from self.mcp_completer.get_completions(document, complete_event)
         elif text.startswith("/file "):
@@ -229,6 +265,10 @@ class ChatCompleter(Completer):
             (
                 "/jump",
                 "Jump to a previous conversation turn (usage: /jump <turn_number>)",
+            ),
+            (
+                "/fork",
+                "Fork conversation at a turn, creating a new branch (usage: /fork <turn_number> [!])",
             ),
             (
                 "/voice",

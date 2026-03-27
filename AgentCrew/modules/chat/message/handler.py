@@ -554,6 +554,10 @@ class MessageHandler(Observable):
         """Lists available conversations from the persistence service."""
         return self.conversation_manager.list_conversations()
 
+    def list_conversations_with_forks(self):
+        """Lists available conversations with fork relationship information."""
+        return self.conversation_manager.list_conversations_with_forks()
+
     def load_conversation(self, conversation_id: str):
         """Loads a specific conversation history and sets it as active."""
         # Reset approved tools for the loaded conversation

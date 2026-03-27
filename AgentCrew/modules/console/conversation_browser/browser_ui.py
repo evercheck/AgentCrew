@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import List, Dict, Any, Optional, Callable, Tuple
 from datetime import datetime
 
+from AgentCrew.modules.chat.fork_utils import format_fork_title
+
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
@@ -250,6 +252,12 @@ class ConversationBrowserUI:
             title = convo.get("title", "Untitled").replace("\n", " ")
             timestamp = self._format_timestamp(convo.get("timestamp"))
 
+            is_fork = convo.get("is_fork", False)
+            fork_children = convo.get("fork_children", [])
+            has_children = len(fork_children) > 0
+
+            title_display = format_fork_title(title, convo)
+
             mark_indicator = "\u25cf " if is_marked else "  "
             cursor_indicator = "\u25b8" if is_cursor else " "
 
@@ -257,7 +265,7 @@ class ConversationBrowserUI:
                 table.add_row(
                     Text(index_text, style="bold magenta"),
                     Text(
-                        f"{mark_indicator}{cursor_indicator}{title}",
+                        f"{mark_indicator}{cursor_indicator}{title_display}",
                         style="bold magenta",
                     ),
                     Text(timestamp, style="magenta"),
@@ -266,7 +274,7 @@ class ConversationBrowserUI:
                 table.add_row(
                     Text(index_text, style=RICH_STYLE_GREEN_BOLD),
                     Text(
-                        f"{mark_indicator}{cursor_indicator}{title}",
+                        f"{mark_indicator}{cursor_indicator}{title_display}",
                         style=RICH_STYLE_GREEN_BOLD,
                     ),
                     Text(timestamp, style=RICH_STYLE_GREEN),
@@ -274,13 +282,27 @@ class ConversationBrowserUI:
             elif is_marked:
                 table.add_row(
                     Text(index_text, style="magenta"),
-                    Text(f"{mark_indicator} {title}", style="magenta"),
+                    Text(f"{mark_indicator} {title_display}", style="magenta"),
                     Text(timestamp, style="magenta"),
+                )
+            elif is_fork:
+                # Fork conversations shown in cyan
+                table.add_row(
+                    Text(index_text, style=RICH_STYLE_GRAY),
+                    Text(f"{mark_indicator} {title_display}", style="cyan"),
+                    Text(timestamp, style=RICH_STYLE_GRAY),
+                )
+            elif has_children:
+                # Parent with children shown in yellow
+                table.add_row(
+                    Text(index_text, style=RICH_STYLE_GRAY),
+                    Text(f"{mark_indicator} {title_display}", style=RICH_STYLE_YELLOW),
+                    Text(timestamp, style=RICH_STYLE_GRAY),
                 )
             else:
                 table.add_row(
                     Text(index_text, style=RICH_STYLE_GRAY),
-                    Text(f"{mark_indicator} {title}", style=RICH_STYLE_BLUE),
+                    Text(f"{mark_indicator} {title_display}", style=RICH_STYLE_BLUE),
                     Text(timestamp, style=RICH_STYLE_GRAY),
                 )
 

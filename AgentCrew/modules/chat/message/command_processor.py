@@ -62,6 +62,11 @@ class CommandProcessor:
         elif user_input.lower().startswith("/jump "):
             jumped = self._handle_jump_command(user_input)
             return CommandResult(handled=jumped, clear_flag=True)
+        elif user_input.lower().startswith("/fork "):
+            return self._handle_fork_command(user_input)
+        elif user_input.lower() == "/fork":
+            # Show available turns for forking
+            return self._handle_fork_command(user_input)
         elif user_input.lower().startswith("/agent_mode"):
             return self._handle_agent_mode_command(user_input)
         elif user_input.lower().startswith("/agent "):
@@ -409,6 +414,82 @@ class CommandProcessor:
                 "error", "Invalid turn number. Please provide a number."
             )
             return False
+
+    def _handle_fork_command(self, command: str) -> CommandResult:
+        """Handle the /fork command to create a conversation fork at a specific turn.
+
+        Usage:
+            /fork          - Show available turns for forking
+            /fork <turn>   - Fork at the specified turn and switch to the new conversation
+        """
+        try:
+            parts = command.split()
+
+            # Show available turns if no turn number provided
+            if len(parts) == 1:
+                if not self.message_handler.conversation_turns:
+                    self.message_handler._notify(
+                        "system_message",
+                        "No conversation turns available for forking.",
+                    )
+                    return CommandResult(handled=True, clear_flag=True)
+
+                # Build list of available turns
+                turns_info = []
+                for i, turn in enumerate(self.message_handler.conversation_turns, 1):
+                    preview = turn.get_preview(50)
+                    turns_info.append(f"  {i}. {preview}")
+
+                message = (
+                    "📋 Available turns for forking:\n"
+                    + "\n".join(turns_info)
+                    + "\n\nUsage: /fork <turn_number>"
+                )
+                self.message_handler._notify("system_message", message)
+                return CommandResult(handled=True, clear_flag=True)
+
+            # Parse turn number
+            turn_arg = parts[1]
+            turn_number = int(turn_arg)
+
+            # Validate turn number
+            if turn_number < 1 or turn_number > len(
+                self.message_handler.conversation_turns
+            ):
+                self.message_handler._notify(
+                    "error",
+                    f"Invalid turn number. Available turns: 1-{len(self.message_handler.conversation_turns)}",
+                )
+                return CommandResult(handled=True, clear_flag=True)
+
+            # Get the selected turn for preview
+            selected_turn = self.message_handler.conversation_turns[turn_number - 1]
+            preview = selected_turn.get_preview(100)
+
+            # Create the fork and switch to it
+            success = self.message_handler.conversation_manager.fork_and_switch(
+                turn_number
+            )
+            if success:
+                self.message_handler._notify(
+                    "fork_and_switch_performed",
+                    {
+                        "turn_number": turn_number,
+                        "preview": preview,
+                    },
+                )
+            return CommandResult(handled=success, clear_flag=True)
+
+        except ValueError:
+            self.message_handler._notify(
+                "error", "Invalid turn number. Please provide a number."
+            )
+            return CommandResult(handled=True, clear_flag=True)
+        except Exception as e:
+            self.message_handler._notify(
+                "error", f"Failed to fork conversation: {str(e)}"
+            )
+            return CommandResult(handled=True, clear_flag=True)
 
     def _handle_model_command(self, command: str) -> Tuple[bool, bool]:
         """

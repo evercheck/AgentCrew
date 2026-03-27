@@ -41,7 +41,7 @@ class ConversationHandler:
         # First check if we have a list of conversations cached
         if not self._cached_conversations:
             # If not, get the list first
-            self._cached_conversations = message_handler.list_conversations()
+            self._cached_conversations = message_handler.list_conversations_with_forks()
 
         try:
             self.display_handlers.display_divider()

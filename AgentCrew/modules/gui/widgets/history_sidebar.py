@@ -24,6 +24,7 @@ from typing import List
 from qtpy.QtWidgets import QApplication
 
 from AgentCrew.modules.gui.themes import StyleProvider
+from AgentCrew.modules.chat.fork_utils import format_fork_title
 
 from typing import TYPE_CHECKING
 
@@ -107,8 +108,8 @@ class ConversationSidebar(QWidget):
     def update_conversation_list(self):
         """Fetches and displays the list of conversations."""
         try:
-            # Assuming message_handler has list_conversations method
-            self._conversations = self.message_handler.list_conversations()
+            # Use the enhanced list with fork information if available
+            self._conversations = self.message_handler.list_conversations_with_forks()
             self.filter_conversations()  # Apply current filter
         except Exception as e:
             self.error_occurred.emit(f"Failed to load conversations: {str(e)}")
@@ -136,11 +137,29 @@ class ConversationSidebar(QWidget):
             title = metadata.get("preview", "Untitled Conversation")
             timestamp = metadata.get("timestamp", "N/A")
             conv_id = metadata.get("id", "N/A")
+
+            is_fork = metadata.get("is_fork", False)
+            fork_children = metadata.get("fork_children", [])
+            has_children = len(fork_children) > 0
+
+            display_title = format_fork_title(title, metadata)
+
             if search_term in title.lower():
-                item_text = f"{title}\n{timestamp}"  # Display title and timestamp
+                item_text = (
+                    f"{display_title}\n{timestamp}"  # Display title and timestamp
+                )
                 item = QListWidgetItem(item_text)
                 item.setData(Qt.ItemDataRole.UserRole, conv_id)  # Store ID in UserRole
                 item.setToolTip(f"ID: {conv_id}\nLast updated: {timestamp}")
+
+                # Set visual style based on fork status
+                if is_fork:
+                    # Fork conversations in cyan/teal color
+                    item.setForeground(Qt.GlobalColor.darkCyan)
+                elif has_children:
+                    # Parent with children in dark yellow
+                    item.setForeground(Qt.GlobalColor.darkYellow)
+
                 self.conversation_list.addItem(item)
 
     @Slot(QListWidgetItem)
