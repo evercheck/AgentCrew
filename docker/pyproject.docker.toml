@@ -30,7 +30,7 @@ dependencies = [
   "mcp>=1.24.0",
   "google-genai>=1.7.0",
   "markdown>=3.7",
-  "tree-sitter-language-pack>=0.10.0",
+  "tree-sitter-language-pack>=0.10.0,<1.0.0",
   "nest-asyncio>=1.6.0",
   "voyageai>=0.3.2",
   "numpy>=1.24.4,<2; python_version < '3.13' and sys_platform == 'darwin'",
