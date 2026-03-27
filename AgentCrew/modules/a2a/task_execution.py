@@ -205,7 +205,9 @@ class TaskExecutionEngine:
                     MessageType.Assistant,
                     {
                         "message": response_message,
-                        "tool_uses": [t for t in tool_uses if t["name"] != "transfer"],
+                        "tool_uses": [
+                            t for t in tool_uses if t.get("name", "") != "transfer"
+                        ],
                     },
                 )
                 if assistant_message:
@@ -256,7 +258,7 @@ class TaskExecutionEngine:
         artifacts: List[Any],
     ) -> None:
         if thinking_chunk:
-            think_text_chunk, signature = thinking_chunk
+            think_text_chunk, _ = thinking_chunk
             if think_text_chunk:
                 thinking_artifact = convert_agent_response_to_a2a_artifact(
                     think_text_chunk,
@@ -299,8 +301,12 @@ class TaskExecutionEngine:
                 raise TaskCanceledException(
                     f"Task {task.id} was canceled during tool execution"
                 )
+            tool_name = tool_use.get("name")
+            if not tool_name:
+                logger.error(f"Malformed tool_use missing name: {tool_use}")
+                continue
 
-            if is_sequential_tool(tool_use["name"]):
+            if is_sequential_tool(tool_use.get("name", "")):
                 if parallel_buffer:
                     await self._flush_parallel(
                         agent, task, parallel_buffer, task_history
