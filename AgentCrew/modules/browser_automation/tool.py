@@ -50,58 +50,29 @@ def get_browser_navigate_tool_definition(provider="claude") -> Dict[str, Any]:
         }
 
 
-def get_browser_click_tool_definition(provider="claude") -> Dict[str, Any]:
-    """Get tool definition for browser element clicking."""
-    tool_description = "Click an element using its UUID. Get UUIDs from get_browser_content tool result first."
-    tool_arguments = {
-        "element_uuid": {
-            "type": "string",
-            "description": "UUID identifier from get_browser_content tool result clickable elements table.",
-        }
-    }
-    tool_required = ["element_uuid"]
-
-    if provider == "claude":
-        return {
-            "name": "click_browser_element",
-            "description": tool_description,
-            "input_schema": {
-                "type": "object",
-                "properties": tool_arguments,
-                "required": tool_required,
-            },
-        }
-    else:  # OpenAI-compatible provider format
-        return {
-            "type": "function",
-            "function": {
-                "name": "click_browser_element",
-                "description": tool_description,
-                "parameters": {
-                    "type": "object",
-                    "properties": tool_arguments,
-                    "required": tool_required,
-                },
-            },
-        }
-
-
-def get_browser_scroll_to_element_tool_definition(provider="claude") -> Dict[str, Any]:
-    """Get tool definition for scrolling to a specific element."""
+def get_browser_mouse_action_tool_definition(provider="claude") -> Dict[str, Any]:
     tool_description = (
-        "Scroll to bring a specific element into view at the center of the viewport."
+        "Perform a mouse action on a browser element using its UUID. "
+        "Use `action=click` to click the target element, or `action=scroll_to` to scroll that element into view. "
+        "Always get the `element_uuid` from `get_browser_content` or `get_browser_elements_by_text` first. "
+        'Example: `{"action": "click", "element_uuid": "..."}` or `{"action": "scroll_to", "element_uuid": "..."}`.'
     )
     tool_arguments = {
+        "action": {
+            "type": "string",
+            "enum": ["click", "scroll_to"],
+            "description": "Mouse action to perform on the element.",
+        },
         "element_uuid": {
             "type": "string",
-            "description": "UUID of the element to scroll to. Get this from browser_get_content.",
+            "description": "UUID of the target element from `get_browser_content` or `get_browser_elements_by_text`.",
         },
     }
-    tool_required = ["element_uuid"]
+    tool_required = ["action", "element_uuid"]
 
     if provider == "claude":
         return {
-            "name": "scroll_to_browser_element",
+            "name": "perform_browser_mouse_action",
             "description": tool_description,
             "input_schema": {
                 "type": "object",
@@ -113,7 +84,7 @@ def get_browser_scroll_to_element_tool_definition(provider="claude") -> Dict[str
         return {
             "type": "function",
             "function": {
-                "name": "scroll_to_browser_element",
+                "name": "perform_browser_mouse_action",
                 "description": tool_description,
                 "parameters": {
                     "type": "object",
@@ -214,73 +185,86 @@ def get_browser_navigate_tool_handler(
     return handle_browser_navigate
 
 
-def get_browser_click_tool_handler(
+def get_browser_mouse_action_tool_handler(
     browser_service: BrowserAutomationService,
 ) -> Callable:
-    """Get the handler function for the browser click tool."""
-
-    async def handle_browser_click(**params) -> str:
+    async def handle_browser_mouse_action(**params) -> str:
+        action = params.get("action")
         element_uuid = params.get("element_uuid")
 
+        if not action:
+            raise RuntimeError("No action provided for browser mouse action.")
         if not element_uuid:
-            return "Error: No element UUID provided for element clicking."
+            raise RuntimeError("No element_uuid provided for browser mouse action.")
 
-        result = browser_service.click_element(element_uuid)
-
-        if result.get("success", True):
-            diff_summary = _get_content_delta_changes(browser_service)
-            return (
-                f"{result.get('message', 'Success')}. Call `get_browser_content` tool to get the updated content.\n"
-                f"UUID: {element_uuid}\nClickedElement: {result.get('elementInfo', {}).get('text', 'Unknown')}.\n"
-                f"Content delta changes:\n{diff_summary}"
-            )
-        else:
-            return f"Click failed: {result['error']}\nUUID: {element_uuid}.\nCall `get_browser_content` tool to get the updated UUID"
-
-    return handle_browser_click
-
-
-def get_browser_scroll_to_element_tool_handler(
-    browser_service: BrowserAutomationService,
-) -> Callable:
-    """Get the handler function for the scroll to element tool."""
-
-    async def handle_browser_scroll_to_element(**params) -> str:
-        element_uuid = params.get("element_uuid")
-
-        if not element_uuid:
-            return "Error: No element_uuid provided."
-
-        result = browser_service.scroll_to_element(element_uuid)
-
-        if result.get("success", True):
-            return f"{result.get('message', 'Success')}, Call `get_browser_content` tool to get the updated content."
-        else:
+        if action == "click":
+            result = browser_service.click_element(element_uuid)
+            if result.get("success", True):
+                diff_summary = _get_content_delta_changes(browser_service)
+                return (
+                    f"{result.get('message', 'Success')}. Call `get_browser_content` tool to get the updated content.\n"
+                    f"Action: {action}\nUUID: {element_uuid}\n"
+                    f"ClickedElement: {result.get('elementInfo', {}).get('text', 'Unknown')}.\n"
+                    f"Content delta changes:\n{diff_summary}"
+                )
             raise RuntimeError(
-                f"Scroll to element failed: {result['error']}\nUUID: {element_uuid}"
+                f"Mouse action failed: {result['error']}\nAction: {action}\nUUID: {element_uuid}.\nCall `get_browser_content` tool to get the updated UUID"
             )
 
-    return handle_browser_scroll_to_element
+        if action == "scroll_to":
+            result = browser_service.scroll_to_element(element_uuid)
+            if result.get("success", True):
+                return (
+                    f"{result.get('message', 'Success')}.\n"
+                    f"Action: {action}\nUUID: {element_uuid}\n"
+                    "Call `get_browser_content` tool to get the updated content."
+                )
+            raise RuntimeError(
+                f"Mouse action failed: {result['error']}\nAction: {action}\nUUID: {element_uuid}"
+            )
+
+        raise RuntimeError("Invalid mouse action. Supported actions: click, scroll_to.")
+
+    return handle_browser_mouse_action
 
 
-def get_browser_input_tool_definition(provider="claude") -> Dict[str, Any]:
-    """Get tool definition for browser input."""
-    tool_description = "Input data into form fields using UUID. Get UUIDs from get_browser_content tool first."
+def get_browser_keyboard_action_tool_definition(provider="claude") -> Dict[str, Any]:
+    tool_description = (
+        "Perform a keyboard action in the browser. "
+        "Use `action=input_text` to type text into a specific input element, and use `action=send_key` to send a keyboard key or shortcut to the browser. "
+        "Use the `value` field for both actions: for `input_text`, `value` is the text to type; for `send_key`, `value` is the key name such as `enter`, `escape`, `a`, or `f5`. "
+        "`element_uuid` is required only for `input_text`. `modifiers` are only used with `send_key`. "
+        'Examples: `{"action": "input_text", "element_uuid": "...", "value": "hello"}` and `{"action": "send_key", "value": "a", "modifiers": ["ctrl"]}`.'
+    )
     tool_arguments = {
+        "action": {
+            "type": "string",
+            "enum": ["input_text", "send_key"],
+            "description": "Keyboard action to perform.",
+        },
         "element_uuid": {
             "type": "string",
-            "description": "UUID identifier from get_browser_content tool result's input elements table.",
+            "description": "UUID of the target input element. Required for `input_text`.",
         },
         "value": {
             "type": "string",
-            "description": "Value to input. For text: enter text. For select: option value/text. For checkbox: 'true'/'false'.",
+            "description": "For `input_text`, the text to type. For `send_key`, the key name to send such as `enter`, `escape`, `a`, or `f5`.",
+        },
+        "modifiers": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["ctrl", "alt", "shift", "meta"],
+            },
+            "description": "Optional modifier keys used only with `send_key`.",
+            "default": [],
         },
     }
-    tool_required = ["element_uuid", "value"]
+    tool_required = ["action"]
 
     if provider == "claude":
         return {
-            "name": "input_browser_field",
+            "name": "perform_browser_keyboard_action",
             "description": tool_description,
             "input_schema": {
                 "type": "object",
@@ -288,11 +272,11 @@ def get_browser_input_tool_definition(provider="claude") -> Dict[str, Any]:
                 "required": tool_required,
             },
         }
-    else:  # OpenAI-compatible provider format
+    else:
         return {
             "type": "function",
             "function": {
-                "name": "input_browser_field",
+                "name": "perform_browser_keyboard_action",
                 "description": tool_description,
                 "parameters": {
                     "type": "object",
@@ -303,32 +287,73 @@ def get_browser_input_tool_definition(provider="claude") -> Dict[str, Any]:
         }
 
 
-def get_browser_input_tool_handler(
+def get_browser_keyboard_action_tool_handler(
     browser_service: BrowserAutomationService,
 ) -> Callable:
-    """Get the handler function for the browser input tool."""
+    async def handle_browser_keyboard_action(**params) -> str:
+        action = params.get("action")
 
-    async def handle_browser_input(**params) -> str:
-        element_uuid = params.get("element_uuid")
-        value = params.get("value")
+        if not action:
+            raise RuntimeError("No action provided for browser keyboard action.")
 
-        if not element_uuid:
-            return "Error: No element UUID provided for input element."
+        if action == "input_text":
+            element_uuid = params.get("element_uuid")
+            value = params.get("value")
 
-        if value is None:
-            return "Error: No value provided for input."
+            if not element_uuid:
+                raise RuntimeError(
+                    "No element_uuid provided for input_text keyboard action."
+                )
+            if value is None:
+                raise RuntimeError("No value provided for input_text keyboard action.")
 
-        result = browser_service.input_data(element_uuid, str(value))
-
-        if result.get("success", True):
-            diff_summary = _get_content_delta_changes(browser_service)
-            return f"{result.get('message', 'Success')}\nUUID: {element_uuid}\nValue: {value}\nContent delta changes:\n{diff_summary}"
-        else:
+            result = browser_service.input_data(element_uuid, str(value))
+            if result.get("success", True):
+                diff_summary = _get_content_delta_changes(browser_service)
+                return (
+                    f"{result.get('message', 'Success')}\n"
+                    f"Action: {action}\nUUID: {element_uuid}\nValue: {value}\n"
+                    f"Content delta changes:\n{diff_summary}"
+                )
             raise RuntimeError(
-                f"Input failed: {result['error']}\nUUID: {element_uuid}\nValue: {value}.\n Call `get_browser_content` tool to get updated UUID."
+                f"Keyboard action failed: {result['error']}\n"
+                f"Action: {action}\nUUID: {element_uuid}\nValue: {value}.\n"
+                "Call `get_browser_content` tool to get updated UUID."
             )
 
-    return handle_browser_input
+        if action == "send_key":
+            value = params.get("value")
+            modifiers = params.get("modifiers", [])
+
+            if not value:
+                raise RuntimeError("No value provided for send_key keyboard action.")
+
+            result = browser_service.dispatch_key_event(value, modifiers)
+            if result.get("success", False):
+                key_info = f"Key: {result.get('key')} (Code: {result.get('key_code')})"
+                modifiers_info = (
+                    f"Modifiers: {result.get('modifiers')}"
+                    if result.get("modifiers")
+                    else ""
+                )
+                diff_summary = _get_content_delta_changes(browser_service)
+                success_msg = (
+                    f"{result.get('message', 'Success')}. Action: {action}. {key_info}\n"
+                    f"Content delta changes:\n{diff_summary}"
+                )
+                if modifiers_info:
+                    success_msg += f". {modifiers_info}"
+                return success_msg
+            raise RuntimeError(
+                f"Keyboard action failed: {result.get('error', 'Unknown error')}\n"
+                f"Action: {action}\nValue: {value}"
+            )
+
+        raise RuntimeError(
+            "Invalid keyboard action. Supported actions: input_text, send_key."
+        )
+
+    return handle_browser_keyboard_action
 
 
 def get_browser_get_elements_by_text_tool_definition(
@@ -398,92 +423,6 @@ def get_browser_get_elements_by_text_tool_handler(
     return handle_browser_get_elements_by_text
 
 
-def get_browser_capture_screenshot_tool_definition(provider="claude") -> Dict[str, Any]:
-    """Get tool definition for browser screenshot capture."""
-    tool_description = "Capture page screenshot as base64 image data with colored boxes and UUID labels drawn over all identified elements. Supports different formats and full page capture."
-    tool_arguments = {
-        "format": {
-            "type": "string",
-            "enum": ["png", "jpeg", "webp"],
-            "description": "Image format (default: png).",
-            "default": "png",
-        },
-        "quality": {
-            "type": "integer",
-            "description": "JPEG quality 0-100 (ignored for PNG/WebP).",
-            "minimum": 0,
-            "maximum": 100,
-        },
-        "capture_beyond_viewport": {
-            "type": "boolean",
-            "description": "Capture full page beyond viewport (default: false).",
-            "default": True,
-        },
-    }
-    tool_required = []
-
-    if provider == "claude":
-        return {
-            "name": "capture_browser_screenshot",
-            "description": tool_description,
-            "input_schema": {
-                "type": "object",
-                "properties": tool_arguments,
-                "required": tool_required,
-            },
-        }
-    else:  # OpenAI-compatible provider format
-        return {
-            "type": "function",
-            "function": {
-                "name": "capture_browser_screenshot",
-                "description": tool_description,
-                "parameters": {
-                    "type": "object",
-                    "properties": tool_arguments,
-                    "required": tool_required,
-                },
-            },
-        }
-
-
-def get_browser_capture_screenshot_tool_handler(
-    browser_service: BrowserAutomationService,
-) -> Callable:
-    """Get the handler function for the browser screenshot capture tool."""
-
-    async def handle_browser_capture_screenshot(**params) -> Any:
-        format_param = params.get("format", "png")
-        quality = params.get("quality")
-        capture_beyond_viewport = params.get("capture_beyond_viewport", False)
-
-        # Validate format
-        if format_param not in ["png", "jpeg", "webp"]:
-            return "Error: Invalid format. Must be 'png', 'jpeg', or 'webp'."
-
-        # Validate quality for JPEG
-        if format_param == "jpeg" and quality is not None:
-            if not isinstance(quality, int) or quality < 0 or quality > 100:
-                return "Error: Quality must be an integer between 0 and 100 for JPEG format."
-
-        result = browser_service.capture_screenshot(
-            format=format_param,
-            quality=quality,
-            capture_beyond_viewport=capture_beyond_viewport,
-        )
-
-        if result.get("success", False):
-            # Return the screenshot data in the format that can be processed by the LLM
-            screenshot_data = result.get("screenshot", {})
-            return [screenshot_data]
-        else:
-            raise RuntimeError(
-                f"Screenshot capture failed: {result.get('error', 'Unknown error')}"
-            )
-
-    return handle_browser_capture_screenshot
-
-
 def get_browser_refresh_tool_definition(provider="claude") -> Dict[str, Any]:
     """Get tool definition for browser page refresh."""
     tool_description = (
@@ -535,92 +474,6 @@ def get_browser_refresh_tool_handler(
     return handle_browser_refresh
 
 
-def get_browser_send_key_tool_definition(provider="claude") -> Dict[str, Any]:
-    """Get tool definition for browser key event send."""
-    tool_description = """Send keyboard events to the browser. Supports:
-- Single characters: 'a', 'b', '1', '2', etc.
-- Special keys: 'enter', 'escape', 'tab', 'backspace', 'delete', 'space'
-- Arrow keys: 'up', 'down', 'left', 'right'
-- Navigation: 'home', 'end', 'pageup', 'pagedown', 'insert'
-- Function keys: 'f1' through 'f12'
-- Numpad: 'numpad0' through 'numpad9'
-- With modifiers: use 'a' with ['ctrl'] for Ctrl+A, 'c' with ['ctrl'] for Ctrl+C"""
-    tool_arguments = {
-        "key": {
-            "type": "string",
-            "description": "Key to send. Can be a single character (a-z, 0-9, symbols) or special key name (enter, escape, tab, f1-f12, up, down, left, right, etc.).",
-        },
-        "modifiers": {
-            "type": "array",
-            "items": {
-                "type": "string",
-                "enum": ["ctrl", "alt", "shift", "meta"],
-            },
-            "description": "Optional modifier keys: 'ctrl', 'alt', 'shift', 'meta'. Example: ['ctrl', 'shift'] for Ctrl+Shift+Key.",
-            "default": [],
-        },
-    }
-    tool_required = ["key"]
-
-    if provider == "claude":
-        return {
-            "name": "send_browser_key",
-            "description": tool_description,
-            "input_schema": {
-                "type": "object",
-                "properties": tool_arguments,
-                "required": tool_required,
-            },
-        }
-    else:  # OpenAI-compatible provider format
-        return {
-            "type": "function",
-            "function": {
-                "name": "send_browser_key",
-                "description": tool_description,
-                "parameters": {
-                    "type": "object",
-                    "properties": tool_arguments,
-                    "required": tool_required,
-                },
-            },
-        }
-
-
-def get_browser_send_key_tool_handler(
-    browser_service: BrowserAutomationService,
-) -> Callable:
-    """Get the handler function for the browser key send tool."""
-
-    async def handle_browser_send_key(**params) -> str:
-        key = params.get("key")
-        modifiers = params.get("modifiers", "")
-
-        if not key:
-            return "Error: No key provided for send."
-
-        result = browser_service.dispatch_key_event(key, modifiers)
-
-        if result.get("success", False):
-            key_info = f"Key: {result.get('key')} (Code: {result.get('key_code')})"
-            modifiers_info = (
-                f"Modifiers: {result.get('modifiers')}"
-                if result.get("modifiers")
-                else ""
-            )
-            diff_summary = _get_content_delta_changes(browser_service)
-            success_msg = f"{result.get('message', 'Success')}. {key_info}\nContent delta changes:\n{diff_summary}"
-            if modifiers_info:
-                success_msg += f". {modifiers_info}"
-            return success_msg
-        else:
-            raise RuntimeError(
-                f"Key send failed: {result.get('error', 'Unknown error')}"
-            )
-
-    return handle_browser_send_key
-
-
 def _get_content_delta_changes(browser_service: BrowserAutomationService):
     time.sleep(1)  # wait for page to stabilize
     current_content = browser_service.get_page_content()
@@ -640,11 +493,247 @@ def _get_content_delta_changes(browser_service: BrowserAutomationService):
     return diff_summary
 
 
+def get_browser_execute_script_tool_definition(provider="claude") -> Dict[str, Any]:
+    tool_description = (
+        "Execute JavaScript in the current browser page context using CDP. "
+        "Use for debugging, inspection, or custom DOM queries when built-in tools are insufficient. "
+        "The script body is wrapped in an async IIFE — use `return` to yield a value."
+    )
+    tool_arguments = {
+        "script": {
+            "type": "string",
+            "description": "JavaScript code to execute. Use `return <expr>` to return a value.",
+        },
+        "await_promise": {
+            "type": "boolean",
+            "description": "Whether to await the result if it is a Promise. Defaults to true.",
+            "default": True,
+        },
+    }
+    tool_required = ["script"]
+
+    if provider == "claude":
+        return {
+            "name": "execute_browser_script",
+            "description": tool_description,
+            "input_schema": {
+                "type": "object",
+                "properties": tool_arguments,
+                "required": tool_required,
+            },
+        }
+    else:
+        return {
+            "type": "function",
+            "function": {
+                "name": "execute_browser_script",
+                "description": tool_description,
+                "parameters": {
+                    "type": "object",
+                    "properties": tool_arguments,
+                    "required": tool_required,
+                },
+            },
+        }
+
+
+def get_browser_execute_script_tool_handler(
+    browser_service: BrowserAutomationService,
+) -> Callable:
+    async def handle_execute_browser_script(**params) -> str:
+        script = params.get("script", "")
+        await_promise = params.get("await_promise", True)
+
+        if not script or not script.strip():
+            raise RuntimeError("No script provided for execution.")
+
+        result = browser_service.execute_script(script, await_promise)
+
+        if result.get("success", False):
+            result_type = result.get("resultType", "unknown")
+            result_value = result.get("result")
+            import json
+
+            if isinstance(result_value, (dict, list)):
+                formatted = json.dumps(result_value, indent=2, ensure_ascii=False)
+            else:
+                formatted = (
+                    str(result_value) if result_value is not None else "undefined"
+                )
+            return f"Script executed successfully.\nResult type: {result_type}\nResult:\n{formatted}"
+        else:
+            error = result.get("error", "Unknown error")
+            stack = result.get("stack", "")
+            msg = f"Script execution failed: {error}"
+            if stack:
+                msg += f"\nStack:\n{stack}"
+            raise RuntimeError(msg)
+
+    return handle_execute_browser_script
+
+
+def get_browser_view_console_log_tool_definition(provider="claude") -> Dict[str, Any]:
+    tool_description = (
+        "View browser console/runtime log entries captured through CDP. "
+        "Includes console.log/warn/error output, JavaScript exceptions, and network errors."
+    )
+    tool_arguments = {
+        "limit": {
+            "type": "integer",
+            "description": "Maximum number of log entries to return. Defaults to 50.",
+            "default": 50,
+        },
+        "levels": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["error", "warn", "info", "log", "debug"],
+            },
+            "description": "Filter by log levels. If omitted, all levels are returned.",
+        },
+        "since_last_read": {
+            "type": "boolean",
+            "description": "If true, return only entries since last read. Defaults to true.",
+            "default": True,
+        },
+    }
+    tool_required: list = []
+
+    if provider == "claude":
+        return {
+            "name": "view_browser_console_log",
+            "description": tool_description,
+            "input_schema": {
+                "type": "object",
+                "properties": tool_arguments,
+                "required": tool_required,
+            },
+        }
+    else:
+        return {
+            "type": "function",
+            "function": {
+                "name": "view_browser_console_log",
+                "description": tool_description,
+                "parameters": {
+                    "type": "object",
+                    "properties": tool_arguments,
+                    "required": tool_required,
+                },
+            },
+        }
+
+
+def get_browser_view_console_log_tool_handler(
+    browser_service: BrowserAutomationService,
+) -> Callable:
+    async def handle_view_browser_console_log(**params) -> str:
+        limit = params.get("limit", 50)
+        levels = params.get("levels", None)
+        since_last_read = params.get("since_last_read", True)
+
+        result = browser_service.get_console_logs(
+            limit=limit,
+            levels=levels,
+            since_last_read=since_last_read,
+        )
+
+        if not result.get("success"):
+            raise RuntimeError(result.get("error", "Failed to retrieve console logs"))
+
+        logs = result.get("logs", [])
+        count = result.get("count", 0)
+
+        if count == 0:
+            mode = "since last read" if since_last_read else "in buffer"
+            return f"No browser console log entries {mode}."
+
+        lines = [f"Showing {count} browser console log entries:"]
+        for entry in logs:
+            ts = entry.get("timestamp", "")
+            level = entry.get("level", "LOG")
+            source = entry.get("source", "")
+            url = entry.get("url", "")
+            line_num = entry.get("lineNumber")
+            text = entry.get("text", "")
+
+            location = url
+            if location and line_num is not None:
+                location = f"{url}:{line_num}"
+
+            parts = [f"[{ts}]", level, source]
+            if location:
+                parts.append(location)
+            parts.append(text)
+            lines.append(" ".join(parts))
+
+        return "\n".join(lines)
+
+    return handle_view_browser_console_log
+
+
+def get_browser_element_xpath_tool_definition(provider="claude") -> Dict[str, Any]:
+    tool_description = (
+        "Get the XPath value for a browser element by its UUID. "
+        "UUIDs are obtained from get_browser_content or get_browser_elements_by_text."
+    )
+    tool_arguments = {
+        "element_uuid": {
+            "type": "string",
+            "description": "UUID identifier of the element.",
+        }
+    }
+    tool_required = ["element_uuid"]
+
+    if provider == "claude":
+        return {
+            "name": "get_browser_element_xpath",
+            "description": tool_description,
+            "input_schema": {
+                "type": "object",
+                "properties": tool_arguments,
+                "required": tool_required,
+            },
+        }
+    else:
+        return {
+            "type": "function",
+            "function": {
+                "name": "get_browser_element_xpath",
+                "description": tool_description,
+                "parameters": {
+                    "type": "object",
+                    "properties": tool_arguments,
+                    "required": tool_required,
+                },
+            },
+        }
+
+
+def get_browser_element_xpath_tool_handler(
+    browser_service: BrowserAutomationService,
+) -> Callable:
+    async def handle_get_browser_element_xpath(**params) -> str:
+        element_uuid = params.get("element_uuid", "")
+        if not element_uuid:
+            raise RuntimeError("No element_uuid provided.")
+
+        xpath = browser_service.uuid_to_xpath_mapping.get(element_uuid)
+        if not xpath:
+            raise RuntimeError(
+                f"Element UUID '{element_uuid}' not found. "
+                "Please use get_browser_content to get current element UUIDs."
+            )
+
+        return f"UUID: {element_uuid}\nXPath: {xpath}"
+
+    return handle_get_browser_element_xpath
+
+
 def register(service_instance=None, agent=None):
     """Register browser automation tools with the central registry or directly with an agent."""
     from AgentCrew.modules.tools.registration import register_tool
 
-    # Register all eight browser automation tools
     register_tool(
         get_browser_navigate_tool_definition,
         get_browser_navigate_tool_handler,
@@ -652,14 +741,8 @@ def register(service_instance=None, agent=None):
         agent,
     )
     register_tool(
-        get_browser_click_tool_definition,
-        get_browser_click_tool_handler,
-        service_instance,
-        agent,
-    )
-    register_tool(
-        get_browser_scroll_to_element_tool_definition,
-        get_browser_scroll_to_element_tool_handler,
+        get_browser_mouse_action_tool_definition,
+        get_browser_mouse_action_tool_handler,
         service_instance,
         agent,
     )
@@ -670,8 +753,8 @@ def register(service_instance=None, agent=None):
         agent,
     )
     register_tool(
-        get_browser_input_tool_definition,
-        get_browser_input_tool_handler,
+        get_browser_keyboard_action_tool_definition,
+        get_browser_keyboard_action_tool_handler,
         service_instance,
         agent,
     )
@@ -681,21 +764,33 @@ def register(service_instance=None, agent=None):
         service_instance,
         agent,
     )
-    register_tool(
-        get_browser_capture_screenshot_tool_definition,
-        get_browser_capture_screenshot_tool_handler,
-        service_instance,
-        agent,
-    )
-    register_tool(
-        get_browser_send_key_tool_definition,
-        get_browser_send_key_tool_handler,
-        service_instance,
-        agent,
-    )
+    # register_tool(
+    #     get_browser_capture_screenshot_tool_definition,
+    #     get_browser_capture_screenshot_tool_handler,
+    #     service_instance,
+    #     agent,
+    # )
     register_tool(
         get_browser_refresh_tool_definition,
         get_browser_refresh_tool_handler,
+        service_instance,
+        agent,
+    )
+    register_tool(
+        get_browser_execute_script_tool_definition,
+        get_browser_execute_script_tool_handler,
+        service_instance,
+        agent,
+    )
+    register_tool(
+        get_browser_view_console_log_tool_definition,
+        get_browser_view_console_log_tool_handler,
+        service_instance,
+        agent,
+    )
+    register_tool(
+        get_browser_element_xpath_tool_definition,
+        get_browser_element_xpath_tool_handler,
         service_instance,
         agent,
     )

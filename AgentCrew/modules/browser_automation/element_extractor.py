@@ -7,6 +7,7 @@ for browser automation operations.
 
 import re
 import uuid
+from html.parser import HTMLParser
 from typing import Dict
 
 from .js_loader import js_loader
@@ -110,6 +111,95 @@ def clean_markdown_images(markdown_content: str) -> str:
     cleaned_content = re.sub(html_img_pattern, replace_html_img, cleaned_content)
 
     return cleaned_content
+
+
+def filter_hidden_elements(html_content: str) -> str:
+    """Filter out HTML elements that have style='display:none' or aria-hidden='true'."""
+
+    class HiddenElementFilter(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.filtered_html = []
+            self.skip_depth = 0
+            self.tag_stack = []
+
+        def handle_starttag(self, tag, attrs):
+            attr_dict = dict(attrs)
+            should_hide = False
+
+            if self.skip_depth > 0:
+                if tag in self.tag_stack:
+                    self.skip_depth += 1
+                return
+
+            if tag.lower() in ["script", "style", "svg"]:
+                should_hide = True
+
+            style = attr_dict.get("style", "")
+            if style:
+                style_clean = re.sub(r"\s+", "", style.lower())
+                if (
+                    "display:none" in style_clean
+                    or "display=none" in style_clean
+                    or "visibility:hidden" in style_clean
+                ):
+                    should_hide = True
+
+            aria_hidden = attr_dict.get("aria-hidden", "")
+            if aria_hidden and aria_hidden.lower() == "true":
+                should_hide = True
+
+            if should_hide:
+                if tag.lower() in ["img", "input", "br", "hr", "meta", "link"]:
+                    return
+                self.tag_stack.append(tag)
+                self.skip_depth += 1
+                return
+
+            if self.skip_depth == 0:
+                attr_string = " ".join([f'{k}="{v}"' for k, v in attrs])
+                if attr_string:
+                    self.filtered_html.append(f"<{tag} {attr_string}>")
+                else:
+                    self.filtered_html.append(f"<{tag}>")
+
+        def handle_endtag(self, tag):
+            if self.skip_depth > 0:
+                if tag in self.tag_stack:
+                    self.skip_depth -= 1
+                    if self.skip_depth == 0:
+                        self.tag_stack.remove(tag)
+                    return
+
+            if self.skip_depth == 0:
+                self.filtered_html.append(f"</{tag}>")
+
+        def handle_data(self, data):
+            if self.skip_depth == 0:
+                self.filtered_html.append(data)
+
+        def handle_comment(self, data):
+            if self.skip_depth == 0:
+                self.filtered_html.append(f"<!--{data}-->")
+
+        def handle_entityref(self, name):
+            if self.skip_depth == 0:
+                self.filtered_html.append(f"&{name};")
+
+        def handle_charref(self, name):
+            if self.skip_depth == 0:
+                self.filtered_html.append(f"&#{name};")
+
+        def get_filtered_html(self):
+            return "".join(self.filtered_html)
+
+    try:
+        parser = HiddenElementFilter()
+        parser.feed(html_content)
+        return parser.get_filtered_html()
+    except Exception as e:
+        logger.warning(f"Error filtering hidden elements: {e}")
+        return html_content
 
 
 def extract_clickable_elements(chrome_interface, uuid_mapping: Dict[str, str]) -> str:

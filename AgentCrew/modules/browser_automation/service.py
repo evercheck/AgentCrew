@@ -10,16 +10,15 @@ from typing import Dict, Any, Optional, List
 from html_to_markdown import convert, ConversionOptions, PreprocessingOptions
 import urllib.parse
 
-from html.parser import HTMLParser
-import re
-
 from .chrome_manager import ChromeManager
+from .console_listener import ConsoleListener
 from .element_extractor import (
     extract_clickable_elements,
     extract_input_elements,
     extract_elements_by_text,
     extract_scrollable_elements,
     clean_markdown_images,
+    filter_hidden_elements,
     remove_duplicate_lines,
 )
 from .js_loader import js_loader, JavaScriptExecutor
@@ -43,9 +42,18 @@ class BrowserAutomationService:
         self.chrome_manager = ChromeManager(debug_port=debug_port)
         self.chrome_interface: Optional[PyChromeDevTools.ChromeInterface] = None
         self._is_initialized = False
-        # UUID to XPath mapping for element identification
         self.uuid_to_xpath_mapping: Dict[str, str] = {}
         self._last_page_content: str = ""
+        self._console_listener = ConsoleListener(debug_port=debug_port)
+
+    def _reset_browser_state(self, cleanup_chrome: bool = True):
+        try:
+            self._console_listener.stop()
+        finally:
+            if cleanup_chrome and self.chrome_manager:
+                self.chrome_manager.cleanup()
+            self._is_initialized = False
+            self.chrome_interface = None
 
     def _find_page_tab(self) -> int:
         """Find the first tab with type 'page' from Chrome's tab list."""
@@ -96,9 +104,11 @@ class BrowserAutomationService:
 
             self._is_initialized = True
 
+            self._console_listener.start()
+
         except Exception as e:
             logger.error(f"Failed to initialize Chrome: {e}")
-            self._is_initialized = False
+            self._reset_browser_state(cleanup_chrome=False)
             raise
 
     def navigate(self, url: str, profile: str = "Default") -> Dict[str, Any]:
@@ -117,15 +127,14 @@ class BrowserAutomationService:
             if self.chrome_interface is None:
                 raise RuntimeError("Chrome interface is not initialized")
 
+            self.clear_console_logs()
             result = self.chrome_interface.Page.navigate(url=urllib.parse.unquote(url))
 
             if isinstance(result, tuple) and len(result) >= 2:
                 if isinstance(result[0], dict):
                     error_text = result[0].get("result", {}).get("errorText")
                     if error_text:
-                        self.chrome_manager.cleanup()
-                        self._is_initialized = False
-                        self.chrome_interface = None
+                        self._reset_browser_state()
                         return {
                             "success": False,
                             "error": f"Navigation failed: {error_text}.Please try again",
@@ -145,9 +154,7 @@ class BrowserAutomationService:
 
         except Exception as e:
             logger.error(f"Navigation error: {e}")
-            self.chrome_manager.cleanup()
-            self._is_initialized = False
-            self.chrome_interface = None
+            self._reset_browser_state()
             return {
                 "success": False,
                 "error": f"Navigation failed: {str(e)}. Please try again",
@@ -167,6 +174,7 @@ class BrowserAutomationService:
             if self.chrome_interface is None:
                 raise RuntimeError("Chrome interface is not initialized")
 
+            self.clear_console_logs()
             self.chrome_interface.Page.reload()
 
             import time
@@ -375,17 +383,9 @@ class BrowserAutomationService:
                     return {"success": False, "error": "Could not extract HTML content"}
 
                 # Filter out hidden elements using JavaScript (doesn't modify page)
-                filtered_html = self._filter_hidden_elements(raw_html)
+                filtered_html = filter_hidden_elements(raw_html)
 
             # Convert HTML to markdown
-            # raw_markdown_content = convert_to_markdown(
-            #     filtered_html,
-            #     source_encoding="utf-8",
-            #     strip_newlines=True,
-            #     extract_metadata=False,
-            #     remove_forms=False,
-            #     remove_navigation=False,
-            # )
             raw_markdown_content = convert(
                 filtered_html,
                 ConversionOptions(
@@ -442,116 +442,95 @@ class BrowserAutomationService:
             logger.error(f"Content extraction error: {e}")
             return {"success": False, "error": f"Content extraction error: {str(e)}"}
 
-    def _filter_hidden_elements(self, html_content: str) -> str:
-        """
-        Filter out HTML elements that have style='display:none' or aria-hidden='true'.
-
-        Args:
-            html_content: Raw HTML content to filter
-
-        Returns:
-            Filtered HTML content with hidden elements removed
-        """
-
-        class HiddenElementFilter(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.filtered_html = []
-                self.skip_depth = 0
-                self.tag_stack = []
-
-            def handle_starttag(self, tag, attrs):
-                # Convert attrs to dict for easier access
-                attr_dict = dict(attrs)
-                should_hide = False
-
-                if self.skip_depth > 0:
-                    if tag in self.tag_stack:
-                        self.skip_depth += 1
-                    return
-
-                if tag.lower() in ["script", "style", "svg"]:
-                    should_hide = True
-
-                # Check for style="display:none" (case insensitive, flexible matching)
-                style = attr_dict.get("style", "")
-                if style:
-                    # Remove spaces and check for display:none
-                    style_clean = re.sub(r"\s+", "", style.lower())
-                    if (
-                        "display:none" in style_clean
-                        or "display=none" in style_clean
-                        or "visibility:hidden" in style_clean
-                    ):
-                        should_hide = True
-
-                # Check for aria-hidden="true"
-                aria_hidden = attr_dict.get("aria-hidden", "")
-                if aria_hidden and aria_hidden.lower() == "true":
-                    should_hide = True
-
-                if should_hide:
-                    if tag.lower() in ["img", "input", "br", "hr", "meta", "link"]:
-                        # Self-closing tags, just skip
-                        return
-                    self.tag_stack.append(tag)
-                    self.skip_depth += 1
-                    return
-
-                if self.skip_depth == 0:
-                    # Reconstruct the tag with its attributes
-                    attr_string = " ".join([f'{k}="{v}"' for k, v in attrs])
-                    if attr_string:
-                        self.filtered_html.append(f"<{tag} {attr_string}>")
-                    else:
-                        self.filtered_html.append(f"<{tag}>")
-
-            def handle_endtag(self, tag):
-                if self.skip_depth > 0:
-                    if tag in self.tag_stack:
-                        self.skip_depth -= 1
-                        if self.skip_depth == 0:
-                            self.tag_stack.remove(tag)
-                        return
-
-                if self.skip_depth == 0:
-                    self.filtered_html.append(f"</{tag}>")
-
-            def handle_data(self, data):
-                if self.skip_depth == 0:
-                    self.filtered_html.append(data)
-
-            def handle_comment(self, data):
-                if self.skip_depth == 0:
-                    self.filtered_html.append(f"<!--{data}-->")
-
-            def handle_entityref(self, name):
-                if self.skip_depth == 0:
-                    self.filtered_html.append(f"&{name};")
-
-            def handle_charref(self, name):
-                if self.skip_depth == 0:
-                    self.filtered_html.append(f"&#{name};")
-
-            def get_filtered_html(self):
-                return "".join(self.filtered_html)
-
+    def execute_script(self, script: str, await_promise: bool = True) -> Dict[str, Any]:
         try:
-            parser = HiddenElementFilter()
-            parser.feed(html_content)
-            return parser.get_filtered_html()
+            self._ensure_chrome_running()
+            if self.chrome_interface is None:
+                raise RuntimeError("Chrome interface is not initialized")
+
+            wrapper = f"""(async () => {{
+  try {{
+    const __value = await (async () => {{
+      {script}
+    }})();
+    const serialize = (value) => {{
+      try {{ return JSON.parse(JSON.stringify(value)); }}
+      catch {{ return String(value); }}
+    }};
+    return {{
+      success: true,
+      result: serialize(__value),
+      resultType: Object.prototype.toString.call(__value)
+    }};
+  }} catch (e) {{
+    return {{
+      success: false,
+      error: String(e),
+      stack: e && e.stack ? String(e.stack) : null
+    }};
+  }}
+}})()"""
+
+            result = (None, [])
+            retried = 0
+            while result[0] is None and retried < 10:
+                result = self.chrome_interface.Runtime.evaluate(
+                    expression=wrapper,
+                    returnByValue=True,
+                    awaitPromise=await_promise,
+                    timeout=60000,
+                )
+                retried += 1
+                time.sleep(0.4)
+
+            if isinstance(result, tuple) and len(result) >= 2:
+                if isinstance(result[1], dict):
+                    value = (
+                        result[1].get("result", {}).get("result", {}).get("value", {})
+                    )
+                elif isinstance(result[1], list) and len(result[1]) > 0:
+                    value = (
+                        result[1][0]
+                        .get("result", {})
+                        .get("result", {})
+                        .get("value", {})
+                    )
+                else:
+                    return {
+                        "success": False,
+                        "error": "Invalid response format from script execution",
+                    }
+            else:
+                return {
+                    "success": False,
+                    "error": "No response from script execution",
+                }
+
+            return (
+                value if isinstance(value, dict) else {"success": True, "result": value}
+            )
+
         except Exception as e:
-            logger.warning(f"Error filtering hidden elements: {e}")
-            # Return original content if filtering fails
-            return html_content
+            logger.error(f"Script execution error: {e}")
+            return {"success": False, "error": f"Script execution error: {str(e)}"}
+
+    def get_console_logs(
+        self,
+        limit: int = 50,
+        levels: Optional[List[str]] = None,
+        since_last_read: bool = True,
+    ) -> Dict[str, Any]:
+        return self._console_listener.get_logs(
+            limit=limit, levels=levels, since_last_read=since_last_read
+        )
+
+    def clear_console_logs(self) -> Dict[str, Any]:
+        return self._console_listener.clear_logs()
 
     def cleanup(self):
         """Clean up browser resources."""
         try:
-            if self.chrome_manager:
-                self.chrome_manager.cleanup()
-            self._is_initialized = False
-            self.chrome_interface = None
+            self._reset_browser_state()
         except Exception as e:
             logger.error(f"Cleanup error: {e}")
 
@@ -808,4 +787,7 @@ class BrowserAutomationService:
 
     def __del__(self):
         """Cleanup when service is destroyed."""
-        self.cleanup()
+        try:
+            self.cleanup()
+        except Exception:
+            pass
