@@ -116,12 +116,16 @@ class MCPService:
 
                         if agent_name:
                             await self.register_server_tools(
-                                combined_server_id, server_name, agent_name
+                                combined_server_id,
+                                server_config,
+                                agent_name,
                             )
                         else:
                             for agent_name in server_config.enabledForAgents:
                                 await self.register_server_tools(
-                                    combined_server_id, server_name, agent_name
+                                    combined_server_id,
+                                    server_config,
+                                    agent_name,
                                 )
 
                         if server_info.capabilities.prompts:
@@ -197,12 +201,16 @@ class MCPService:
 
                         if agent_name:
                             await self.register_server_tools(
-                                combined_server_id, server_name, agent_name
+                                combined_server_id,
+                                server_config,
+                                agent_name,
                             )
                         else:
                             for agent_name in server_config.enabledForAgents:
                                 await self.register_server_tools(
-                                    combined_server_id, server_name, agent_name
+                                    combined_server_id,
+                                    server_config,
+                                    agent_name,
                                 )
 
                         if server_info.capabilities.prompts:
@@ -438,8 +446,36 @@ class MCPService:
             f"MCPService: Shutdown process for {server_id} initiated/completed."
         )
 
+    def _filter_tools_for_registration(
+        self,
+        tools: List[Tool],
+        include_tools: Optional[List[str]],
+        combined_server_id: str,
+    ) -> List[Tool]:
+        if not include_tools:
+            return tools
+
+        tool_map = {tool.name: tool for tool in tools}
+        filtered_tools = [tool_map[name] for name in include_tools if name in tool_map]
+        unmatched_tools = [name for name in include_tools if name not in tool_map]
+
+        if unmatched_tools:
+            logger.warning(
+                f"MCPService: MCP server '{combined_server_id}' includeTools contains unknown tools: {', '.join(unmatched_tools)}"
+            )
+
+        if not filtered_tools:
+            logger.warning(
+                f"MCPService: MCP server '{combined_server_id}' matched 0 tools from includeTools filter. Server remains connected but no tools will be registered."
+            )
+
+        return filtered_tools
+
     async def register_server_tools(
-        self, combined_server_id: str, server_name: str, agent_name: str
+        self,
+        combined_server_id: str,
+        server_config: MCPServerConfig,
+        agent_name: str,
     ) -> None:
         """
         Register all tools from a connected server.
@@ -458,31 +494,38 @@ class MCPService:
 
         try:
             response = await self.sessions[combined_server_id].list_tools()
+            server_name = server_config.name
 
-            # Cache tools
             self.tools_cache[combined_server_id] = {
                 tool.name: tool for tool in response.tools
             }
+            filtered_tools = self._filter_tools_for_registration(
+                response.tools,
+                server_config.includeTools,
+                combined_server_id,
+            )
+
+            logger.info(
+                f"MCPService: Registering {len(filtered_tools)}/{len(response.tools)} tools for server '{combined_server_id}' on agent '{agent_name}'"
+            )
 
             if agent_name:
                 agent_manager = AgentManager.get_instance()
                 registry = agent_manager.get_local_agent(agent_name)
             else:
                 registry = None
-            for tool in response.tools:
-                # Create namespaced tool definition
+            for tool in filtered_tools:
+
                 def tool_definition_factory(tool_info=tool, srv_id=server_name):
                     def get_definition(provider=None):
                         return self._format_tool_definition(tool_info, srv_id, provider)
 
                     return get_definition
 
-                # Create tool handler
                 handler_factory = self._create_tool_handler(
                     combined_server_id, tool.name
                 )
 
-                # Register the tool
                 if registry:
                     registry.register_tool(
                         tool_definition_factory(), handler_factory, self
@@ -499,6 +542,28 @@ class MCPService:
             )
             self.connected_servers[combined_server_id] = False
 
+    def _remove_agent_server_tool_definitions(
+        self, local_agent: LocalAgent, server_name: str
+    ) -> None:
+        namespaced_prefix = f"{server_name}__"
+        tool_names_to_remove = [
+            tool_name
+            for tool_name in local_agent.tool_definitions.keys()
+            if tool_name.startswith(namespaced_prefix)
+        ]
+
+        if not tool_names_to_remove:
+            return
+
+        if local_agent.is_active:
+            local_agent._clear_tools_from_llm()
+
+        for tool_name in tool_names_to_remove:
+            local_agent.tool_definitions.pop(tool_name, None)
+
+        if local_agent.is_active:
+            local_agent._register_tools_with_llm()
+
     async def deregister_server_tools(
         self, server_name: str, agent_name: Optional[str] = None
     ):
@@ -508,33 +573,19 @@ class MCPService:
             if not local_agent:
                 return
             combined_server_id = self._get_server_id_format(server_name, agent_name)
-            if server_name in self.tools_cache:
-                for tool_name in self.tools_cache[combined_server_id].keys():
-                    if local_agent.is_active:
-                        local_agent.deactivate()
-                    if (
-                        f"{server_name}_{tool_name}"
-                        in local_agent.tool_definitions.keys()
-                    ):
-                        del local_agent.tool_definitions[f"{server_name}_{tool_name}"]
+            if combined_server_id in self.tools_cache:
+                self._remove_agent_server_tool_definitions(local_agent, server_name)
         else:
-            for agent_name in agent_manager.agents.keys():
-                local_agent = agent_manager.get_local_agent(agent_name)
+            for current_agent_name in agent_manager.agents.keys():
+                local_agent = agent_manager.get_local_agent(current_agent_name)
                 if not local_agent:
                     continue
 
-                combined_server_id = self._get_server_id_format(server_name, agent_name)
+                combined_server_id = self._get_server_id_format(
+                    server_name, current_agent_name
+                )
                 if combined_server_id in self.tools_cache:
-                    for tool_name in self.tools_cache[combined_server_id].keys():
-                        if local_agent.is_active:
-                            local_agent.deactivate()
-                        if (
-                            f"{server_name}_{tool_name}"
-                            in local_agent.tool_definitions.keys()
-                        ):
-                            del local_agent.tool_definitions[
-                                f"{server_name}_{tool_name}"
-                            ]
+                    self._remove_agent_server_tool_definitions(local_agent, server_name)
 
     def _format_tool_definition(
         self, tool: Tool, server_id: str, provider: Optional[str] = None

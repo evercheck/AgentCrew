@@ -1,7 +1,7 @@
 import json
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from loguru import logger
 
 
@@ -17,6 +17,7 @@ class MCPServerConfig:
     streaming_server: bool = False
     url: str = ""
     headers: Optional[Dict[str, str]] = None
+    includeTools: Optional[List[str]] = None
 
 
 class MCPConfigManager:
@@ -39,6 +40,30 @@ class MCPConfigManager:
             ),
         )
         self.configs: Dict[str, MCPServerConfig] = {}
+
+    def _normalize_include_tools(
+        self, include_tools: Any, server_id: str
+    ) -> Optional[List[str]]:
+        """Normalize the optional MCP includeTools setting."""
+        if include_tools is None:
+            return None
+
+        if not isinstance(include_tools, list):
+            logger.warning(
+                f"Invalid includeTools for MCP server '{server_id}': expected a list, got {type(include_tools).__name__}. Ignoring filter."
+            )
+            return None
+
+        normalized_tools: List[str] = []
+        seen_tools = set()
+        for tool_name in include_tools:
+            normalized_name = str(tool_name).strip()
+            if not normalized_name or normalized_name in seen_tools:
+                continue
+            normalized_tools.append(normalized_name)
+            seen_tools.add(normalized_name)
+
+        return normalized_tools or None
 
     def load_config(self) -> Dict[str, MCPServerConfig]:
         """
@@ -70,6 +95,9 @@ class MCPConfigManager:
                     streaming_server=config.get("streaming_server", False),
                     url=config.get("url", ""),
                     headers=config.get("headers"),
+                    includeTools=self._normalize_include_tools(
+                        config.get("includeTools"), server_id
+                    ),
                 )
 
             return self.configs

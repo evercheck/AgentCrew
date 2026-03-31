@@ -135,6 +135,11 @@ class MCPsConfigTab(QWidget):
         self.command_label = QLabel("Command:")
         form_layout.addRow(self.command_label, self.command_input)
 
+        self.include_tools_input = QLineEdit()
+        self.include_tools_input.textChanged.connect(self._mark_dirty)
+        self.include_tools_input.setPlaceholderText("tool_a, tool_b")
+        form_layout.addRow("Included Tools:", self.include_tools_input)
+
         # Arguments section
         args_group = QGroupBox("Arguments")
         self.args_group = args_group  # Store reference
@@ -293,6 +298,23 @@ class MCPsConfigTab(QWidget):
             self.mcps_list.addItem(item)
         self.mcps_list.setCurrentRow(0)
 
+    def _normalize_include_tools(self, include_tools) -> list[str]:
+        if not isinstance(include_tools, list):
+            return []
+
+        normalized_tools = []
+        seen_tools = set()
+        for tool_name in include_tools:
+            if not isinstance(tool_name, str):
+                continue
+            normalized_tool_name = tool_name.strip()
+            if not normalized_tool_name or normalized_tool_name in seen_tools:
+                continue
+            normalized_tools.append(normalized_tool_name)
+            seen_tools.add(normalized_tool_name)
+
+        return normalized_tools
+
     def on_mcp_selected(self, current, previous):
         """Handle MCP server selection."""
         if current is None:
@@ -320,6 +342,11 @@ class MCPsConfigTab(QWidget):
         )
         self.url_input.setText(server_config.get("url", ""))
         self.command_input.setText(server_config.get("command", ""))
+        self.include_tools_input.setText(
+            ", ".join(
+                self._normalize_include_tools(server_config.get("includeTools"))
+            )
+        )
 
         # Clear existing argument fields
         self.clear_argument_fields()
@@ -395,6 +422,7 @@ class MCPsConfigTab(QWidget):
         self.name_input.setEnabled(enabled)
         self.streaming_server_checkbox.setEnabled(enabled)
         self.show_code_btn.setEnabled(enabled)
+        self.include_tools_input.setEnabled(enabled)
 
         # For visibility-controlled fields, only disable them when editor is disabled
         # Their visibility is controlled by streaming_server state
@@ -650,6 +678,7 @@ class MCPsConfigTab(QWidget):
             "streaming_server": False,
             "url": "",
             "headers": {},
+            "includeTools": [],
         }
 
         # Add to list
@@ -692,6 +721,7 @@ class MCPsConfigTab(QWidget):
             self.set_editor_enabled(False)
             self.name_input.clear()
             self.command_input.clear()
+            self.include_tools_input.clear()
             self.clear_argument_fields()
             self.clear_env_fields()
             self.clear_header_fields()
@@ -871,6 +901,9 @@ class MCPsConfigTab(QWidget):
         streaming_server = self.streaming_server_checkbox.isChecked()
         url = self.url_input.text().strip()
         command = self.command_input.text().strip()
+        include_tools = self._normalize_include_tools(
+            self.include_tools_input.text().split(",")
+        )
 
         # Get arguments
         args = []
@@ -911,6 +944,7 @@ class MCPsConfigTab(QWidget):
             "streaming_server": streaming_server,
             "url": url,
             "headers": headers,
+            "includeTools": include_tools,
         }
 
     def _update_form_from_json(self, json_data: dict, server_id: str):
@@ -927,6 +961,9 @@ class MCPsConfigTab(QWidget):
         )
         self.url_input.setText(json_data.get("url", ""))
         self.command_input.setText(json_data.get("command", ""))
+        self.include_tools_input.setText(
+            ", ".join(self._normalize_include_tools(json_data.get("includeTools")))
+        )
 
         self.clear_argument_fields()
         for arg in json_data.get("args", []):
