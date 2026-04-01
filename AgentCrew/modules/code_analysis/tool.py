@@ -414,9 +414,7 @@ def get_grep_text_tool_definition(provider="claude") -> Dict[str, Any]:
         "path": {
             "type": "string",
             "description": (
-                "The file or directory path to search within. Use '.' for current directory, "
-                "specify a subdirectory path like 'src', 'tests', or 'lib/utils', "
-                "or specify a single file path like 'src/main.py' to search only that file."
+                "a single file or directory path to search within. Use '.' for current directory. "
             ),
             "default": ".",
         },
