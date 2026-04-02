@@ -29,7 +29,7 @@ def browser_instruction_prompt() -> str:
   <Operating_Procedure>
     1. Inspect the current page before acting. Identify visible controls, labels, fields, errors, loading states, and likely next steps.
     2. Choose one action at a time: click, type, submit, navigate, or inspect.
-    3. After every interaction, re-read the page state before the next action. Do not assume prior element references are still valid; page updates can reset element UUIDs.
+    3. After every interaction, re-read the page state before the next action. Do not assume prior element references are still valid; page updates can invalidate existing element UUIDs even when stable mappings are preserved where possible.
     4. If navigation, modal changes, rerendering, or async loading occurs, inspect again before continuing.
     5. For failed or ambiguous interactions, use `execute_browser_script` to inspect DOM details and use browser logs to diagnose JS/runtime issues.
     6. For scraping, wait until the target content is rendered, verify the page state, then extract only the needed data in a structured form.
@@ -140,7 +140,7 @@ def get_browser_mouse_action_tool_definition(provider="claude") -> Dict[str, Any
 def get_browser_get_content_tool_definition(provider="claude") -> Dict[str, Any]:
     """Get tool definition for browser content extraction."""
     tool_description = (
-        "Extract live rendered page content as markdown with tables of clickable, input, and scrollable elements. Use this after opening a page when you need interactive element discovery, workflow testing, authenticated or session-specific content, or inspection of rendered output. UUIDs reset on each call."
+        "Extract live rendered page content as markdown with tables of clickable, input, and scrollable elements. Use this after opening a page when you need interactive element discovery, workflow testing, authenticated or session-specific content, or inspection of rendered output. UUIDs remain stable across repeated calls when the XPath stays the same, but may become invalid after page rerenders or element removal. "
         "get_browser_content tool's result is UNIQUE in whole conversation. Remember to summarize important information before calling again."
     )
     tool_arguments = {}
@@ -244,13 +244,13 @@ def get_browser_mouse_action_tool_handler(
             if result.get("success", True):
                 diff_summary = _get_content_delta_changes(browser_service)
                 return (
-                    f"{result.get('message', 'Success')}. Call `get_browser_content` tool to get the updated content.\n"
+                    f"{result.get('message', 'Success')}. Call `get_browser_content` tool to inspect the updated page state and current element mappings.\n"
                     f"Action: {action}\nUUID: {element_uuid}\n"
                     f"ClickedElement: {result.get('elementInfo', {}).get('text', 'Unknown')}.\n"
                     f"Content delta changes:\n{diff_summary}"
                 )
             raise RuntimeError(
-                f"Mouse action failed: {result['error']}\nAction: {action}\nUUID: {element_uuid}.\nCall `get_browser_content` tool to get the updated UUID"
+                f"Mouse action failed: {result['error']}\nAction: {action}\nUUID: {element_uuid}.\nCall `get_browser_content` tool to refresh the page state and inspect current element mappings."
             )
 
         if action == "scroll_to":
@@ -259,7 +259,7 @@ def get_browser_mouse_action_tool_handler(
                 return (
                     f"{result.get('message', 'Success')}.\n"
                     f"Action: {action}\nUUID: {element_uuid}\n"
-                    "Call `get_browser_content` tool to get the updated content."
+                    "Call `get_browser_content` tool to inspect the updated page state and current element mappings."
                 )
             raise RuntimeError(
                 f"Mouse action failed: {result['error']}\nAction: {action}\nUUID: {element_uuid}"
@@ -360,7 +360,7 @@ def get_browser_keyboard_action_tool_handler(
             raise RuntimeError(
                 f"Keyboard action failed: {result['error']}\n"
                 f"Action: {action}\nUUID: {element_uuid}\nValue: {value}.\n"
-                "Call `get_browser_content` tool to get updated UUID."
+                "Call `get_browser_content` tool to refresh the page state and inspect current element mappings."
             )
 
         if action == "send_key":
@@ -761,8 +761,8 @@ def get_browser_element_xpath_tool_handler(
         xpath = browser_service.uuid_to_xpath_mapping.get(element_uuid)
         if not xpath:
             raise RuntimeError(
-                f"Element UUID '{element_uuid}' not found. "
-                "Please use get_browser_content to get current element UUIDs."
+                f"Element UUID '{element_uuid}' not found or is no longer valid. "
+                "Use get_browser_content to refresh the page state and inspect current element mappings."
             )
 
         return f"UUID: {element_uuid}\nXPath: {xpath}"

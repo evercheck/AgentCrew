@@ -157,7 +157,7 @@ requires-dist = [
     { name = "docling", marker = "extra == 'nvidia'", specifier = ">=2.26.0" },
     { name = "elevenlabs", specifier = ">=2.12.1" },
     { name = "google-genai", specifier = ">=1.7.0" },
-    { name = "html-to-markdown", specifier = ">=2.9.1" },
+    { name = "html-to-markdown", specifier = ">=2.9.1,<3.0.0" },
     { name = "jsonref", specifier = ">=1.1.0" },
     { name = "jsonschema", specifier = ">=4.25.1" },
     { name = "loguru", specifier = ">=0.7.3" },

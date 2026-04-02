@@ -6,7 +6,8 @@ scroll content, and extract page information using Chrome DevTools Protocol.
 """
 
 import time
-from typing import Dict, Any, Optional, List
+import uuid
+from typing import Dict, Any, Optional, List, Set
 from html_to_markdown import convert, ConversionOptions, PreprocessingOptions
 import urllib.parse
 
@@ -43,6 +44,7 @@ class BrowserAutomationService:
         self.chrome_interface: Optional[PyChromeDevTools.ChromeInterface] = None
         self._is_initialized = False
         self.uuid_to_xpath_mapping: Dict[str, str] = {}
+        self.xpath_to_uuid_mapping: Dict[str, str] = {}
         self._last_page_content: str = ""
         self._console_listener = ConsoleListener(debug_port=debug_port)
 
@@ -54,6 +56,40 @@ class BrowserAutomationService:
                 self.chrome_manager.cleanup()
             self._is_initialized = False
             self.chrome_interface = None
+            self._clear_uuid_mappings()
+
+    def _generate_element_uuid(self) -> str:
+        while True:
+            element_uuid = str(uuid.uuid4())[:8]
+            if element_uuid not in self.uuid_to_xpath_mapping:
+                return element_uuid
+
+    def _get_or_create_uuid_for_xpath(self, xpath: str) -> str:
+        element_uuid = self.xpath_to_uuid_mapping.get(xpath)
+        if element_uuid:
+            self.uuid_to_xpath_mapping[element_uuid] = xpath
+            return element_uuid
+
+        element_uuid = self._generate_element_uuid()
+        self.uuid_to_xpath_mapping[element_uuid] = xpath
+        self.xpath_to_uuid_mapping[xpath] = element_uuid
+        return element_uuid
+
+    def _clear_uuid_mappings(self) -> None:
+        self.uuid_to_xpath_mapping.clear()
+        self.xpath_to_uuid_mapping.clear()
+
+    def _set_active_content_xpaths(self, active_xpaths: Set[str]) -> None:
+        active_uuid_to_xpath: Dict[str, str] = {}
+        active_xpath_to_uuid: Dict[str, str] = {}
+
+        for xpath in active_xpaths:
+            element_uuid = self._get_or_create_uuid_for_xpath(xpath)
+            active_uuid_to_xpath[element_uuid] = xpath
+            active_xpath_to_uuid[xpath] = element_uuid
+
+        self.uuid_to_xpath_mapping = active_uuid_to_xpath
+        self.xpath_to_uuid_mapping = active_xpath_to_uuid
 
     def _find_page_tab(self) -> int:
         """Find the first tab with type 'page' from Chrome's tab list."""
@@ -143,6 +179,7 @@ class BrowserAutomationService:
                         }
 
             current_url = JavaScriptExecutor.get_current_url(self.chrome_interface)
+            self._clear_uuid_mappings()
 
             return {
                 "success": True,
@@ -176,12 +213,10 @@ class BrowserAutomationService:
 
             self.clear_console_logs()
             self.chrome_interface.Page.reload()
-
-            import time
-
             time.sleep(0.5)
 
             current_url = JavaScriptExecutor.get_current_url(self.chrome_interface)
+            self._clear_uuid_mappings()
 
             return {
                 "success": True,
@@ -213,7 +248,7 @@ class BrowserAutomationService:
         if not xpath:
             return {
                 "success": False,
-                "error": f"Element UUID '{element_uuid}' not found. Please use browser_get_content to get current element UUIDs.",
+                "error": f"Element UUID '{element_uuid}' not found or is no longer valid. Refresh the current page state and inspect current element mappings.",
                 "uuid": element_uuid,
             }
         try:
@@ -301,7 +336,7 @@ class BrowserAutomationService:
             if not xpath:
                 return {
                     "success": False,
-                    "error": f"Element UUID '{element_uuid}' not found. Please use browser_get_content to get current element UUIDs.",
+                    "error": f"Element UUID '{element_uuid}' not found or is no longer valid. Refresh the current page state and inspect current element mappings.",
                     "uuid": element_uuid,
                 }
 
@@ -402,22 +437,20 @@ class BrowserAutomationService:
             # Clean the markdown content
             cleaned_markdown_content = clean_markdown_images(raw_markdown_content)
 
-            # Remove consecutive duplicate lines
             deduplicated_content = remove_duplicate_lines(cleaned_markdown_content)
 
-            self.uuid_to_xpath_mapping.clear()
-
-            clickable_elements_md = extract_clickable_elements(
-                self.chrome_interface, self.uuid_to_xpath_mapping
+            clickable_elements_md, clickable_xpaths = extract_clickable_elements(
+                self.chrome_interface, self._get_or_create_uuid_for_xpath
+            )
+            input_elements_md, input_xpaths = extract_input_elements(
+                self.chrome_interface, self._get_or_create_uuid_for_xpath
+            )
+            scrollable_elements_md, scrollable_xpaths = extract_scrollable_elements(
+                self.chrome_interface, self._get_or_create_uuid_for_xpath
             )
 
-            input_elements_md = extract_input_elements(
-                self.chrome_interface, self.uuid_to_xpath_mapping
-            )
-
-            scrollable_elements_md = extract_scrollable_elements(
-                self.chrome_interface, self.uuid_to_xpath_mapping
-            )
+            active_xpaths = clickable_xpaths | input_xpaths | scrollable_xpaths
+            self._set_active_content_xpaths(active_xpaths)
 
             final_content = (
                 deduplicated_content
@@ -550,7 +583,7 @@ class BrowserAutomationService:
         if not xpath:
             return {
                 "success": False,
-                "error": f"Element UUID '{element_uuid}' not found. Please use browser_get_content to get current element UUIDs.",
+                "error": f"Element UUID '{element_uuid}' not found or is no longer valid. Refresh the current page state and inspect current element mappings.",
                 "uuid": element_uuid,
                 "input_value": value,
             }
@@ -639,17 +672,15 @@ class BrowserAutomationService:
             if self.chrome_interface is None:
                 raise RuntimeError("Chrome interface is not initialized")
 
-            initial_mapping_count = len(self.uuid_to_xpath_mapping)
-            elements_md = extract_elements_by_text(
-                self.chrome_interface, self.uuid_to_xpath_mapping, text
+            elements_md, elements_found = extract_elements_by_text(
+                self.chrome_interface, self._get_or_create_uuid_for_xpath, text
             )
-            new_mapping_count = len(self.uuid_to_xpath_mapping) - initial_mapping_count
 
             return {
                 "success": True,
                 "content": elements_md,
                 "text": text,
-                "elements_found": new_mapping_count,
+                "elements_found": elements_found,
             }
 
         except Exception as e:
