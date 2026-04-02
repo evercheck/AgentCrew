@@ -75,7 +75,7 @@ def ask_tool_prompt() -> str:
         System prompt describing when and how to use the ask tool
     """
     return """
-<Ask_Tool_Usage>
+<Ask_Tool_Instruction>
   <Purpose>
     Use the `ask` tool when you need additional information or clarification from the user 
     to complete their request effectively. This tool helps you gather specific details 
@@ -99,7 +99,7 @@ def ask_tool_prompt() -> str:
     - Prevent custom answer or user specify option
     - Always use plain text
   </Best_Practices>
-</Ask_Tool_Usage>
+</Ask_Tool_Instruction>
 """
 
 

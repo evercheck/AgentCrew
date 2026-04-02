@@ -126,7 +126,7 @@ Use from_date and to_date to filter memories by time whenever posible, Eg: yeste
 
 def memory_instruction_prompt():
     """Concise memory system instructions for system prompt."""
-    return """<Memory_System>
+    return """<Memory_Tools_Instruction>
   <Purpose>
     Extremely useful for gathering context through intelligent storage and retrieval of relevant information.
     Call search_memory when one of <Memory_Triggers> occur to provide better responses.
@@ -150,7 +150,7 @@ def memory_instruction_prompt():
       - Search and Use ID-based removal for surgical precision
     </Memory_Management>
   </Usage_Guidelines>
-</Memory_System>"""
+</Memory_Tools_Instruction>"""
 
 
 def get_memory_retrieve_tool_handler(memory_service: BaseMemoryService) -> Callable:
@@ -316,7 +316,7 @@ def get_learn_behavior_tool_handler(persistence_service: Any) -> Callable:
 
 def adaptive_instruction_prompt():
     """Concise adaptive behavior instructions for system prompt."""
-    return """<Adaptive_Behaviors>
+    return """<Learn_Behavior_Tool_Instruction>
   <Purpose>
     Learn and apply personalized interaction patterns to improve user experience over time.
   </Purpose>
@@ -347,7 +347,7 @@ def adaptive_instruction_prompt():
     • task_execution_[domain] 
     • personalization_[area]
   </ID_Conventions>
-</Adaptive_Behaviors>"""
+</Learn_Behavior_Tool_Instruction>"""
 
 
 def register(

@@ -117,9 +117,11 @@ class AgentToolRegistrar:
                     elif tool_name == "browser":
                         from AgentCrew.modules.browser_automation.tool import (
                             register as register_browser,
+                            browser_instruction_prompt,
                         )
 
                         register_browser(service, agent)
+                        agent.tool_prompts.append(browser_instruction_prompt())
                     elif tool_name == "file_editing":
                         from AgentCrew.modules.file_editing.tool import (
                             register as register_file_editing,

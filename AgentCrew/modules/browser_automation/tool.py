@@ -9,6 +9,48 @@ if TYPE_CHECKING:
     from typing import Dict, Any, Callable, Union, List
 
 
+def browser_instruction_prompt() -> str:
+    return """<Browser_Tools_Instruction>
+  <Purpose>
+    Use browser tools as a stateful, observe-then-act workflow. Prefer the smallest reliable action that moves the task forward.
+  </Purpose>
+  <Primary_Uses>
+    - testing interactive web apps
+    - completing multi-step browser tasks such as sign-in, sign-up, booking, checkout, and page-to-page navigation
+    - capturing or scraping data from rendered pages
+  </Primary_Uses>
+  <Tool_Selection>
+    - Use live browser interaction tools when the task depends on rendered UI, JavaScript execution, user state, authentication, modals, client-side routing, lazy-loaded content, or multi-step flows.
+    - Use static webpage fetch tools only for non-interactive pages or when raw page content is enough. Do not rely on static fetch for SPA state, logged-in views, or dynamically rendered content.
+    - Use mouse and keyboard tools for normal user interactions.
+    - Use `execute_browser_script` to inspect DOM state, debug page behavior, verify values, and extract structured data from the rendered page.
+    - Use browser log view when the page behaves unexpectedly, actions do nothing, content fails to render, or runtime errors may explain failures.
+  </Tool_Selection>
+  <Operating_Procedure>
+    1. Inspect the current page before acting. Identify visible controls, labels, fields, errors, loading states, and likely next steps.
+    2. Choose one action at a time: click, type, submit, navigate, or inspect.
+    3. After every interaction, re-read the page state before the next action. Do not assume prior element references are still valid; page updates can reset element UUIDs.
+    4. If navigation, modal changes, rerendering, or async loading occurs, inspect again before continuing.
+    5. For failed or ambiguous interactions, use `execute_browser_script` to inspect DOM details and use browser logs to diagnose JS/runtime issues.
+    6. For scraping, wait until the target content is rendered, verify the page state, then extract only the needed data in a structured form.
+  </Operating_Procedure>
+  <Best_Practices>
+    - Prefer stable UI targets: visible text, labels, roles, form context, and nearby headings.
+    - Use keyboard actions for text entry, submit flows, tab navigation, and shortcut-driven interactions.
+    - Use script execution for verification and extraction, not as a first choice to bypass normal UI behavior.
+    - Keep actions reversible and incremental; confirm progress after each step.
+    - When testing, validate both expected success states and visible error states.
+  </Best_Practices>
+  <Efficiency_And_Reliability_Rules>
+    - Do not perform long chains of clicks or keystrokes without checking the updated page.
+    - Do not reuse stale assumptions after DOM updates, route changes, or form submissions.
+    - Do not overuse script execution when a normal click or typing action is sufficient.
+    - Do not use static fetch tools to infer live UI state.
+    - If the page is inconsistent, blocked, or failing silently, inspect DOM state and browser logs before retrying.
+  </Efficiency_And_Reliability_Rules>
+</Browser_Tools_Instruction>"""
+
+
 def get_browser_navigate_tool_definition(provider="claude") -> Dict[str, Any]:
     """Get tool definition for browser navigation."""
     tool_description = "Navigate to a URL in the browser when you need a live rendered page for interaction, workflow testing, authenticated or session-specific access, JavaScript-rendered content, or inspection of page behavior. Check result before proceeding with other actions."

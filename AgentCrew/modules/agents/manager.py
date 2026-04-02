@@ -470,7 +470,7 @@ When system access is requested:
             str: A formatted string containing delegation instructions
         """
 
-        return """<Delegate_Tool_Rules>
+        return """<Delegate_Tool_Instruction>
   <Purpose>
     Delegate tasks to specialist agents for independent execution.
     You stay active and receive results as tool output.
@@ -502,7 +502,7 @@ When system access is requested:
     Required: target_agent, task_description
     Optional: context (relevant data the agent needs)
   </Tool_Usage>
-</Delegate_Tool_Rules>"""
+</Delegate_Tool_Instruction>"""
 
     def get_transfer_system_prompt(self):
         """
@@ -511,7 +511,7 @@ When system access is requested:
         Returns:
             str: A formatted string containing transfer instructions and available agents
         """
-        transfer_prompt = """<Transfer_Tool_Rules>
+        transfer_prompt = """<Transfer_Tool_Instruction>
   <Decision_Rule>
     When a specialist agent from <Transferable_Agents> is better suited for the user's request,
     transfer immediately using the `transfer` tool. Stay engaged only if no better-suited
@@ -534,6 +534,6 @@ When system access is requested:
     • `task_description` — action-oriented, self-contained objective with full context
     • `post_action`  — (optional) next step after task completion
   </Tool_Usage>
-</Transfer_Tool_Rules>"""
+</Transfer_Tool_Instruction>"""
 
         return transfer_prompt
