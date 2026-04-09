@@ -1,14 +1,14 @@
-import hashlib
 import base64
-import secrets
+import hashlib
 import json
 import os
+import secrets
 import time
 import webbrowser
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlencode, urlparse, parse_qs
-from typing import Optional, Dict, Any
-from threading import Thread, Event
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from threading import Event, Thread
+from typing import Any, Dict, Optional
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
 from loguru import logger
@@ -21,6 +21,15 @@ DEFAULT_TOKEN_PATH = os.path.expanduser("~/.codex/auth.json")
 CALLBACK_HOST = "127.0.0.1"
 CALLBACK_REDIRECT_HOST = "localhost"
 CALLBACK_PORT_RANGE = (1455, 1475)
+LEGACY_TOP_LEVEL_KEYS = {
+    "openai-codex",
+    "access",
+    "refresh",
+    "expires",
+    "type",
+    "id_token",
+    "account_id",
+}
 
 
 def _generate_pkce_pair():
@@ -28,6 +37,55 @@ def _generate_pkce_pair():
     digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
     code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
     return code_verifier, code_challenge
+
+
+def _current_time_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def _decode_base64url_json(value: str) -> Optional[Dict[str, Any]]:
+    try:
+        padded = value + "=" * (-len(value) % 4)
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+        payload = json.loads(decoded)
+        if isinstance(payload, dict):
+            return payload
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return None
+
+
+def _derive_expires_from_access_token(access_token: str) -> Optional[int]:
+    if not isinstance(access_token, str):
+        return None
+
+    token_parts = access_token.split(".")
+    if len(token_parts) != 3:
+        return None
+
+    payload = _decode_base64url_json(token_parts[1])
+    if not payload:
+        return None
+
+    exp = payload.get("exp")
+    if isinstance(exp, (int, float)) and exp > 0:
+        return int(exp * 1000)
+
+    return None
+
+
+def _extract_account_id(data: Dict[str, Any]) -> Optional[str]:
+    account_id = data.get("account_id")
+    if isinstance(account_id, str) and account_id:
+        return account_id
+
+    account = data.get("account")
+    if isinstance(account, dict):
+        nested_account_id = account.get("id") or account.get("account_id")
+        if isinstance(nested_account_id, str) and nested_account_id:
+            return nested_account_id
+
+    return None
 
 
 class _OAuthCallbackHandler(BaseHTTPRequestHandler):
@@ -87,39 +145,145 @@ class OpenAICodexOAuth:
         self._tokens: Optional[Dict[str, Any]] = None
         self._load_tokens()
 
+    def _normalize_tokens(
+        self,
+        raw_tokens: Dict[str, Any],
+        *,
+        auth_mode: Optional[Any] = None,
+        last_refresh: Optional[Any] = None,
+    ) -> Optional[Dict[str, Any]]:
+        access_token = raw_tokens.get("access") or raw_tokens.get("access_token")
+        refresh_token = raw_tokens.get("refresh") or raw_tokens.get("refresh_token") or ""
+
+        if not access_token and not refresh_token:
+            return None
+
+        expires = raw_tokens.get("expires")
+        if not isinstance(expires, (int, float)) or expires <= 0:
+            expires = raw_tokens.get("expires_at")
+        if not isinstance(expires, (int, float)) or expires <= 0:
+            expires_in = raw_tokens.get("expires_in")
+            if isinstance(expires_in, (int, float)) and expires_in > 0:
+                expires = _current_time_ms() + int(expires_in * 1000)
+        if not isinstance(expires, (int, float)) or expires <= 0:
+            expires = _derive_expires_from_access_token(access_token)
+
+        normalized = {
+            "type": raw_tokens.get("type") or "oauth",
+            "access": access_token,
+            "refresh": refresh_token,
+        }
+
+        if isinstance(expires, (int, float)) and expires > 0:
+            normalized["expires"] = int(expires)
+
+        id_token = raw_tokens.get("id_token")
+        if isinstance(id_token, str) and id_token:
+            normalized["id_token"] = id_token
+
+        account_id = raw_tokens.get("account_id")
+        if isinstance(account_id, str) and account_id:
+            normalized["account_id"] = account_id
+
+        if isinstance(auth_mode, str) and auth_mode:
+            normalized["auth_mode"] = auth_mode
+
+        if isinstance(last_refresh, (int, float)) and last_refresh > 0:
+            normalized["last_refresh"] = int(last_refresh)
+
+        return normalized
+
     def _load_tokens(self):
-        if os.path.exists(self.token_path):
-            try:
-                with open(self.token_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                if isinstance(data, dict) and "openai-codex" in data:
-                    self._tokens = data["openai-codex"]
-                elif isinstance(data, dict) and "access" in data:
-                    self._tokens = data
-            except (json.JSONDecodeError, IOError) as e:
-                logger.warning(
-                    f"Could not load OAuth tokens from {self.token_path}: {e}"
-                )
-                self._tokens = None
+        if not os.path.exists(self.token_path):
+            return
+
+        try:
+            with open(self.token_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Could not load OAuth tokens from {self.token_path}: {e}")
+            self._tokens = None
+            return
+
+        if not isinstance(data, dict):
+            self._tokens = None
+            return
+
+        if isinstance(data.get("tokens"), dict):
+            self._tokens = self._normalize_tokens(
+                data["tokens"],
+                auth_mode=data.get("auth_mode"),
+                last_refresh=data.get("last_refresh"),
+            )
+            if self._tokens:
+                return
+
+        legacy_nested = data.get("openai-codex")
+        if isinstance(legacy_nested, dict):
+            self._tokens = self._normalize_tokens(legacy_nested)
+            if self._tokens:
+                return
+
+        if data.get("access") or data.get("refresh"):
+            self._tokens = self._normalize_tokens(data)
+            if self._tokens:
+                return
+
+        self._tokens = None
 
     def _save_tokens(self):
         if not self._tokens:
             return
+
         dir_path = os.path.dirname(self.token_path)
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
 
-        existing = {}
+        existing: Dict[str, Any] = {}
         if os.path.exists(self.token_path):
             try:
                 with open(self.token_path, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    existing = loaded
             except (json.JSONDecodeError, IOError):
                 existing = {}
 
-        existing["openai-codex"] = self._tokens
+        current_time_ms = _current_time_ms()
+        self._tokens["last_refresh"] = current_time_ms
+        self._tokens["auth_mode"] = "chatgpt"
+
+        top_level = {
+            key: value
+            for key, value in existing.items()
+            if key not in LEGACY_TOP_LEVEL_KEYS and key not in {"auth_mode", "last_refresh", "tokens"}
+        }
+        top_level["auth_mode"] = "chatgpt"
+        top_level["last_refresh"] = current_time_ms
+
+        existing_tokens = existing.get("tokens")
+        tokens_payload = dict(existing_tokens) if isinstance(existing_tokens, dict) else {}
+
+        access_token = self._tokens.get("access")
+        if isinstance(access_token, str) and access_token:
+            tokens_payload["access_token"] = access_token
+
+        refresh_token = self._tokens.get("refresh")
+        if isinstance(refresh_token, str) and refresh_token:
+            tokens_payload["refresh_token"] = refresh_token
+
+        id_token = self._tokens.get("id_token")
+        if isinstance(id_token, str) and id_token:
+            tokens_payload["id_token"] = id_token
+
+        account_id = self._tokens.get("account_id")
+        if isinstance(account_id, str) and account_id:
+            tokens_payload["account_id"] = account_id
+
+        top_level["tokens"] = tokens_payload
+
         with open(self.token_path, "w", encoding="utf-8") as f:
-            json.dump(existing, f, indent=2)
+            json.dump(top_level, f, indent=2)
         os.chmod(self.token_path, 0o600)
 
     @property
@@ -145,6 +309,28 @@ class OpenAICodexOAuth:
                 return self.access_token
         return None
 
+    def _update_tokens_from_response(self, data: Dict[str, Any]):
+        expires_in = data.get("expires_in", 3600)
+        self._tokens = {
+            "type": "oauth",
+            "access": data["access_token"],
+            "refresh": data.get("refresh_token")
+            or (self._tokens or {}).get("refresh", ""),
+            "expires": int((time.time() + expires_in) * 1000),
+            "auth_mode": "chatgpt",
+            "last_refresh": _current_time_ms(),
+        }
+
+        id_token = data.get("id_token")
+        if isinstance(id_token, str) and id_token:
+            self._tokens["id_token"] = id_token
+        elif self._tokens.get("id_token"):
+            self._tokens["id_token"] = self._tokens["id_token"]
+
+        account_id = _extract_account_id(data) or (self._tokens or {}).get("account_id")
+        if isinstance(account_id, str) and account_id:
+            self._tokens["account_id"] = account_id
+
     def _refresh_token(self) -> bool:
         if not self._tokens or not self._tokens.get("refresh"):
             return False
@@ -165,11 +351,12 @@ class OpenAICodexOAuth:
                     )
                     return False
                 data = resp.json()
-                self._tokens["access"] = data["access_token"]
-                if "refresh_token" in data:
-                    self._tokens["refresh"] = data["refresh_token"]
-                expires_in = data.get("expires_in", 3600)
-                self._tokens["expires"] = int((time.time() + expires_in) * 1000)
+                previous_tokens = dict(self._tokens)
+                self._update_tokens_from_response(data)
+                if "id_token" not in self._tokens and previous_tokens.get("id_token"):
+                    self._tokens["id_token"] = previous_tokens["id_token"]
+                if "account_id" not in self._tokens and previous_tokens.get("account_id"):
+                    self._tokens["account_id"] = previous_tokens["account_id"]
                 self._save_tokens()
                 logger.info("OAuth token refreshed successfully")
                 return True
@@ -254,13 +441,7 @@ class OpenAICodexOAuth:
                     )
                     return False
                 data = resp.json()
-                expires_in = data.get("expires_in", 3600)
-                self._tokens = {
-                    "type": "oauth",
-                    "access": data["access_token"],
-                    "refresh": data.get("refresh_token", ""),
-                    "expires": int((time.time() + expires_in) * 1000),
-                }
+                self._update_tokens_from_response(data)
                 self._save_tokens()
                 logger.info("OpenAI Codex OAuth authentication successful")
                 return True
