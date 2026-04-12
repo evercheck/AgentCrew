@@ -167,7 +167,6 @@ class TogetherAIService(BaseLLMService):
             max_tokens=3000,
             temperature=temperature,
             stream=True,
-            stream_options={"include_usage": True},
             messages=[{"role": "user", "content": prompt}],
         )
 
