@@ -1,5 +1,6 @@
 from typing import Dict, Optional, Callable
 from AgentCrew.modules.llm.base import BaseLLMService
+from AgentCrew.modules.llm.model_registry import ModelRegistry
 import os
 
 
@@ -271,5 +272,17 @@ class ServiceManager:
         service = self.get_service(provider)
         if hasattr(service, "model"):
             service.model = model_id
+            self._apply_model_defaults(service, provider, model_id)
             return True
         return False
+
+    def _apply_model_defaults(
+        self, service: BaseLLMService, provider: str, model_id: str
+    ) -> None:
+        full_model_id = f"{provider}/{model_id}"
+        model = ModelRegistry.get_instance().get_model(full_model_id)
+        if not model or not hasattr(service, "reasoning_effort"):
+            return
+
+        if model.default_reasoning is not None:
+            setattr(service, "reasoning_effort", model.default_reasoning)

@@ -29,6 +29,9 @@ class Model(BaseModel):
         ]
     ]
     default: bool = False
+    default_reasoning: Optional[Literal["none", "minimal", "low", "medium", "high"]] = (
+        None
+    )
     force_sample_params: Optional[SampleParam] = None
     max_context_token: int = 128_000
     input_token_price_1m: float = 0.0
