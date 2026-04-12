@@ -29,6 +29,7 @@ from .constants import (
     RICH_STYLE_WHITE,
     CODE_THEME,
 )
+from .diff_display import DiffDisplay
 
 from typing import TYPE_CHECKING
 
@@ -421,6 +422,18 @@ class DisplayHandlers:
                 box=SQUARE,
                 title=Text("🧬 Prompt Evolution Review", style=RICH_STYLE_YELLOW_BOLD),
                 border_style=RICH_STYLE_YELLOW,
+            )
+        )
+
+    def display_prompt_evolution_result(
+        self, result: Dict[str, Any], max_width: int = 60
+    ):
+        self.console.print(
+            DiffDisplay.create_summary_diff_panel(
+                result.get("previous_system_prompt", ""),
+                result.get("revised_system_prompt", ""),
+                title=f"🧬 Prompt Evolution Result · {result.get('agent_name', 'Agent')}",
+                max_width=max_width,
             )
         )
 

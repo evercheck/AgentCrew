@@ -5,16 +5,75 @@ Provides split view diff display with syntax highlighting.
 
 import difflib
 from typing import List, Dict
+from rich.console import Group
+from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
-from rich.box import SIMPLE_HEAD
+from rich.box import SIMPLE_HEAD, HORIZONTALS
 from .constants import (
     RICH_STYLE_BLUE_BOLD,
+    RICH_STYLE_GREEN,
+    RICH_STYLE_YELLOW,
 )
 
 
 class DiffDisplay:
     """Helper class for creating split diff views."""
+
+    @staticmethod
+    def create_side_by_side_diff_panel(
+        original: str,
+        modified: str,
+        title: str = "Prompt Evolution Result",
+        original_label: str = "Old",
+        modified_label: str = "New",
+        max_width: int = 60,
+    ) -> Panel:
+        table = DiffDisplay.create_split_diff_table(
+            original,
+            modified,
+            max_width=max_width,
+            original_label=original_label,
+            modified_label=modified_label,
+        )
+        return Panel(
+            table, title=title, box=HORIZONTALS, border_style=RICH_STYLE_YELLOW
+        )
+
+    @staticmethod
+    def create_summary_diff_panel(
+        original: str,
+        modified: str,
+        title: str = "Prompt Evolution Result",
+        max_width: int = 60,
+    ) -> Panel:
+        original_lines = original.splitlines()
+        modified_lines = modified.splitlines()
+        line_delta = len(modified_lines) - len(original_lines)
+
+        header = Text()
+        header.append("Old lines: ", style="dim")
+        header.append(str(len(original_lines)), style=RICH_STYLE_YELLOW)
+        header.append("  New lines: ", style="dim")
+        header.append(str(len(modified_lines)), style=RICH_STYLE_GREEN)
+        header.append("  Δ: ", style="dim")
+        header.append(
+            f"{line_delta:+d}", style=RICH_STYLE_GREEN if line_delta >= 0 else "red"
+        )
+
+        diff_table = DiffDisplay.create_split_diff_table(
+            original,
+            modified,
+            max_width=max_width,
+            original_label="Old Prompt",
+            modified_label="New Prompt",
+        )
+        return Panel(
+            Group(header, diff_table),
+            title=title,
+            box=HORIZONTALS,
+            border_style=RICH_STYLE_YELLOW,
+        )
 
     @staticmethod
     def has_search_replace_blocks(blocks: List[Dict]) -> bool:
@@ -51,7 +110,11 @@ class DiffDisplay:
 
     @staticmethod
     def create_split_diff_table(
-        original: str, modified: str, max_width: int = 60
+        original: str,
+        modified: str,
+        max_width: int = 60,
+        original_label: str = "Original",
+        modified_label: str = "Modified",
     ) -> Table:
         """
         Create a split diff display table using difflib for intelligent comparison.
@@ -71,8 +134,8 @@ class DiffDisplay:
             expand=False,
             padding=(0, 1),
         )
-        table.add_column("Original", style="", width=max_width, no_wrap=False)
-        table.add_column("Modified", style="", width=max_width, no_wrap=False)
+        table.add_column(original_label, style="", width=max_width, no_wrap=False)
+        table.add_column(modified_label, style="", width=max_width, no_wrap=False)
 
         original_lines = original.split("\n")
         modified_lines = modified.split("\n")

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QApplication,
     QLabel,
+    QFrame,
 )
 from PySide6.QtCore import Qt
 from AgentCrew.modules.gui.widgets import (
@@ -13,6 +14,7 @@ from AgentCrew.modules.gui.widgets import (
     SystemMessageWidget,
     MessageBubble,
 )
+from AgentCrew.modules.gui.themes.style_provider import StyleProvider
 
 
 class ChatComponents:
@@ -79,7 +81,59 @@ class ChatComponents:
         system_widget = SystemMessageWidget(text)
         self.chat_window.chat_layout.addWidget(system_widget)
 
-        # Scroll to show the new message
+        if not self.chat_window.loading_conversation:
+            QApplication.processEvents()
+
+    def add_diff_system_message(self, title: str, original: str, modified: str):
+        """Add a compact side-by-side diff system message to the chat."""
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(6)
+
+        container_layout.addWidget(SystemMessageWidget(title))
+
+        colors = StyleProvider().get_diff_colors()
+        diff_frame = QFrame()
+        diff_frame.setStyleSheet(
+            f"QFrame {{ background-color: {colors['background']}; border: 1px solid {colors['border']}; border-radius: 6px; }}"
+        )
+        diff_layout = QHBoxLayout(diff_frame)
+        diff_layout.setContentsMargins(8, 8, 8, 8)
+        diff_layout.setSpacing(8)
+
+        for label, content, is_original in (
+            ("Old Prompt", original, True),
+            ("New Prompt", modified, False),
+        ):
+            panel = QFrame()
+            bg = colors["removed_bg"] if is_original else colors["added_bg"]
+            fg = colors["removed_text"] if is_original else colors["added_text"]
+            panel.setStyleSheet(
+                f"QFrame {{ background-color: {bg}; border: 1px solid {colors['border']}; border-radius: 4px; }}"
+            )
+            panel_layout = QVBoxLayout(panel)
+            panel_layout.setContentsMargins(6, 6, 6, 6)
+            panel_layout.setSpacing(4)
+
+            header = QLabel(label)
+            header.setStyleSheet(f"font-weight: bold; color: {fg};")
+            panel_layout.addWidget(header)
+
+            content_label = QLabel(content)
+            content_label.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse
+            )
+            content_label.setWordWrap(True)
+            content_label.setStyleSheet(
+                f"font-family: monospace; color: {fg}; background: transparent;"
+            )
+            panel_layout.addWidget(content_label)
+            diff_layout.addWidget(panel, 1)
+
+        container_layout.addWidget(diff_frame)
+        self.chat_window.chat_layout.addWidget(container)
+
         if not self.chat_window.loading_conversation:
             QApplication.processEvents()
 

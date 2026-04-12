@@ -251,6 +251,10 @@ class ConsoleUI(Observer):
             )
             result_text.append(data["agent_name"], style=RICH_STYLE_GREEN)
             self.display_handlers.display_message(result_text)
+            self.display_handlers.display_prompt_evolution_result(
+                data,
+                max_width=max(30, (self.console.width // 2) - 6),
+            )
         elif event == "evolution_declined":
             self.display_handlers.display_message(
                 Text("Prompt evolution declined.", style=RICH_STYLE_YELLOW)

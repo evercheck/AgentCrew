@@ -476,6 +476,11 @@ class CommandHandler:
             self.chat_window.chat_components.add_system_message(
                 f"Updated persisted system prompt for {data['agent_name']}."
             )
+            self.chat_window.chat_components.add_diff_system_message(
+                f"🧬 Prompt evolution result for {data['agent_name']}",
+                data.get("previous_system_prompt", ""),
+                data.get("revised_system_prompt", ""),
+            )
             self.chat_window.display_status_message(
                 f"Prompt evolution applied for {data['agent_name']}"
             )

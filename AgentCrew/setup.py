@@ -309,7 +309,7 @@ class ApplicationSetup:
                 if config_dir:
                     os.makedirs(config_dir, exist_ok=True)
 
-                escaped_default_prompt = DEFAULT_PROMPT.replace('"""', '\\\"\\\"\\\"')
+                escaped_default_prompt = DEFAULT_PROMPT.replace('"""', '\\"\\"\\"')
                 default_config = f'''
 [[agents]]
 name = "{DEFAULT_NAME}"
