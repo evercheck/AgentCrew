@@ -158,15 +158,32 @@ class TogetherAIService(BaseLLMService):
         return converted_messages
 
     async def process_message(self, prompt: str, temperature: float = 0) -> str:
-        response = await self.client.chat.completions.create(
+        result_text = ""
+        input_tokens = 0
+        output_tokens = 0
+
+        stream = await self.client.chat.completions.create(
             model=self.model,
             max_tokens=3000,
             temperature=temperature,
+            stream=True,
+            stream_options={"include_usage": True},
             messages=[{"role": "user", "content": prompt}],
         )
 
-        input_tokens = response.usage.prompt_tokens if response.usage else 0
-        output_tokens = response.usage.completion_tokens if response.usage else 0
+        async for chunk in stream:
+            if (
+                chunk.choices
+                and hasattr(chunk.choices[0].delta, "content")
+                and chunk.choices[0].delta.content is not None
+            ):
+                result_text += chunk.choices[0].delta.content
+            if hasattr(chunk, "usage") and chunk.usage:
+                if hasattr(chunk.usage, "prompt_tokens"):
+                    input_tokens = chunk.usage.prompt_tokens
+                if hasattr(chunk.usage, "completion_tokens"):
+                    output_tokens = chunk.usage.completion_tokens
+
         total_cost = self.calculate_cost(input_tokens, output_tokens)
 
         logger.info("\nToken Usage Statistics:")
@@ -175,20 +192,14 @@ class TogetherAIService(BaseLLMService):
         logger.info(f"Total tokens: {input_tokens + output_tokens:,}")
         logger.info(f"Estimated cost: ${total_cost:.4f}")
 
-        result = (
-            response.choices[0].message.content or ""
-            if response.choices[0].message
-            else ""
-        )
-
         if "thinking" in ModelRegistry.get_model_capabilities(
             f"{self._provider_name}/{self.model}"
         ):
-            think_start = result.find("<think>")
-            think_end = result.find("</think>")
+            think_start = result_text.find("<think>")
+            think_end = result_text.find("</think>")
             if think_start >= 0 and think_end >= 0:
-                result = result[:think_start] + result[think_end + len("</think>") :]
-        return result
+                result_text = result_text[:think_start] + result_text[think_end + len("</think>"):]
+        return result_text
 
     def _process_file(self, file_path: str):
         mime_type, _ = mimetypes.guess_type(file_path)

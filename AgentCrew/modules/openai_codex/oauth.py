@@ -153,7 +153,9 @@ class OpenAICodexOAuth:
         last_refresh: Optional[Any] = None,
     ) -> Optional[Dict[str, Any]]:
         access_token = raw_tokens.get("access") or raw_tokens.get("access_token")
-        refresh_token = raw_tokens.get("refresh") or raw_tokens.get("refresh_token") or ""
+        refresh_token = (
+            raw_tokens.get("refresh") or raw_tokens.get("refresh_token") or ""
+        )
 
         if not access_token and not refresh_token:
             return None
@@ -256,13 +258,16 @@ class OpenAICodexOAuth:
         top_level = {
             key: value
             for key, value in existing.items()
-            if key not in LEGACY_TOP_LEVEL_KEYS and key not in {"auth_mode", "last_refresh", "tokens"}
+            if key not in LEGACY_TOP_LEVEL_KEYS
+            and key not in {"auth_mode", "last_refresh", "tokens"}
         }
         top_level["auth_mode"] = "chatgpt"
         top_level["last_refresh"] = current_time_ms
 
         existing_tokens = existing.get("tokens")
-        tokens_payload = dict(existing_tokens) if isinstance(existing_tokens, dict) else {}
+        tokens_payload = (
+            dict(existing_tokens) if isinstance(existing_tokens, dict) else {}
+        )
 
         access_token = self._tokens.get("access")
         if isinstance(access_token, str) and access_token:
@@ -355,7 +360,9 @@ class OpenAICodexOAuth:
                 self._update_tokens_from_response(data)
                 if "id_token" not in self._tokens and previous_tokens.get("id_token"):
                     self._tokens["id_token"] = previous_tokens["id_token"]
-                if "account_id" not in self._tokens and previous_tokens.get("account_id"):
+                if "account_id" not in self._tokens and previous_tokens.get(
+                    "account_id"
+                ):
                     self._tokens["account_id"] = previous_tokens["account_id"]
                 self._save_tokens()
                 logger.info("OAuth token refreshed successfully")

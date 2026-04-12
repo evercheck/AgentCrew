@@ -153,24 +153,25 @@ class GoogleAINativeService(BaseLLMService):
         return 0.0
 
     async def process_message(self, prompt: str, temperature: float = 0) -> str:
-        response = await self.client.aio.models.generate_content(
+        result_text = ""
+        input_tokens = 0
+        output_tokens = 0
+
+        async for chunk in self.client.aio.models.generate_content_stream(
             model=self.model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 max_output_tokens=3000, temperature=temperature
             ),
-        )
+        ):
+            if hasattr(chunk, "text") and chunk.text:
+                result_text += chunk.text
+            if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
+                if hasattr(chunk.usage_metadata, "prompt_token_count"):
+                    input_tokens = chunk.usage_metadata.prompt_token_count or 0
+                if hasattr(chunk.usage_metadata, "candidates_token_count"):
+                    output_tokens = chunk.usage_metadata.candidates_token_count or 0
 
-        # Get token usage if available
-        input_tokens = 0
-        output_tokens = 0
-        if hasattr(response, "usage_metadata") and response.usage_metadata:
-            if hasattr(response.usage_metadata, "prompt_token_count"):
-                input_tokens = response.usage_metadata.prompt_token_count or 0
-            if hasattr(response.usage_metadata, "candidates_token_count"):
-                output_tokens = response.usage_metadata.candidates_token_count or 0
-
-        # Calculate and log cost
         total_cost = self.calculate_cost(input_tokens, output_tokens)
         logger.info("\nToken Usage Statistics:")
         logger.info(f"Input tokens: {input_tokens:,}")
@@ -178,7 +179,7 @@ class GoogleAINativeService(BaseLLMService):
         logger.info(f"Total tokens: {input_tokens + output_tokens:,}")
         logger.info(f"Estimated cost: ${total_cost:.4f}")
 
-        return response.text or ""
+        return result_text
 
     def process_file_for_message(self, file_path: str) -> Optional[Dict[str, Any]]:
         """

@@ -46,8 +46,12 @@ class AnthropicService(BaseLLMService):
         return 0.0
 
     async def process_message(self, prompt: str, temperature: float = 0) -> str:
-        """Summarize the provided content using Claude."""
-        message = await self.client.messages.create(
+        """Summarize the provided content using Claude with streaming."""
+        result_text = ""
+        input_tokens = 0
+        output_tokens = 0
+
+        async with self.client.messages.stream(
             model=self.model,
             temperature=temperature,
             max_tokens=3000,
@@ -57,17 +61,25 @@ class AnthropicService(BaseLLMService):
                     "content": prompt,
                 },
             ],
-        )
+        ) as stream:
+            async for event in stream:
+                if event.type == "content_block_delta" and hasattr(event.delta, "text"):
+                    result_text += event.delta.text
+                elif (
+                    event.type == "message_start"
+                    and hasattr(event, "message")
+                    and hasattr(event.message, "usage")
+                ):
+                    if hasattr(event.message.usage, "input_tokens"):
+                        input_tokens = event.message.usage.input_tokens
+                elif (
+                    event.type == "message_delta"
+                    and hasattr(event, "usage")
+                    and event.usage
+                ):
+                    if hasattr(event.usage, "output_tokens"):
+                        output_tokens = event.usage.output_tokens
 
-        content_block = message.content[0]
-        if not isinstance(content_block, TextBlock):
-            raise ValueError(
-                "Unexpected response type: message content is not a TextBlock"
-            )
-
-        # Calculate and log token usage and cost
-        input_tokens = message.usage.input_tokens
-        output_tokens = message.usage.output_tokens
         total_cost = self.calculate_cost(input_tokens, output_tokens)
 
         logger.info("\nToken Usage Statistics:")
@@ -76,7 +88,7 @@ class AnthropicService(BaseLLMService):
         logger.info(f"Total tokens: {input_tokens + output_tokens:,}")
         logger.info(f"Estimated cost: ${total_cost:.4f}")
 
-        return content_block.text
+        return result_text
 
     def _process_file(self, file_path, for_command=False):
         """

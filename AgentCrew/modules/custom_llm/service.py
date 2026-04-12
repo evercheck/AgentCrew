@@ -34,11 +34,17 @@ class CustomLLMService(OpenAIService):
         self.extra_headers = extra_headers
 
     async def process_message(self, prompt: str, temperature: float = 0) -> str:
-        response = await self.client.chat.completions.create(
+        result_text = ""
+        input_tokens = 0
+        output_tokens = 0
+
+        stream = await self.client.chat.completions.create(
             model=self.model,
             timeout=60,
             max_tokens=3000,
             temperature=temperature,
+            stream=True,
+            stream_options={"include_usage": True},
             messages=[
                 {
                     "role": "user",
@@ -48,9 +54,19 @@ class CustomLLMService(OpenAIService):
             extra_headers=self.extra_headers,
         )
 
-        # Calculate and log token usage and cost
-        input_tokens = response.usage.prompt_tokens if response.usage else 0
-        output_tokens = response.usage.completion_tokens if response.usage else 0
+        async for chunk in stream:
+            if (
+                chunk.choices
+                and hasattr(chunk.choices[0].delta, "content")
+                and chunk.choices[0].delta.content is not None
+            ):
+                result_text += chunk.choices[0].delta.content
+            if hasattr(chunk, "usage") and chunk.usage:
+                if hasattr(chunk.usage, "prompt_tokens"):
+                    input_tokens = chunk.usage.prompt_tokens
+                if hasattr(chunk.usage, "completion_tokens"):
+                    output_tokens = chunk.usage.completion_tokens
+
         total_cost = self.calculate_cost(input_tokens, output_tokens)
 
         logger.info("\nToken Usage Statistics:")
@@ -58,7 +74,7 @@ class CustomLLMService(OpenAIService):
         logger.info(f"Output tokens: {output_tokens:,}")
         logger.info(f"Total tokens: {input_tokens + output_tokens:,}")
         logger.info(f"Estimated cost: ${total_cost:.4f}")
-        analyze_result = response.choices[0].message.content or ""
+
         if "thinking" in ModelRegistry.get_model_capabilities(
             f"{self._provider_name}/{self.model}"
         ):
@@ -66,17 +82,17 @@ class CustomLLMService(OpenAIService):
             THINK_STOPED = "</think>"
 
             if (
-                analyze_result.find(THINK_STARTED) >= 0
-                and analyze_result.find(THINK_STOPED) >= 0
+                result_text.find(THINK_STARTED) >= 0
+                and result_text.find(THINK_STOPED) >= 0
             ):
-                analyze_result = (
-                    analyze_result[: analyze_result.find(THINK_STARTED)]
-                    + analyze_result[
-                        (analyze_result.find(THINK_STOPED) + len(THINK_STOPED)) :
+                result_text = (
+                    result_text[: result_text.find(THINK_STARTED)]
+                    + result_text[
+                        (result_text.find(THINK_STOPED) + len(THINK_STOPED)) :
                     ]
                 )
 
-        return analyze_result
+        return result_text
 
     def _convert_internal_format(self, messages: List[Dict[str, Any]]):
         for msg in messages:
