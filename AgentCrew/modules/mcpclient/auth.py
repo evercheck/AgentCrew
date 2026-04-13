@@ -123,7 +123,9 @@ class FileTokenStorage(TokenStorage):
         """Save tokens and client info to file."""
         try:
             data = {
-                "tokens": self._tokens.model_dump(mode="json") if self._tokens else None,
+                "tokens": self._tokens.model_dump(mode="json")
+                if self._tokens
+                else None,
                 "client_info": self._client_info.model_dump(mode="json")
                 if self._client_info
                 else None,

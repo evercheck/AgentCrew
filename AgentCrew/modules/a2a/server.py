@@ -177,7 +177,8 @@ class A2AServer:
                         error=InvalidRequestError(data=e.errors()),
                     )
                     return JSONResponse(
-                        error.model_dump(exclude_none=True, mode="json"), status_code=400
+                        error.model_dump(exclude_none=True, mode="json"),
+                        status_code=400,
                     )
 
                 # Process based on method
@@ -190,7 +191,9 @@ class A2AServer:
                     logger.debug("Handling message/send request")
                     result = await task_manager.on_send_message(json_rpc_request.root)
                     logger.debug(f"message/send result: {result}")
-                    return JSONResponse(result.model_dump(exclude_none=True, mode="json"))
+                    return JSONResponse(
+                        result.model_dump(exclude_none=True, mode="json")
+                    )
 
                 elif method == "message/stream" and isinstance(
                     json_rpc_request.root, SendStreamingMessageRequest
@@ -220,7 +223,9 @@ class A2AServer:
                     logger.debug("Handling legacy tasks/send request")
                     result = await task_manager.on_send_task(json_rpc_request.root)
                     logger.debug(f"tasks/send result: {result}")
-                    return JSONResponse(result.model_dump(exclude_none=True, mode="json"))
+                    return JSONResponse(
+                        result.model_dump(exclude_none=True, mode="json")
+                    )
 
                 elif method == "tasks/sendSubscribe" and isinstance(
                     json_rpc_request.root, SendStreamingMessageRequest
@@ -248,13 +253,17 @@ class A2AServer:
                     json_rpc_request.root, GetTaskRequest
                 ):
                     result = await task_manager.on_get_task(json_rpc_request.root)
-                    return JSONResponse(result.model_dump(exclude_none=True, mode="json"))
+                    return JSONResponse(
+                        result.model_dump(exclude_none=True, mode="json")
+                    )
 
                 elif method == "tasks/cancel" and isinstance(
                     json_rpc_request.root, CancelTaskRequest
                 ):
                     result = await task_manager.on_cancel_task(json_rpc_request.root)
-                    return JSONResponse(result.model_dump(exclude_none=True, mode="json"))
+                    return JSONResponse(
+                        result.model_dump(exclude_none=True, mode="json")
+                    )
 
                 elif method == "tasks/resubscribe" and isinstance(
                     json_rpc_request.root, TaskResubscriptionRequest
@@ -287,7 +296,8 @@ class A2AServer:
                         error=MethodNotFoundError(),
                     )
                     return JSONResponse(
-                        error.model_dump(exclude_none=True, mode="json"), status_code=400
+                        error.model_dump(exclude_none=True, mode="json"),
+                        status_code=400,
                     )
 
             except json.JSONDecodeError as e:

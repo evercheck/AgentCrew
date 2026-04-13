@@ -259,9 +259,7 @@ class ConsoleUI(Observer):
                     )
                 else:
                     asyncio.run(
-                        self.message_handler.submit_pending_evolution_review(
-                            "decline"
-                        )
+                        self.message_handler.submit_pending_evolution_review("decline")
                     )
             else:
                 asyncio.run(

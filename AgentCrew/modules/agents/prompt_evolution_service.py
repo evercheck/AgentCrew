@@ -222,7 +222,9 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
 
         if self.memory_service and normalized_memory_ids:
             try:
-                self.memory_service.mark_memories_evolved(normalized_memory_ids, agent.name)
+                self.memory_service.mark_memories_evolved(
+                    normalized_memory_ids, agent.name
+                )
             except Exception as e:
                 logger.warning(f"Failed to mark memories as evolved: {e}")
 

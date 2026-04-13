@@ -50,8 +50,10 @@ def _current_time_rfc3339() -> str:
 
 def _normalize_refresh_time(value: Any) -> Optional[str]:
     if isinstance(value, (int, float)) and value > 0:
-        return datetime.fromtimestamp(value / 1000, tz=timezone.utc).isoformat().replace(
-            "+00:00", "Z"
+        return (
+            datetime.fromtimestamp(value / 1000, tz=timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
         )
 
     if isinstance(value, str):
