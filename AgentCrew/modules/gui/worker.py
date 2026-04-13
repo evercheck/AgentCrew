@@ -1,6 +1,7 @@
 import traceback
 from AgentCrew.modules.chat.message_handler import MessageHandler
 import asyncio
+import threading
 from PySide6.QtCore import (
     Slot,
     QObject,
@@ -27,7 +28,8 @@ class LLMWorker(QObject):
     def __init__(self):
         super().__init__()
         self.user_input = None
-        self.message_handler = None  # Will be set in connect_handler
+        self.message_handler = None
+        self._worker_thread_id = None
 
     def connect_handler(self, message_handler: MessageHandler):
         """Connect to the message handler - called from main thread before processing begins"""
@@ -36,8 +38,13 @@ class LLMWorker(QObject):
         self.process_evolution_action.connect(self.process_evolution)
 
     @Slot(str)
+    def cancel_current_request(self):
+        if self.message_handler:
+            self.message_handler.request_stop_stream()
+
     def process_input(self, user_input):
         """Process the user input with the message handler"""
+        self._worker_thread_id = threading.get_ident()
         try:
             if not self.message_handler:
                 self.error.emit("Message handler not connected")

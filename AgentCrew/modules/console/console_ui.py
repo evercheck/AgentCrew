@@ -158,7 +158,23 @@ class ConsoleUI(Observer):
             )  # data is the tool use that was denied
         elif event == "response_completed" or event == "assistant_message_added":
             data = agent_evaluation_remove(data)
-            self.ui_effects.finish_response(data)  # data is the complete response
+            self.ui_effects.finish_response(data)
+        elif event == "stream_cancel_requested":
+            self.display_handlers.display_message(
+                Text("Stopping current stream...", style=RICH_STYLE_YELLOW)
+            )
+        elif event == "stream_canceled":
+            self.ui_effects.cleanup()
+            self.display_handlers.display_message(
+                Text("Stream canceled.", style=RICH_STYLE_YELLOW_BOLD)
+            )
+        elif event == "stream_open_timeout":
+            self.ui_effects.cleanup()
+            self.display_handlers.display_message(
+                Text(
+                    "Stream timed out before first chunk.", style=RICH_STYLE_YELLOW_BOLD
+                )
+            )
         elif event == "error":
             self.display_handlers.display_error(
                 data
@@ -423,7 +439,7 @@ class ConsoleUI(Observer):
     def _handle_keyboard_interrupt(self):
         """Handle Ctrl+C pressed during streaming or other operations."""
         self.ui_effects.stop_loading_animation()
-        self.message_handler.stop_streaming = True
+        self.message_handler.request_stop_stream()
 
         current_time = time.time()
         if (

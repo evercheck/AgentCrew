@@ -30,6 +30,12 @@ class MessageEventHandler:
             self.handle_thinking_chunk(data)
         elif event == "thinking_completed":
             self.handle_thinking_completed()
+        elif event == "stream_cancel_requested":
+            self.handle_stream_cancel_requested()
+        elif event == "stream_canceled":
+            self.handle_stream_canceled(data)
+        elif event == "stream_open_timeout":
+            self.handle_stream_open_timeout(data)
         elif event == "user_context_request":
             self.handle_user_context_request()
 
@@ -125,6 +131,29 @@ class MessageEventHandler:
         # Reset thinking bubble reference
         self.chat_window.current_thinking_bubble = None
         self.chat_window.thinking_content = ""
+
+    def handle_stream_cancel_requested(self):
+        self.chat_window.display_status_message("Stopping current stream...")
+
+    def handle_stream_canceled(self, data):
+        if self.chat_window.current_response_bubble:
+            self.chat_window.current_response_bubble.stop_streaming()
+        if self.chat_window.current_thinking_bubble:
+            self.chat_window.current_thinking_bubble.stop_streaming()
+            self.chat_window.current_thinking_bubble = None
+        self.chat_window.display_status_message("Stream canceled.")
+        self.chat_window.ui_state_manager.set_input_controls_enabled(True)
+        QApplication.processEvents()
+
+    def handle_stream_open_timeout(self, data):
+        if self.chat_window.current_response_bubble:
+            self.chat_window.current_response_bubble.stop_streaming()
+        if self.chat_window.current_thinking_bubble:
+            self.chat_window.current_thinking_bubble.stop_streaming()
+            self.chat_window.current_thinking_bubble = None
+        self.chat_window.display_status_message("Stream timed out before first chunk.")
+        self.chat_window.ui_state_manager.set_input_controls_enabled(True)
+        QApplication.processEvents()
 
     def handle_user_context_request(self):
         """Handle user context request."""

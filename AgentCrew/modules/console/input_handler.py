@@ -136,16 +136,13 @@ class InputHandler:
 
         @kb.add(Keys.Escape)
         def _(event):
-            if (
-                hasattr(self.message_handler, "stream_generator")
-                and self.message_handler.stream_generator
-            ):
+            if self.message_handler.has_active_stream():
                 try:
-                    self.message_handler.stop_streaming = True
+                    self.message_handler.request_stop_stream()
                 except RuntimeError as e:
-                    logger.warning(f"Error closing stream generator: {e}")
+                    logger.warning(f"Error requesting stream stop: {e}")
                 except Exception as e:
-                    logger.warning(f"Exception closing stream generator: {e}")
+                    logger.warning(f"Exception requesting stream stop: {e}")
 
         @kb.add(Keys.ControlC)
         def _(event):
@@ -161,17 +158,13 @@ class InputHandler:
                 # Don't try to join from within the same thread - just exit
                 event.app.exit("__EXIT__")
             else:
-                if (
-                    hasattr(self.message_handler, "stream_generator")
-                    and not self.message_handler.stop_streaming
-                ):
+                if self.message_handler.has_active_stream():
                     try:
-                        self.message_handler.stop_streaming = True
-                        # asyncio.run(self.message_handler.stream_generator.aclose())
+                        self.message_handler.request_stop_stream()
                     except RuntimeError as e:
-                        logger.warning(f"Error closing stream generator: {e}")
+                        logger.warning(f"Error requesting stream stop: {e}")
                     except Exception as e:
-                        logger.warning(f"Exception closing stream generator: {e}")
+                        logger.warning(f"Exception requesting stream stop: {e}")
                 else:
                     self._last_ctrl_c_time = current_time
                     self.console.print(

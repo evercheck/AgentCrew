@@ -349,19 +349,13 @@ class ChatWindow(QMainWindow, Observer):
             self.input_components.stop_voice_recording()
         if self.waiting_for_response:
             self.ui_state_manager.stop_button_stopping_state()
-            if self.message_handler.stream_generator:
-                try:
-                    self.message_handler.stop_streaming = True
-                except RuntimeError as e:
-                    logger.warning(f"Error closing stream generator: {e}")
-                except Exception as e:
-                    logger.warning(f"Exception closing stream generator: {e}")
-        self.ui_state_manager.set_input_controls_enabled(True)
-        if self.current_response_bubble:
-            self.current_response_bubble.stop_streaming()
-        if self.current_thinking_bubble:
-            self.current_thinking_bubble.stop_streaming()
             self.display_status_message("Stopping message stream...")
+            try:
+                self.llm_worker.cancel_current_request()
+            except RuntimeError as e:
+                logger.warning(f"Error requesting stream stop: {e}")
+            except Exception as e:
+                logger.warning(f"Exception requesting stream stop: {e}")
 
     def show_context_menu(self, position):
         """Show context menu with options."""
@@ -489,6 +483,9 @@ class ChatWindow(QMainWindow, Observer):
             "thinking_started",
             "thinking_chunk",
             "thinking_completed",
+            "stream_cancel_requested",
+            "stream_canceled",
+            "stream_open_timeout",
             "user_context_request",
         ]
 

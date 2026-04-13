@@ -20,6 +20,7 @@ from .command_processor import CommandProcessor
 from .tool_manager import ToolManager
 from .conversation import ConversationManager
 from .base import Observable
+from AgentCrew.modules.chat.stream_session import StreamSession
 
 
 _AT_AGENT_RE = re.compile(r"@([\.\w-]+)")
@@ -72,8 +73,10 @@ class MessageHandler(Observable):
         self.last_assisstant_response_idx = -1
         self.file_handler: Optional[FileHandler] = None
         self._queued_attached_files = []
-        self.stop_streaming = False
+        self.stream_generator = None
         self.streamline_messages = []
+        self._stream_session_counter = 0
+        self._active_stream_session: Optional[StreamSession] = None
         self.current_conversation_id: Optional[str] = None  # ID for persistence
         self.pending_evolution_proposal: Optional[dict] = None
 
@@ -347,8 +350,39 @@ class MessageHandler(Observable):
         )
         return True
 
-    async def get_assistant_response(
-        self, input_tokens=0, output_tokens=0
+    def _create_stream_session(self) -> StreamSession:
+        self._stream_session_counter += 1
+        session = StreamSession(session_id=self._stream_session_counter)
+        self._active_stream_session = session
+        return session
+
+    def _clear_stream_session(self, session: Optional[StreamSession]) -> None:
+        if session and self._active_stream_session is session:
+            self._active_stream_session = None
+            self.stream_generator = None
+
+    def has_active_stream(self) -> bool:
+        session = self._active_stream_session
+        return bool(session and not session.finished.is_set())
+
+    def request_stop_stream(self) -> bool:
+        session = self._active_stream_session
+        if not session:
+            return False
+        if not session.mark_cancel_requested():
+            return False
+
+        self._notify("stream_cancel_requested", {"session_id": session.session_id})
+
+        if session.loop and session.task:
+            session.loop.call_soon_threadsafe(session.task.cancel)
+        return True
+
+    async def _run_stream_response(
+        self,
+        session: StreamSession,
+        input_tokens: int,
+        output_tokens: int,
     ) -> Tuple[Optional[str], int, int]:
         """
         Stream the assistant's response and return the response and token usage.
@@ -380,21 +414,55 @@ class MessageHandler(Observable):
             output_tokens += _output_tokens
 
         try:
-            # Store the generator in a variable so we can properly close it if needed
             self.stream_generator = self.agent.process_messages(callback=process_result)
+            stream_iter = self.stream_generator.__aiter__()
 
-            async for (
-                assistant_response,
-                chunk_text,
-                thinking_chunk,
-            ) in self.stream_generator:
-                # Check if stop was requested
-                if self.stop_streaming:
-                    # Properly close the generator instead of breaking
-                    self.stop_streaming = False  # Reset flag
+            async def get_next_stream_item():
+                if session.first_chunk_received:
+                    return await stream_iter.__anext__()
+                try:
+                    next_item = await asyncio.wait_for(
+                        stream_iter.__anext__(), timeout=session.first_chunk_timeout
+                    )
+                except asyncio.TimeoutError:
+                    session.finalize("timed_out")
+                    self._notify(
+                        "stream_open_timeout",
+                        {
+                            "session_id": session.session_id,
+                            "timeout": session.first_chunk_timeout,
+                        },
+                    )
+                    raise TimeoutError(
+                        f"Timed out waiting {session.first_chunk_timeout}s for the model stream to open"
+                    )
+                session.mark_streaming()
+                return next_item
+
+            while True:
+                try:
+                    next_item = await get_next_stream_item()
+                except StopAsyncIteration:
+                    break
+
+                (
+                    assistant_response,
+                    chunk_text,
+                    thinking_chunk,
+                ) = next_item
+                if session.cancel_requested:
                     has_stop_interupted = True
                     self._notify("streaming_stopped", assistant_response)
+                    session.finalize("canceled")
                     await self.stream_generator.aclose()
+                    self._notify(
+                        "stream_canceled",
+                        {
+                            "session_id": session.session_id,
+                            "assistant_response": assistant_response,
+                        },
+                    )
+                    return assistant_response, input_tokens, output_tokens
 
                 # Accumulate thinking content if available
                 if thinking_chunk:
@@ -447,7 +515,6 @@ class MessageHandler(Observable):
                             .lstrip("\n ")
                             .strip("<>_-")
                         )
-                        print(voice_sentence)
                         if len(voice_sentence.split("\n")) > 1:
                             self.voice_service.text_to_speech_stream(
                                 voice_sentence.strip().partition("\n")[0],
@@ -462,6 +529,8 @@ class MessageHandler(Observable):
                                     .lstrip("\n")
                                 )
 
+            if not session.finished.is_set():
+                session.finalize("completed")
             self.stream_generator = None
 
             # End thinking when break the response stream
@@ -612,6 +681,23 @@ class MessageHandler(Observable):
 
             return assistant_response, input_tokens, output_tokens
 
+        except asyncio.CancelledError:
+            has_stop_interupted = True
+            if self.stream_generator:
+                try:
+                    await self.stream_generator.aclose()
+                except Exception:
+                    pass
+            if not session.finished.is_set():
+                session.finalize("canceled")
+            self._notify(
+                "stream_canceled",
+                {
+                    "session_id": session.session_id,
+                    "assistant_response": assistant_response,
+                },
+            )
+            return assistant_response, input_tokens, output_tokens
         except GeneratorExit:
             return assistant_response, input_tokens, output_tokens
         except Exception as e:
@@ -665,7 +751,25 @@ class MessageHandler(Observable):
                     "messages": self.agent.history,
                 },
             )
+            if not session.finished.is_set():
+                session.finalize("failed")
             return None, 0, 0
+
+    async def get_assistant_response(
+        self, input_tokens=0, output_tokens=0
+    ) -> Tuple[Optional[str], int, int]:
+        loop = asyncio.get_running_loop()
+        session = self._create_stream_session()
+        task = loop.create_task(
+            self._run_stream_response(session, input_tokens, output_tokens)
+        )
+        session.bind(loop, task)
+        try:
+            return await task
+        finally:
+            if not session.finished.is_set() and task.cancelled():
+                session.finalize("canceled")
+            self._clear_stream_session(session)
 
     def get_recent_agent_responses(self) -> List:
         return self.streamline_messages[self.last_assisstant_response_idx :]
