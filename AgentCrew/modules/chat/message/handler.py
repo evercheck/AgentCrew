@@ -503,10 +503,17 @@ class MessageHandler(Observable):
             # Final assistant message
             self._notify("response_completed", assistant_response)
 
-            if self.current_conversation_id and self.last_assisstant_response_idx >= 0:
+            messages_for_this_turn = []
+            if self.last_assisstant_response_idx >= 0:
+                messages_for_this_turn = self.get_recent_agent_responses()
+            elif self.current_user_input_idx >= 0:
+                messages_for_this_turn = self.streamline_messages[
+                    self.current_user_input_idx + 1 :
+                ]
+
+            if self.current_conversation_id and messages_for_this_turn:
                 try:
-                    messages_for_this_turn = self.get_recent_agent_responses()
-                    if messages_for_this_turn and self.persistent_service:
+                    if self.persistent_service:
                         metadata = {
                             "input_tokens": input_tokens,
                             "output_tokens": output_tokens,
@@ -528,9 +535,6 @@ class MessageHandler(Observable):
                     logger.error(f"ERROR: {error_message}")
                     self._notify("error", {"message": error_message})
 
-            self.last_assisstant_response_idx = len(self.streamline_messages)
-            # --- End of Persistence Logic ---
-
             if self.current_user_input and self.current_user_input_idx >= 0:
                 self.conversation_manager.store_conversation_turn(
                     self.current_user_input, self.current_user_input_idx
@@ -548,9 +552,15 @@ class MessageHandler(Observable):
                     elif isinstance(user_message["content"], str):
                         user_input = user_message["content"]
 
+                    assistant_messages = self._extract_assistant_messages_for_memory(
+                        messages_for_this_turn
+                    )
+
                     try:
                         self.memory_service.store_conversation(
-                            user_input, assistant_response, self.agent.name
+                            user_input,
+                            assistant_messages,
+                            self.agent.name,
                         )
                     except Exception as e:
                         self._notify(
@@ -559,6 +569,9 @@ class MessageHandler(Observable):
                 # Store the conversation turn reference for /jump command
                 self.current_user_input = None
                 self.current_user_input_idx = -1
+
+            self.last_assisstant_response_idx = len(self.streamline_messages)
+            # --- End of Persistence Logic ---
 
             if self.agent_manager.defered_transfer:
                 self.agent.history.append(
@@ -669,6 +682,18 @@ class MessageHandler(Observable):
 
     def get_recent_agent_responses(self) -> List:
         return self.streamline_messages[self.last_assisstant_response_idx :]
+
+    def _extract_assistant_messages_for_memory(self, messages: List[dict]) -> List[str]:
+        assistant_messages: List[str] = []
+        for message in messages:
+            if not isinstance(message, dict) or message.get("role") != "assistant":
+                continue
+            content = message.get("content", "")
+            if isinstance(content, str):
+                normalized = content.strip()
+                if normalized:
+                    assistant_messages.append(normalized)
+        return assistant_messages
 
     # Delegate conversation management methods
     def list_conversations(self):

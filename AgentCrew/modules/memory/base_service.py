@@ -27,14 +27,17 @@ class BaseMemoryService(ABC):
 
     @abstractmethod
     def store_conversation(
-        self, user_message: str, assistant_response: str, agent_name: str = "None"
+        self,
+        user_message: str,
+        assistant_messages: List[str],
+        agent_name: str = "None",
     ) -> List[str]:
         """
         Store a conversation exchange in memory.
 
         Args:
             user_message: The user's message
-            assistant_response: The assistant's response
+            assistant_messages: The assistant messages for the turn
 
         Returns:
             List of memory IDs created

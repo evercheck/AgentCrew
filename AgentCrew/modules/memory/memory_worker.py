@@ -128,7 +128,16 @@ class MemoryWorker:
                 return
 
             user_message = operation_data["user_message"]
-            assistant_response = operation_data["assistant_response"]
+            assistant_messages = operation_data.get("assistant_messages") or []
+            assistant_messages = [
+                message.strip()
+                for message in assistant_messages
+                if isinstance(message, str) and message.strip()
+            ]
+            assistant_response_for_memory = "\n\n".join(
+                f"[Assistant message {index}]\n{message}"
+                for index, message in enumerate(assistant_messages, start=1)
+            )
             agent_name = operation_data["agent_name"]
             session_id = operation_data["session_id"]
 
@@ -159,7 +168,9 @@ class MemoryWorker:
                                 datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
                             )
                             .replace("{user_message}", user_message)
-                            .replace("{assistant_response}", assistant_response)
+                            .replace(
+                                "{assistant_response}", assistant_response_for_memory
+                            )
                         )
                         analyzed_text = await self.llm_service.process_message(
                             analyzed_prompt
@@ -191,7 +202,7 @@ class MemoryWorker:
                     "MEMORY": {
                         "DATE": datetime.today().strftime("%Y-%m-%d"),
                         "CONVERSATION_NOTES": {
-                            "NOTE": [user_message, assistant_response]
+                            "NOTE": [user_message, assistant_response_for_memory]
                         },
                     }
                 }

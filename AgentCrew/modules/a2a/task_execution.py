@@ -37,6 +37,31 @@ if TYPE_CHECKING:
 
 
 class TaskExecutionEngine:
+    def _extract_assistant_messages_for_memory(
+        self, task_history: list[dict], current_response: str
+    ) -> list[str]:
+        assistant_messages: list[str] = []
+        last_user_idx = -1
+        for index, message in enumerate(task_history):
+            if isinstance(message, dict) and message.get("role") == "user":
+                last_user_idx = index
+
+        for message in task_history[last_user_idx + 1 :]:
+            if not isinstance(message, dict) or message.get("role") != "assistant":
+                continue
+            content = message.get("content", "")
+            if isinstance(content, str):
+                normalized = content.strip()
+                if normalized:
+                    assistant_messages.append(normalized)
+        normalized_current_response = current_response.strip()
+        if normalized_current_response and (
+            not assistant_messages
+            or assistant_messages[-1] != normalized_current_response
+        ):
+            assistant_messages.append(normalized_current_response)
+        return assistant_messages
+
     def __init__(
         self,
         agent_name: str,
@@ -433,8 +458,13 @@ class TaskExecutionEngine:
                 )
             if self.memory_service:
                 user_message = task_history[0].get("content", [{}])[0].get("text", "")
+                assistant_messages = self._extract_assistant_messages_for_memory(
+                    task_history, current_response
+                )
                 self.memory_service.store_conversation(
-                    user_message, current_response, self.agent_name
+                    user_message,
+                    assistant_messages,
+                    self.agent_name,
                 )
 
         final_artifact = convert_agent_response_to_a2a_artifact(

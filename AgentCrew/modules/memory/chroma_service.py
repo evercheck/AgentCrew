@@ -123,7 +123,10 @@ class ChromaMemoryService(BaseMemoryService):
         return chunks
 
     def store_conversation(
-        self, user_message: str, assistant_response: str, agent_name: str = "None"
+        self,
+        user_message: str,
+        assistant_messages: List[str],
+        agent_name: str = "None",
     ) -> List[str]:
         self._initialize_collection()
 
@@ -132,7 +135,7 @@ class ChromaMemoryService(BaseMemoryService):
             "type": "store_conversation",
             "operation_id": operation_id,
             "user_message": user_message,
-            "assistant_response": assistant_response,
+            "assistant_messages": assistant_messages,
             "agent_name": agent_name,
             "session_id": self.session_id,
             "timestamp": datetime.now().isoformat(),
@@ -416,15 +419,16 @@ class ChromaMemoryService(BaseMemoryService):
         )
 
         for i, mid in enumerate(existing["ids"]):
-            meta = dict(existing["metadatas"][i] or {})
-            if meta.get("agent") != agent_name:
-                continue
-            meta["evolved_at"] = timestamp
-            collection.update(
-                ids=[mid],
-                metadatas=[meta],
-            )
-            marked += 1
+            if existing["metadatas"]:
+                meta = dict(existing["metadatas"][i] or {})
+                if meta.get("agent") != agent_name:
+                    continue
+                meta["evolved_at"] = timestamp
+                collection.update(
+                    ids=[mid],
+                    metadatas=[meta],
+                )
+                marked += 1
 
         logger.info(
             f"Marked {marked}/{len(memory_ids)} memories as evolved for {agent_name}"
