@@ -35,6 +35,10 @@ def get_code_analysis_tool_definition(provider="claude") -> Dict[str, Any]:
             "items": {"type": "string"},
             "description": 'List of glob patterns to exclude certain files or directories from analysis. Always use double quotes " for array string. Example: ["tests/*", "*.md"]',
         },
+        "feature_scope": {
+            "type": "string",
+            "description": "Optional focused feature scope used to prioritize the most relevant files during repository analysis. Example: 'authentication flow', 'delegate parallel execution', or 'browser automation console logs'.",
+        },
     }
     tool_required = ["path"]
 
@@ -76,8 +80,9 @@ def get_code_analysis_tool_handler(
             path = os.path.abspath(path)
 
         exclude_patterns = params.get("exclude_patterns", [])
+        feature_scope = params.get("feature_scope")
         result = await code_analysis_service.analyze_code_structure(
-            path, exclude_patterns
+            path, exclude_patterns, feature_scope=feature_scope
         )
         if isinstance(result, dict):
             raise Exception(f"Failed to analyze code: {result.get('error', '')}")

@@ -158,7 +158,10 @@ class CodeAnalysisService:
         return count
 
     async def _select_files_with_llm(
-        self, files: List[str], max_files: int = MAX_FILES_TO_ANALYZE
+        self,
+        files: List[str],
+        max_files: int = MAX_FILES_TO_ANALYZE,
+        feature_scope: Optional[str] = None,
     ) -> List[str]:
         """Use LLM to intelligently select which files to analyze from a large repository.
 
@@ -172,11 +175,21 @@ class CodeAnalysisService:
         if not self.llm_service:
             return files[:max_files]
 
+        feature_scope_instruction = ""
+        if feature_scope:
+            feature_scope_instruction = f"""
+Feature focus:
+- Prioritize files that are most relevant to this feature scope: {feature_scope}
+- Prefer keeping files whose paths, modules, or responsibilities are closely related to that feature scope
+- If tradeoffs are needed, keep feature-relevant files even when they would otherwise be lower priority than generic core files
+- Still preserve critical shared/base/core files needed to understand the feature in context
+"""
+
         prompt = f"""You are analyzing a code repository with {len(files)} files.
 The analysis system can only process {max_files} files at a time.
 
 Generate glob patterns to EXCLUDE less important files. The goal is to keep around {max_files} most important files after exclusion.
-
+{feature_scope_instruction}
 Files to EXCLUDE (generate patterns for these):
 1. Test files
 2. Generated/build files
@@ -195,6 +208,7 @@ Files to KEEP (NEVER exclude) - ordered by priority:
 5. API endpoints and controllers
 6. Service classes and middleware
 7. Key configuration files that define app structure
+8. Files directly relevant to the requested feature scope, if one is provided
 
 Here is the complete list of files:
 {chr(10).join(files)}
@@ -332,7 +346,10 @@ Keep it under 500 words."""
         return notes
 
     async def analyze_code_structure(
-        self, path: str, exclude_patterns: List[str] = []
+        self,
+        path: str,
+        exclude_patterns: Optional[List[str]] = None,
+        feature_scope: Optional[str] = None,
     ) -> Dict[str, Any] | str:
         """
         Build a tree-sitter based structural map of source code files in a git repository.
@@ -344,6 +361,9 @@ Keep it under 500 words."""
             Dictionary containing analysis results for each file or formatted string
         """
         try:
+            if exclude_patterns is None:
+                exclude_patterns = []
+
             if not os.path.exists(path):
                 return {"error": f"Path does not exist: {path}"}
 
@@ -378,7 +398,9 @@ Keep it under 500 words."""
 
             if len(supported_files_rel) > MAX_FILES_TO_ANALYZE:
                 selected_files = await self._select_files_with_llm(
-                    supported_files_rel, MAX_FILES_TO_ANALYZE
+                    supported_files_rel,
+                    MAX_FILES_TO_ANALYZE,
+                    feature_scope=feature_scope,
                 )
                 non_analyzed_files = [
                     f for f in supported_files_rel if f not in selected_files
