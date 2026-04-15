@@ -1109,7 +1109,6 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         mock_cmd_instance = Mock()
         mock_get_instance.return_value = mock_cmd_instance
 
-        # Mock output with multiple matches
         output = "\n".join(
             [f"{self.temp_dir}/file{i}.py:{i}:test line" for i in range(1, 11)]
         )
@@ -1123,8 +1122,165 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
 
         self.assertIsInstance(result, str)
         self.assertIn("Found 5 match(es).", result)
-        # Should only contain 5 matches
         self.assertEqual(result.count("test line"), 5)
+
+    @patch(
+        "AgentCrew.modules.command_execution.service.CommandExecutionService.get_instance"
+    )
+    @patch("shutil.which")
+    def test_search_text_with_multiple_paths(self, mock_which, mock_get_instance):
+        """Test search across multiple directory paths."""
+        mock_which.return_value = "/usr/local/bin/rg"
+        self.service._is_windows = False
+        self.service._tool_availability_cache.clear()
+        self.service._git_repo_cache.clear()
+
+        second_dir = tempfile.mkdtemp()
+        self.addCleanup(
+            lambda: shutil.rmtree(second_dir) if os.path.exists(second_dir) else None
+        )
+
+        mock_cmd_instance = Mock()
+        mock_get_instance.return_value = mock_cmd_instance
+
+        first_output = f"{self.temp_dir}/file1.py:1:def test_function():"
+        second_output = f"{second_dir}/other.py:3:test value"
+        mock_cmd_instance.execute_command.side_effect = [
+            {
+                "status": "completed",
+                "exit_code": 128,
+                "error": "fatal: not a git repository",
+            },
+            {"status": "completed", "exit_code": 0, "output": first_output},
+            {
+                "status": "completed",
+                "exit_code": 128,
+                "error": "fatal: not a git repository",
+            },
+            {"status": "completed", "exit_code": 0, "output": second_output},
+        ]
+
+        result = self.service.search_text("test", [self.temp_dir, second_dir])
+
+        self.assertIn("Found 2 match(es).", result)
+        self.assertIn("file1.py", result)
+        self.assertIn("other.py", result)
+
+    @patch(
+        "AgentCrew.modules.command_execution.service.CommandExecutionService.get_instance"
+    )
+    @patch("shutil.which")
+    def test_search_text_with_mixed_file_and_directory_paths(
+        self, mock_which, mock_get_instance
+    ):
+        """Test search across mixed file and directory paths."""
+        mock_which.return_value = "/usr/local/bin/rg"
+        self.service._is_windows = False
+        self.service._tool_availability_cache.clear()
+        self.service._git_repo_cache.clear()
+
+        file_path = os.path.join(self.temp_dir, "file1.py")
+
+        mock_cmd_instance = Mock()
+        mock_get_instance.return_value = mock_cmd_instance
+        mock_cmd_instance.execute_command.side_effect = [
+            {
+                "status": "completed",
+                "exit_code": 128,
+                "error": "fatal: not a git repository",
+            },
+            {
+                "status": "completed",
+                "exit_code": 0,
+                "output": f"{file_path}:1:def test_function():",
+            },
+            {
+                "status": "completed",
+                "exit_code": 128,
+                "error": "fatal: not a git repository",
+            },
+            {
+                "status": "completed",
+                "exit_code": 0,
+                "output": f"{self.temp_dir}/file2.py:2:    def test_method(self):",
+            },
+        ]
+
+        result = self.service.search_text("test", [file_path, self.temp_dir])
+
+        self.assertIn("Found 2 match(es).", result)
+        self.assertIn("file1.py", result)
+        self.assertIn("file2.py", result)
+
+    def test_search_text_empty_path_list(self):
+        """Test search with empty path list raises error."""
+        with self.assertRaises(GrepTextError) as context:
+            self.service.search_text("test", [])
+
+        self.assertIn("At least one path must be provided", str(context.exception))
+
+    def test_search_text_invalid_path_item_type(self):
+        """Test search with non-string item in path list raises error."""
+        with self.assertRaises(GrepTextError) as context:
+            self.service.search_text("test", [self.temp_dir, 123])
+
+        self.assertIn("path list items must be strings", str(context.exception))
+
+    def test_search_text_invalid_path_in_list(self):
+        """Test search with invalid path in list raises error."""
+        with self.assertRaises(GrepTextError) as context:
+            self.service.search_text("test", [self.temp_dir, "/nonexistent/directory"])
+
+        self.assertIn("does not exist", str(context.exception))
+
+    @patch(
+        "AgentCrew.modules.command_execution.service.CommandExecutionService.get_instance"
+    )
+    @patch("shutil.which")
+    def test_search_text_max_results_applies_across_multiple_paths(
+        self, mock_which, mock_get_instance
+    ):
+        """Test max_results is applied after combining results from multiple paths."""
+        mock_which.return_value = "/usr/local/bin/rg"
+        self.service._is_windows = False
+        self.service._tool_availability_cache.clear()
+        self.service._git_repo_cache.clear()
+
+        second_dir = tempfile.mkdtemp()
+        self.addCleanup(
+            lambda: shutil.rmtree(second_dir) if os.path.exists(second_dir) else None
+        )
+
+        mock_cmd_instance = Mock()
+        mock_get_instance.return_value = mock_cmd_instance
+
+        first_output = "\n".join(
+            [f"{self.temp_dir}/file1.py:{i}:test line {i}" for i in range(1, 4)]
+        )
+        second_output = "\n".join(
+            [f"{second_dir}/file2.py:{i}:test line {i + 3}" for i in range(1, 4)]
+        )
+        mock_cmd_instance.execute_command.side_effect = [
+            {
+                "status": "completed",
+                "exit_code": 128,
+                "error": "fatal: not a git repository",
+            },
+            {"status": "completed", "exit_code": 0, "output": first_output},
+            {
+                "status": "completed",
+                "exit_code": 128,
+                "error": "fatal: not a git repository",
+            },
+            {"status": "completed", "exit_code": 0, "output": second_output},
+        ]
+
+        result = self.service.search_text(
+            "test", [self.temp_dir, second_dir], max_results=4
+        )
+
+        self.assertIn("Found 4 match(es).", result)
+        self.assertEqual(result.count("test line"), 4)
 
     @patch(
         "AgentCrew.modules.command_execution.service.CommandExecutionService.get_instance"

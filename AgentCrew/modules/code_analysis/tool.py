@@ -404,7 +404,7 @@ def get_grep_text_tool_definition(provider="claude") -> Dict[str, Any]:
     Returns:
         Dict containing the tool definition in provider-specific format
     """
-    description = "Searches for text patterns within files in a specified directory or a single file using grep-like functionality. "
+    description = "Searches for text patterns within files in specified file or directory paths using grep-like functionality. "
 
     tool_arguments = {
         "pattern": {
@@ -417,11 +417,13 @@ def get_grep_text_tool_definition(provider="claude") -> Dict[str, Any]:
             ),
         },
         "path": {
-            "type": "string",
+            "type": "array",
+            "items": {"type": "string"},
             "description": (
-                "a single file or directory path to search within. Use '.' for current directory. "
+                "Array of file or directory paths to search within. Use ['.'] for the current directory. "
+                "Pass one or more paths as strings inside the array. "
             ),
-            "default": ".",
+            "default": ["."],
         },
         "case_sensitive": {
             "type": "boolean",
@@ -486,7 +488,7 @@ def get_grep_text_tool_handler(service_instance: GrepTextService) -> Callable:
         Args:
             **params: Tool parameters from LLM
                 - pattern (str, required): Regex pattern to search for
-                - path (str, optional): File or directory to search in (default: ".")
+                - path (list[str], optional): File or directory paths to search in
                 - case_sensitive (bool, optional): Enable case sensitivity (default: True)
                 - max_results (int, optional): Maximum results to return (default: None)
 
@@ -497,11 +499,14 @@ def get_grep_text_tool_handler(service_instance: GrepTextService) -> Callable:
             Exception: For parameter validation errors or search failures
         """
         pattern = params.get("pattern")
-        path = params.get("path") or params.get("directory", ".")
+        raw_path = params.get("path")
+        fallback_path = params.get("directory", ".")
         case_sensitive = params.get("case_sensitive", True)
         max_results = params.get("max_results", 50)
 
-        # Validate required parameters
+        if raw_path is None:
+            raw_path = [fallback_path]
+
         if not pattern:
             error_msg = "Parameter 'pattern' is required but was not provided"
             logger.error(error_msg)
@@ -512,7 +517,6 @@ def get_grep_text_tool_handler(service_instance: GrepTextService) -> Callable:
             logger.error(error_msg)
             raise Exception(error_msg)
 
-        # Validate optional parameters
         if not isinstance(case_sensitive, bool):
             error_msg = f"Parameter 'case_sensitive' must be a boolean, got: {type(case_sensitive).__name__}"
             logger.error(error_msg)
@@ -531,8 +535,20 @@ def get_grep_text_tool_handler(service_instance: GrepTextService) -> Callable:
                 logger.error(error_msg)
                 raise Exception(error_msg)
 
-        # Expand user directory if present (e.g., ~/project -> /home/user/project)
-        expanded_path = os.path.expanduser(path)
+        if isinstance(raw_path, str):
+            expanded_path = [os.path.expanduser(raw_path)]
+        elif isinstance(raw_path, list):
+            expanded_path = []
+            for index, item in enumerate(raw_path):
+                if not isinstance(item, str):
+                    error_msg = f"Parameter 'path' list items must be strings, got: {type(item).__name__} at index {index}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+                expanded_path.append(os.path.expanduser(item))
+        else:
+            error_msg = f"Parameter 'path' must be an array of strings, got: {type(raw_path).__name__}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
 
         logger.info(
             f"grep_text tool called with: pattern='{pattern}', path='{expanded_path}', "

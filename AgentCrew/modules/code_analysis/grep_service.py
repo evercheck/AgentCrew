@@ -524,6 +524,102 @@ class GrepTextService:
             logger.error(error_msg)
             raise GrepTextError(error_msg) from e
 
+    def _normalize_paths(self, path: list[str] | str) -> List[str]:
+        """
+        Normalize path input into a validated absolute path list.
+
+        Args:
+            path: An array of file/directory paths. A single string is still normalized defensively.
+
+        Returns:
+            List[str]: Validated absolute paths with exact duplicates removed
+
+        Raises:
+            GrepTextError: If no valid paths are provided or any path item is invalid
+        """
+        if isinstance(path, str):
+            raw_paths = [path]
+        elif isinstance(path, list):
+            raw_paths = path
+        else:
+            error_msg = f"path must be an array of strings, got: {type(path).__name__}"
+            logger.error(error_msg)
+            raise GrepTextError(error_msg)
+
+        if not raw_paths:
+            error_msg = "At least one path must be provided"
+            logger.error(error_msg)
+            raise GrepTextError(error_msg)
+
+        normalized_paths: List[str] = []
+        seen_paths = set()
+
+        for index, item in enumerate(raw_paths):
+            if not isinstance(item, str):
+                error_msg = f"path list items must be strings, got: {type(item).__name__} at index {index}"
+                logger.error(error_msg)
+                raise GrepTextError(error_msg)
+
+            validated_path = self._validate_path(item)
+            if validated_path not in seen_paths:
+                normalized_paths.append(validated_path)
+                seen_paths.add(validated_path)
+
+        if not normalized_paths:
+            error_msg = "At least one path must be provided"
+            logger.error(error_msg)
+            raise GrepTextError(error_msg)
+
+        return normalized_paths
+
+    def _build_search_command(
+        self,
+        tool_name: str,
+        pattern: str,
+        path: str,
+        case_sensitive: bool,
+    ) -> str:
+        """
+        Build the appropriate command for a validated path using the selected tool.
+        """
+        if tool_name == "grep":
+            return self._build_grep_command(pattern, path, case_sensitive)
+        if tool_name == "rg":
+            return self._build_rg_command(pattern, path, case_sensitive)
+        if tool_name == "git-grep":
+            return self._build_git_grep_command(pattern, path, case_sensitive)
+        if tool_name == "Select-String":
+            return self._build_windows_command(pattern, path, case_sensitive)
+
+        error_msg = f"Unsupported selected tool: {tool_name}"
+        logger.error(error_msg)
+        raise GrepTextError(error_msg)
+
+    def _select_search_tool(self, path: str) -> str:
+        """
+        Select the best available search tool for a validated path.
+        """
+        git_check_dir = path if os.path.isdir(path) else os.path.dirname(path)
+        is_git_repo = self._is_git_repository(git_check_dir)
+
+        tool_priority = self._get_tool_priority()
+        if not is_git_repo:
+            tool_priority = [tool for tool in tool_priority if tool != "git-grep"]
+            logger.debug(
+                "Path is not in a git repository, excluding git-grep from tools"
+            )
+        else:
+            logger.debug("Path is in a git repository, git-grep is available")
+
+        for tool in tool_priority:
+            if self._is_tool_available(tool):
+                logger.info(f"Using tool '{tool}' for search in '{path}'")
+                return tool
+
+        error_msg = "Unsupported selected tool"
+        logger.error(error_msg)
+        raise GrepTextError(error_msg)
+
     def _parse_output(
         self,
         output: str,
@@ -613,17 +709,16 @@ class GrepTextService:
     def search_text(
         self,
         pattern: str,
-        path: str,
+        path: list[str] | str,
         case_sensitive: bool = True,
         max_results: Optional[int] = None,
     ) -> str:
         """
-        Search for text patterns within a file or files in the specified directory.
+        Search for text patterns within one or more files and directories.
 
         Args:
             pattern: The regular expression pattern to search for.
-            path: The file or directory path to search within. Use './' for current directory.
-                  Must be a valid, readable path.
+            path: An array of file and directory paths to search within. A single string is still normalized defensively.
             case_sensitive: Boolean flag to control case sensitivity of the search.
                            Default: True (case-sensitive)
             max_results: Maximum number of results to return. None for unlimited.
@@ -642,7 +737,7 @@ class GrepTextService:
             GrepTextError: If parameters are invalid, path is inaccessible,
                           pattern is malformed, or search execution fails
         """
-        path = self._validate_path(path)
+        normalized_paths = self._normalize_paths(path)
 
         if max_results is not None and max_results < 0:
             error_msg = f"max_results must be non-negative, got: {max_results}"
@@ -652,87 +747,91 @@ class GrepTextService:
         validated_pattern = self._validate_pattern(pattern)
 
         logger.info(
-            f"Searching for pattern '{pattern}' in '{path}' "
+            f"Searching for pattern '{pattern}' in '{normalized_paths}' "
             f"(regex=True, case_sensitive={case_sensitive}, "
             f"max_results={max_results})"
         )
 
-        git_check_dir = path if os.path.isdir(path) else os.path.dirname(path)
-        is_git_repo = self._is_git_repository(git_check_dir)
+        combined_matches = []
+        for current_path in normalized_paths:
+            try:
+                used_tool = self._select_search_tool(current_path)
+                command = self._build_search_command(
+                    used_tool,
+                    validated_pattern,
+                    current_path,
+                    case_sensitive,
+                )
+            except Exception as e:
+                error_msg = f"Error building command: {e}"
+                logger.error(error_msg)
+                raise GrepTextError(error_msg) from e
 
-        tool_priority = self._get_tool_priority()
-        if not is_git_repo:
-            tool_priority = [tool for tool in tool_priority if tool != "git-grep"]
-            logger.debug(
-                "Path is not in a git repository, excluding git-grep from tools"
-            )
-        else:
-            logger.debug("Path is in a git repository, git-grep is available")
+            try:
+                result = self._execute_command(command, timeout=self.DEFAULT_TIMEOUT)
+            except GrepTextError:
+                raise
+            except Exception as e:
+                error_msg = f"Unexpected error during command execution: {e}"
+                logger.error(error_msg)
+                raise GrepTextError(error_msg) from e
 
-        used_tool = ""
-        for tool in tool_priority:
-            if self._is_tool_available(tool):
-                logger.info(f"Using tool '{tool}' for search")
-                used_tool = tool
-                break
+            output = result.get("output", "")
+            exit_code = result.get("exit_code", 0)
 
-        # Build appropriate command based on platform and tool
-        try:
-            if used_tool == "grep":
-                command = self._build_grep_command(
-                    validated_pattern, path, case_sensitive
-                )
-            elif used_tool == "rg":
-                command = self._build_rg_command(
-                    validated_pattern, path, case_sensitive
-                )
-            elif used_tool == "git-grep":
-                command = self._build_git_grep_command(
-                    validated_pattern, path, case_sensitive
-                )
-            elif used_tool == "Select-String":
-                command = self._build_windows_command(
-                    validated_pattern, path, case_sensitive
-                )
-            else:
-                error_msg = f"Unsupported selected tool: {used_tool}"
+            if exit_code > 1:
+                error = result.get("error", "Unknown error")
+                error_msg = f"Search command failed with exit code {exit_code}: {error}"
                 logger.error(error_msg)
                 raise GrepTextError(error_msg)
 
-        except Exception as e:
-            error_msg = f"Error building command: {e}"
-            logger.error(error_msg)
-            raise GrepTextError(error_msg) from e
+            if output and output.strip():
+                lines = output.strip().split("\n")
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
 
-        # Execute command
-        try:
-            result = self._execute_command(command, timeout=self.DEFAULT_TIMEOUT)
-        except GrepTextError:
-            raise
-        except Exception as e:
-            error_msg = f"Unexpected error during command execution: {e}"
-            logger.error(error_msg)
-            raise GrepTextError(error_msg) from e
+                    parts = line.split(":", 2)
+                    if len(parts) < 3:
+                        logger.debug(f"Skipping malformed line: {line}")
+                        continue
 
-        # Parse output
-        output = result.get("output", "")
-        exit_code = result.get("exit_code", 0)
+                    file_path = parts[0].strip()
+                    line_number_str = parts[1].strip()
+                    line_content = parts[2]
 
-        # exit_code 0 = matches found
-        # exit_code 1 = no matches (not an error)
-        # exit_code >1 = actual error
-        if exit_code > 1:
-            error = result.get("error", "Unknown error")
-            error_msg = f"Search command failed with exit code {exit_code}: {error}"
-            logger.error(error_msg)
-            raise GrepTextError(error_msg)
+                    try:
+                        line_number = int(line_number_str)
+                    except ValueError:
+                        logger.debug(f"Skipping line with invalid line number: {line}")
+                        continue
 
-        try:
-            formatted_result = self._parse_output(output, max_results)
-            logger.info("Search completed successfully")
-            return formatted_result
+                    if self._is_windows:
+                        file_path = file_path.replace("/", "\\")
+                    else:
+                        file_path = file_path.replace("\\", "/")
 
-        except Exception as e:
-            error_msg = f"Error parsing search results: {e}"
-            logger.error(error_msg)
-            raise GrepTextError(error_msg) from e
+                    combined_matches.append((file_path, line_number, line_content))
+
+        combined_matches.sort(key=lambda x: (x[0], x[1]))
+
+        if max_results is not None:
+            combined_matches = combined_matches[:max_results]
+
+        total_matches = len(combined_matches)
+        if total_matches == 0:
+            logger.info("Search completed successfully with 0 matches")
+            return "Found 0 matches."
+
+        result_lines = [f"Found {total_matches} match(es)."]
+        current_file = None
+
+        for file_path, line_number, line_content in combined_matches:
+            if file_path != current_file:
+                result_lines.append(f"**{file_path}:**")
+                current_file = file_path
+            result_lines.append(f"- {line_number}: {line_content}")
+
+        logger.info("Search completed successfully")
+        return "\n".join(result_lines)
