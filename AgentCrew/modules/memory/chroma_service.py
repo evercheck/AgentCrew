@@ -54,6 +54,8 @@ class ChromaMemoryService(BaseMemoryService):
         self.chunk_overlap = DEFAULT_CHUNK_OVERLAP
         self.current_embedding_context = None
         self._worker: Optional[MemoryWorker] = None
+        self._initialize_collection()
+        self.cleanup_old_memories(months=1)
 
     def _initialize_collection(self) -> Collection:
         import chromadb
@@ -103,7 +105,6 @@ class ChromaMemoryService(BaseMemoryService):
             self._worker.set_collection(self._collection)
             self._worker.start()
 
-        self.cleanup_old_memories(months=1)
         return self._collection
 
     def _create_chunks(self, text: str) -> List[str]:
