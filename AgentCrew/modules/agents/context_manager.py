@@ -169,7 +169,7 @@ Apply matching behaviors from <Adaptive_Behaviors> immediately, overriding defau
             .find("<Transfer_Post_Action_Reminder>")
             != 0
         ):
-            if not agent.is_remoting_mode and agent.services.get("memory"):
+            if agent.services.get("memory"):
                 memory_headers = agent.services["memory"].list_memory_headers(
                     agent_name=agent.name
                 )

@@ -7,14 +7,11 @@ from loguru import logger
 
 from .base_service import BaseMemoryService
 from .memory_worker import MemoryWorker, RELEVANT_THRESHOLD
-from AgentCrew.modules.prompts.constants import SEMANTIC_EXTRACTING
 
 if TYPE_CHECKING:
     from chromadb import Collection
     from AgentCrew.modules.llm.base import BaseLLMService
 
-DEFAULT_CHUNK_SIZE = 200
-DEFAULT_CHUNK_OVERLAP = 40
 MEMORY_DB_PATH = "./memory_db"
 
 
@@ -50,9 +47,6 @@ class ChromaMemoryService(BaseMemoryService):
 
         self._collection = None
         self.collection_name = collection_name
-        self.chunk_size = DEFAULT_CHUNK_SIZE
-        self.chunk_overlap = DEFAULT_CHUNK_OVERLAP
-        self.current_embedding_context = None
         self._worker: Optional[MemoryWorker] = None
         self._initialize_collection()
         self.cleanup_old_memories(months=1)
@@ -107,22 +101,6 @@ class ChromaMemoryService(BaseMemoryService):
 
         return self._collection
 
-    def _create_chunks(self, text: str) -> List[str]:
-        words = text.split()
-        chunks = []
-
-        if len(words) <= self.chunk_size:
-            return [text]
-
-        i = 0
-        while i < len(words):
-            chunk_end = min(i + self.chunk_size, len(words))
-            chunk = " ".join(words[i:chunk_end])
-            chunks.append(chunk)
-            i += self.chunk_size - self.chunk_overlap
-
-        return chunks
-
     def store_conversation(
         self,
         user_message: str,
@@ -147,26 +125,7 @@ class ChromaMemoryService(BaseMemoryService):
             return [operation_id]
         return []
 
-    async def need_generate_user_context(self, user_input: str) -> bool:
-        import numpy as np
-
-        keywords = await self._semantic_extracting(user_input)
-        if not self.loaded_conversation and self.current_embedding_context is None:
-            self.current_embedding_context = self.embedding_function([keywords])
-            return True
-
-        self.current_embedding_context = self.embedding_function([keywords])
-        if not self._worker or len(self._worker.context_embedding) == 0:
-            return False
-        avg_conversation = np.mean(self._worker.context_embedding, axis=0)
-
-        similarity = self._cosine_similarity(
-            self.current_embedding_context, avg_conversation
-        )
-        return similarity < 0.31
-
     def clear_conversation_context(self):
-        self.current_embedding_context = None
         if self._worker:
             self._worker.current_conversation_context = {}
             self._worker.context_embedding = []
@@ -182,22 +141,6 @@ class ChromaMemoryService(BaseMemoryService):
             self._worker.current_conversation_context[session_id] = latest_memory[
                 "documents"
             ][-1]
-
-    def generate_user_context(self, user_input: str, agent_name: str = "None") -> str:
-        return self.retrieve_memory(user_input, agent_name=agent_name)
-
-    async def _semantic_extracting(self, input: str) -> str:
-        if self.llm_service:
-            try:
-                keywords = await self.llm_service.process_message(
-                    SEMANTIC_EXTRACTING.replace("{user_input}", input)
-                )
-                return keywords
-            except Exception as e:
-                logger.warning(f"Error extracting keywords with LLM: {e}")
-                return input
-        else:
-            return input
 
     def list_memory_headers(
         self,
@@ -312,20 +255,6 @@ class ChromaMemoryService(BaseMemoryService):
 
         memories = "\n\n".join(output)
         return memories
-
-    def _cosine_similarity(self, vec_a, vec_b):
-        import numpy as np
-
-        a = np.array(vec_a, dtype=np.float32)
-        b = np.array(vec_b, dtype=np.float32)
-        a = a.flatten() if a.ndim > 1 else a
-        b = b.flatten() if b.ndim > 1 else b
-        dot_product = np.dot(a, b)
-        magnitude_a = np.linalg.norm(a)
-        magnitude_b = np.linalg.norm(b)
-        if magnitude_a == 0 or magnitude_b == 0:
-            return 0
-        return dot_product / (magnitude_a * magnitude_b)
 
     def cleanup_old_memories(self, months: int = 1) -> int:
         collection = self._initialize_collection()
@@ -543,15 +472,6 @@ class ChromaMemoryService(BaseMemoryService):
                 "message": f"Error deleting memories: {str(e)}",
                 "count": 0,
             }
-
-    def get_queue_status(self) -> Dict[str, Any]:
-        if self._worker:
-            return self._worker.get_queue_status()
-        return {
-            "queue_size": 0,
-            "worker_alive": False,
-            "max_queue_size": 0,
-        }
 
     def shutdown(self):
         logger.info("Shutting down memory service...")

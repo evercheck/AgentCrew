@@ -149,34 +149,6 @@ class MessageHandler(Observable):
         if command_result.handled:
             return command_result.exit_flag, command_result.clear_flag
 
-        # Handle regular user input (non-commands)
-        # RAG base on user query
-        # IMPORTANT: this actually add more problems than it solves, so it's disabled for now
-        #         if await self.memory_service.need_generate_user_context(user_input):
-        #             self._notify("user_context_request", None)
-        #             self._messages_append(
-        #                 {
-        #                     "role": "user",
-        #                     "content": [
-        #                         {
-        #                             "type": "text",
-        #                             "text": f"""Memories related to the user request:
-        # ---
-        # {await self.memory_service.generate_user_context(user_input, self.agent.name)}
-        # ---
-        # INSTRUCTIONS:
-        # 1. EXTRACT relevant facts and context from memories
-        # 2. PRIORITIZE recent memories when information conflicts
-        # 3. INCORPORATE memory insights to enhance your response
-        # 4. PRESERVE the user's original intent - memories should supplement, not override
-        # 5. RESPOND directly to the current request first and foremost
-        #
-        # IMPORTANT: Memory serves to enhance responses, never to reinterpret or redirect the user's explicit request.""",
-        #                         }
-        #                     ],
-        #                 }
-        #             )
-
         # Delays file processing until user send message
 
         while len(self._queued_attached_files) > 0:

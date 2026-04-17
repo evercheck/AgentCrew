@@ -46,28 +46,11 @@ class BaseMemoryService(ABC):
         pass
 
     @abstractmethod
-    async def need_generate_user_context(self, user_input) -> bool:
-        pass
-
-    @abstractmethod
     def clear_conversation_context(self):
         pass
 
     @abstractmethod
     def load_conversation_context(self, session_id: str, agent_name: str = "None"):
-        pass
-
-    @abstractmethod
-    def generate_user_context(self, user_input: str, agent_name: str = "None") -> str:
-        """
-        Generate context based on user input by retrieving relevant memories.
-
-        Args:
-            user_input: The current user message to generate context for
-
-        Returns:
-            Formatted string containing relevant context from past conversations
-        """
         pass
 
     @abstractmethod
