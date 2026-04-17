@@ -1,8 +1,40 @@
-from typing import Dict, Any, Callable
+from dataclasses import dataclass
 from datetime import datetime as dt
+from typing import Any, Callable, Dict
 
-from AgentCrew.modules.agents import AgentManager
 from .base_service import BaseMemoryService
+from .context_persistent import ContextPersistenceService
+
+
+@dataclass(frozen=True)
+class MemoryToolContext:
+    agent_name: str
+    memory_service: BaseMemoryService | None = None
+    persistence_service: ContextPersistenceService | None = None
+
+
+def _coerce_memory_service_context(
+    bound_instance: BaseMemoryService | MemoryToolContext,
+    default_agent_name: str,
+) -> MemoryToolContext:
+    if isinstance(bound_instance, MemoryToolContext):
+        return bound_instance
+    return MemoryToolContext(
+        agent_name=default_agent_name,
+        memory_service=bound_instance,
+    )
+
+
+def _coerce_persistence_service_context(
+    bound_instance: Any,
+    default_agent_name: str,
+) -> MemoryToolContext:
+    if isinstance(bound_instance, MemoryToolContext):
+        return bound_instance
+    return MemoryToolContext(
+        agent_name=default_agent_name,
+        persistence_service=bound_instance,
+    )
 
 
 def get_memory_forget_tool_definition(provider="claude") -> Dict[str, Any]:
@@ -34,7 +66,7 @@ Search for memories need to remote, use date filters to limit scope whenever pos
                 "required": tool_required,
             },
         }
-    else:  # OpenAI-compatible provider format
+    else:
         return {
             "type": "function",
             "function": {
@@ -49,18 +81,20 @@ Search for memories need to remote, use date filters to limit scope whenever pos
         }
 
 
-def get_memory_forget_tool_handler(memory_service: BaseMemoryService) -> Callable:
+def get_memory_forget_tool_handler(
+    bound_instance: BaseMemoryService | MemoryToolContext,
+) -> Callable:
     """Optimized memory forgetting handler with concise feedback."""
+    context = _coerce_memory_service_context(bound_instance, default_agent_name="None")
+    memory_service = context.memory_service
 
     async def handle_memory_forget(**params) -> str:
         ids = params.get("ids", [])
 
-        # Use provided agent_name or fallback to current agent
-        current_agent = AgentManager.get_instance().get_current_agent()
-        agent_name = current_agent.name if current_agent else "None"
-
         try:
-            result = memory_service.forget_ids(ids, agent_name)
+            if not memory_service:
+                raise ValueError("Memory service not found")
+            result = memory_service.forget_ids(ids, context.agent_name)
             return (
                 f"Removed memories: {result.get('message', 'Success')}"
                 if result.get("success")
@@ -109,7 +143,7 @@ Use from_date and to_date to filter memories by time whenever posible, Eg: yeste
                 "required": tool_required,
             },
         }
-    else:  # OpenAI-compatible provider format
+    else:
         return {
             "type": "function",
             "function": {
@@ -153,13 +187,21 @@ def memory_instruction_prompt():
 </Memory_Tools_Instruction>"""
 
 
-def get_memory_retrieve_tool_handler(memory_service: BaseMemoryService) -> Callable:
+def get_memory_retrieve_tool_handler(
+    bound_instance: BaseMemoryService | MemoryToolContext,
+) -> Callable:
     """Optimized memory retrieval handler with concise feedback."""
+    context = _coerce_memory_service_context(bound_instance, default_agent_name="")
+    memory_service = context.memory_service
 
     async def handle_memory_retrieve(**params) -> str:
         query = params.get("query", "").strip()
         from_date = params.get("from_date", None)
         to_date = params.get("to_date", None)
+        print(context.agent_name)
+
+        if not memory_service:
+            raise ValueError("Memory service not found")
 
         if not query:
             raise ValueError("Phrases required for memory search. Try again.")
@@ -168,10 +210,6 @@ def get_memory_retrieve_tool_handler(memory_service: BaseMemoryService) -> Calla
             raise ValueError(
                 f"Search term '{query}' too short. Try again with more semantica and descriptive phrases."
             )
-
-        # Use provided agent_name or fallback to current agent
-        current_agent = AgentManager.get_instance().get_current_agent()
-        agent_name = current_agent.name if current_agent else ""
 
         try:
             if from_date:
@@ -184,13 +222,12 @@ def get_memory_retrieve_tool_handler(memory_service: BaseMemoryService) -> Calla
                 )
 
             result = memory_service.retrieve_memory(
-                query, from_date, to_date, agent_name
+                query, from_date, to_date, context.agent_name
             )
 
             if not result or result.strip() == "":
                 return f"No memories found for '{query}'. Try broader phrases or related terms."
 
-            # Count memories for user feedback
             return f"Found relevant memories:\n\n{result}"
 
         except Exception as e:
@@ -241,7 +278,7 @@ All behaviors must follow 'when..., [action]...' format for automatic activation
                 "required": tool_required,
             },
         }
-    else:  # OpenAI-compatible provider format
+    else:
         return {
             "type": "function",
             "function": {
@@ -256,14 +293,24 @@ All behaviors must follow 'when..., [action]...' format for automatic activation
         }
 
 
-def get_learn_behavior_tool_handler(persistence_service: Any) -> Callable:
+def get_learn_behavior_tool_handler(
+    bound_instance: ContextPersistenceService | MemoryToolContext,
+) -> Callable:
     """Optimized adaptive behavior handler with concise feedback."""
+    context = _coerce_persistence_service_context(
+        bound_instance,
+        default_agent_name="default",
+    )
+    persistence_service = context.persistence_service
 
     async def handle_learn_behavior(**params) -> str:
         behavior_id = params.get("id", "").strip()
         condition = params.get("condition", "").strip()
         action_steps = params.get("action_steps", [])
         scope = params.get("scope", "global").strip().lower()
+
+        if not persistence_service:
+            raise ValueError("Memory service not found")
 
         if not behavior_id:
             return "Behavior ID required (e.g., 'communication_style_technical')."
@@ -294,12 +341,12 @@ def get_learn_behavior_tool_handler(persistence_service: Any) -> Callable:
             )
             behavior = f"when {condition}, do run following steps: {steps_joined}"
 
-        current_agent = AgentManager.get_instance().get_current_agent()
-        agent_name = current_agent.name if current_agent else "default"
-
         try:
             success = persistence_service.store_adaptive_behavior(
-                agent_name, behavior_id, behavior, scope == "project"
+                context.agent_name,
+                behavior_id,
+                behavior,
+                scope == "project",
             )
             return (
                 f"Stored behavior '{behavior_id}': {behavior}"
@@ -331,7 +378,7 @@ def adaptive_instruction_prompt():
   <Behavior_Format>
     Use the `learn_behavior` tool with:
     - condition: The triggering condition (e.g., "user asks about debugging")
-    - action_steps: Array of action steps to execute when condition is met
+    - action_steps: Array of action steps to execute when the condition is met
     
     Examples:
     - condition: "user asks about code"
@@ -358,25 +405,33 @@ def register(
     """Register optimized memory tools with comprehensive capabilities."""
     from AgentCrew.modules.tools.registration import register_tool
 
-    # Register core memory management tools
+    agent_name = agent.name if agent else "None"
+    memory_context = MemoryToolContext(
+        agent_name=agent_name,
+        memory_service=service_instance,
+    )
+
     register_tool(
         get_memory_retrieve_tool_definition,
         get_memory_retrieve_tool_handler,
-        service_instance,
+        memory_context,
         agent,
     )
     register_tool(
         get_memory_forget_tool_definition,
         get_memory_forget_tool_handler,
-        service_instance,
+        memory_context,
         agent,
     )
 
-    # Register adaptive behavior tool if persistence service is available
     if persistence_service is not None:
+        persistence_context = MemoryToolContext(
+            agent_name=agent_name,
+            persistence_service=persistence_service,
+        )
         register_tool(
             get_learn_behavior_tool_definition,
             get_learn_behavior_tool_handler,
-            persistence_service,
+            persistence_context,
             agent,
         )

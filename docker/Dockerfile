@@ -39,12 +39,12 @@ RUN uv venv /opt/venv && \
 RUN . /opt/venv/bin/activate && \
   python -c "from tree_sitter_language_pack import download_all; print(f'Pre-downloaded {download_all()} languages')"
 
-# Pre-download Docling models during image build.
-RUN --mount=type=secret,id=HF_TOKEN \
-  mkdir -p /opt/docling-models && \
-  . /opt/venv/bin/activate && \
-  export HF_TOKEN="$(cat /run/secrets/HF_TOKEN 2>/dev/null || true)" && \
-  python -c "from pathlib import Path; from docling.utils.model_downloader import download_models; download_models(output_dir=Path('/opt/docling-models'))"
+# # Pre-download Docling models during image build.
+# RUN --mount=type=secret,id=HF_TOKEN \
+#   mkdir -p /opt/docling-models && \
+#   . /opt/venv/bin/activate && \
+#   export HF_TOKEN="$(cat /run/secrets/HF_TOKEN 2>/dev/null || true)" && \
+#   python -c "from pathlib import Path; from docling.utils.model_downloader import download_models; download_models(output_dir=Path('/opt/docling-models'))"
 
 # Production stage
 FROM python:3.12-slim
@@ -59,7 +59,7 @@ ENV PYTHONUNBUFFERED=1 \
   SW_AGENTS_CONFIG="/home/agentcrew/.AgentCrew/agents.toml" \
   AGENTCREW_PERSISTENCE_DIR="/home/agentcrew/.AgentCrew/persistents" \
   AGENTCREW_CONFIG_PATH="/home/agentcrew/.AgentCrew/config.json" \
-  DOCLING_ARTIFACTS_PATH="/opt/docling-models" \
+  # DOCLING_ARTIFACTS_PATH="/opt/docling-models" \
   AGENTCREW_DOCKER="true" \
   AGENTCREW_DISABLE_GUI="true" \
   # Chromium headless configuration
@@ -107,7 +107,7 @@ RUN groupadd -r agentcrew && useradd -r -g agentcrew -m -d /home/agentcrew agent
 
 # Copy virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /opt/docling-models /opt/docling-models
+# COPY --from=builder /opt/docling-models /opt/docling-models
 
 # Copy pre-downloaded tree-sitter language parser cache
 COPY --from=builder /root/.cache/tree-sitter-language-pack /home/agentcrew/.cache/tree-sitter-language-pack
@@ -115,7 +115,7 @@ COPY --from=builder /root/.cache/tree-sitter-language-pack /home/agentcrew/.cach
 COPY --from=builder /root/.cache/tree-sitter-language-pack /root/.cache/tree-sitter-language-pack
 
 # Create AgentCrew config directory and Chrome user data directory
-RUN mkdir -p /home/agentcrew/.AgentCrew/{logs,memorydb,persistents,chrome_user_data} && \
+RUN mkdir -p /home/agentcrew/.AgentCrew/ && \
   chown -R agentcrew:agentcrew /home/agentcrew/.AgentCrew && \
   chown -R agentcrew:agentcrew /home/agentcrew/.cache
 
