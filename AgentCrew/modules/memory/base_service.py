@@ -31,6 +31,7 @@ class BaseMemoryService(ABC):
         user_message: str,
         assistant_messages: List[str],
         agent_name: str = "None",
+        session_id: Optional[str] = None,
     ) -> List[str]:
         """
         Store a conversation exchange in memory.

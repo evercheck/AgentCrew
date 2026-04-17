@@ -20,6 +20,7 @@ from AgentCrew.modules.tools.parallel_executor import (
 )
 from .adapters import convert_agent_response_to_a2a_artifact
 from .exceptions import TaskCanceledException
+from AgentCrew.modules.memory import BaseMemoryService
 
 
 class ToolCallResult(Enum):
@@ -69,7 +70,7 @@ class TaskExecutionEngine:
         streaming: TaskStreamingManager,
         cancellation: TaskCancellationManager,
         interaction: TaskInteractionHandler,
-        memory_service: Any = None,
+        memory_service: Optional[BaseMemoryService] = None,
     ) -> None:
         self.agent_name = agent_name
         self.store = store
@@ -465,6 +466,7 @@ class TaskExecutionEngine:
                     user_message,
                     assistant_messages,
                     self.agent_name,
+                    session_id=task.context_id,
                 )
 
         final_artifact = convert_agent_response_to_a2a_artifact(

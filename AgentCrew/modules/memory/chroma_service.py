@@ -128,6 +128,7 @@ class ChromaMemoryService(BaseMemoryService):
         user_message: str,
         assistant_messages: List[str],
         agent_name: str = "None",
+        session_id: Optional[str] = None,
     ) -> List[str]:
         self._initialize_collection()
 
@@ -138,7 +139,7 @@ class ChromaMemoryService(BaseMemoryService):
             "user_message": user_message,
             "assistant_messages": assistant_messages,
             "agent_name": agent_name,
-            "session_id": self.session_id,
+            "session_id": session_id or self.session_id,
             "timestamp": datetime.now().isoformat(),
         }
 
