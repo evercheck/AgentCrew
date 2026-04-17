@@ -3,7 +3,6 @@ import os
 from typing import Any, Dict, List
 
 from loguru import logger
-from pydantic import config
 from tomli_w import dump as toml_dump
 
 

@@ -260,6 +260,19 @@ class CommandHandler:
                                     ),
                                 }
                             )
+
+                        elif item_type == "thinking":
+                            formatted_content.append(
+                                {
+                                    "type": item_type,
+                                    "thinking": self._truncate_content(
+                                        item.get("thinking", item), max_content_length
+                                    ),
+                                    "signature": self._truncate_content(
+                                        item.get("signature", ""), max_content_length
+                                    ),
+                                }
+                            )
                         else:
                             formatted_content.append(
                                 {
@@ -365,18 +378,6 @@ class CommandHandler:
                 messages = data["messages"]
                 title = "Agent Messages" if msg_type == "agent" else "Chat Messages"
                 self._display_debug_messages(title, messages)
-            else:
-                # Legacy format - just raw messages
-                try:
-                    formatted = self._format_messages_for_debug(data)
-                    debug_info = json.dumps(formatted, indent=2)
-                    self.chat_window.chat_components.add_system_message(
-                        f"DEBUG INFO ({len(data)} messages):\n\n```json\n{debug_info}\n```"
-                    )
-                except Exception:
-                    self.chat_window.chat_components.add_system_message(
-                        f"DEBUG INFO:\n\n{str(data)}"
-                    )
             return True
 
         elif event == "agent_changed":

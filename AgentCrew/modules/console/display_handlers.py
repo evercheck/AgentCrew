@@ -240,6 +240,18 @@ class DisplayHandlers:
                                     ),
                                 }
                             )
+                        elif item_type == "thinking":
+                            formatted_content.append(
+                                {
+                                    "type": item_type,
+                                    "thinking": self._truncate_content(
+                                        item.get("thinking", item), max_content_length
+                                    ),
+                                    "signature": self._truncate_content(
+                                        item.get("signature", ""), max_content_length
+                                    ),
+                                }
+                            )
                         else:
                             formatted_content.append(
                                 {

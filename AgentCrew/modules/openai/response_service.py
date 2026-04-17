@@ -88,6 +88,10 @@ class OpenAIResponseService(BaseLLMService):
                         part["type"] = (
                             "output_text" if role == "assistant" else "input_text"
                         )
+                    elif part.get("type") == "thinking":
+                        part["type"] = "output_text"
+                        part["text"] = f"<think>{part['thinking']}</think>"
+                        part.pop("signature", None)
                     elif part.get("type") == "image_url":
                         image_url_value = part.get("image_url", {})
                         if isinstance(image_url_value, dict):
