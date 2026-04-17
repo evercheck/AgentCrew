@@ -214,7 +214,9 @@ def get_memory_retrieve_tool_handler(
             if from_date:
                 from_date = int(dt.strptime(from_date, "%Y-%m-%d").timestamp())
             if to_date:
-                to_date = int(dt.strptime(to_date, "%Y-%m-%d").timestamp())
+                to_date = (
+                    int(dt.strptime(to_date, "%Y-%m-%d").timestamp()) + 86_399
+                )  # to the end of to_date
             if from_date and to_date and from_date >= to_date:
                 raise ValueError(
                     "from_date must be earlier than and not equal to to_date. Try again with valid dates."

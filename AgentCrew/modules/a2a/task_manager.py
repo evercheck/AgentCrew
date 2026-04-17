@@ -73,7 +73,6 @@ class AgentTaskManager(TaskManager):
         self.streaming = TaskStreamingManager(store)
         self.interaction = TaskInteractionHandler()
         self.execution = TaskExecutionEngine(
-            agent_name,
             store,
             self.streaming,
             self.cancellation,

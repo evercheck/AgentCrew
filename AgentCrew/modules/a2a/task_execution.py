@@ -65,14 +65,12 @@ class TaskExecutionEngine:
 
     def __init__(
         self,
-        agent_name: str,
         store: TaskStore,
         streaming: TaskStreamingManager,
         cancellation: TaskCancellationManager,
         interaction: TaskInteractionHandler,
         memory_service: Optional[BaseMemoryService] = None,
     ) -> None:
-        self.agent_name = agent_name
         self.store = store
         self.streaming = streaming
         self.cancellation = cancellation
@@ -465,7 +463,7 @@ class TaskExecutionEngine:
                 self.memory_service.store_conversation(
                     user_message,
                     assistant_messages,
-                    self.agent_name,
+                    agent.name,
                     session_id=task.context_id,
                 )
 
