@@ -176,6 +176,7 @@ class AgentCrewApplication:
         api_key: Optional[str] = None,
         mcp_config: Optional[str] = None,
         memory_llm: Optional[str] = None,
+        memory_path: Optional[str] = None,
         store_type: str = "memory",
         store_options: Optional[dict] = None,
     ) -> None:
@@ -193,8 +194,9 @@ class AgentCrewApplication:
                         "No LLM API key found. Please set either ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPINFRA_API_KEY, or TOGETHER_API_KEY"
                     )
 
+            need_memory = bool(memory_path)
             services = self.setup.setup_services(
-                provider, memory_llm, need_memory=False
+                provider, memory_llm, need_memory=need_memory
             )
 
             if mcp_config:

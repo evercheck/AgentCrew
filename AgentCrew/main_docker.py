@@ -146,6 +146,7 @@ def a2a_server(
         api_key=api_key,
         mcp_config=mcp_config,
         memory_llm=memory_llm,
+        memory_path=memory_path,
         store_type=store_type,
         store_options=store_options if store_options else None,
     )
