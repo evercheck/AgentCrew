@@ -44,6 +44,8 @@ class ChromaMemoryService(BaseMemoryService):
                 self.llm_service.model = "gpt-5.1-codex-mini"
             elif self.llm_service.provider_name == "together":
                 self.llm_service.model = "Qwen/Qwen3.5-9B"
+            elif self.llm_service.provider_name == "opencode_go":
+                self.llm_service.model = "kimi-k2.5"
 
         self._collection = None
         self.collection_name = collection_name

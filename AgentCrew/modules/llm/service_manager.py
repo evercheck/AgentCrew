@@ -34,6 +34,7 @@ class ServiceManager:
             "google": self._create_google_service,
             "deepinfra": self._create_deepinfra_service,
             "together": self._create_together_service,
+            "opencode_go": self._create_opencode_go_service,
             "github_copilot": self._create_github_copilot_service,
             "copilot_response": self._create_copilot_response_service,
         }
@@ -88,6 +89,17 @@ class ServiceManager:
 
             return TogetherAIService()
         raise RuntimeError("API key for Together not found.")
+
+    def _create_opencode_go_service(self) -> BaseLLMService:
+        """Lazy import and create OpenCode Go service."""
+        api_key = os.getenv("OPENCODE_API_KEY")
+        if api_key:
+            return self._create_custom_llm_service(
+                base_url="https://opencode.ai/zen/go/v1",
+                api_key=api_key,
+                provider_name="opencode_go",
+            )
+        raise RuntimeError("API key for OpenCode Go not found.")
 
     def _create_github_copilot_service(
         self, api_key: Optional[str] = None, provider_name: str = "github_copilot"

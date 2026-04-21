@@ -36,6 +36,7 @@ PROVIDER_LIST = [
     "google",
     "deepinfra",
     "together",
+    "opencode_go",
     "github_copilot",
     "copilot_response",
 ]
@@ -84,6 +85,7 @@ class ApplicationSetup:
             "OPENAI_API_KEY",
             "DEEPINFRA_API_KEY",
             "TOGETHER_API_KEY",
+            "OPENCODE_API_KEY",
             "GITHUB_COPILOT_API_KEY",
             "TAVILY_API_KEY",
             "VOYAGE_API_KEY",
@@ -105,6 +107,7 @@ class ApplicationSetup:
                         "openai": "OPENAI_API_KEY",
                         "deepinfra": "DEEPINFRA_API_KEY",
                         "together": "TOGETHER_API_KEY",
+                        "opencode_go": "OPENCODE_API_KEY",
                         "github_copilot": "GITHUB_COPILOT_API_KEY",
                         "copilot_response": "GITHUB_COPILOT_API_KEY",
                     }
@@ -137,6 +140,8 @@ class ApplicationSetup:
             return "deepinfra"
         elif os.getenv("TOGETHER_API_KEY"):
             return "together"
+        elif os.getenv("OPENCODE_API_KEY"):
+            return "opencode_go"
         else:
             custom_providers = GlobalConfig().read_custom_llm_providers_config()
             if len(custom_providers) > 0:
@@ -183,14 +188,10 @@ class ApplicationSetup:
         memory_service = None
         context_service = None
         if need_memory:
-            if memory_llm:
-                memory_service = ChromaMemoryService(
-                    llm_service=llm_manager.initialize_standalone_service(memory_llm)
-                )
-            else:
-                memory_service = ChromaMemoryService(
-                    llm_service=llm_manager.initialize_standalone_service(provider)
-                )
+            memory_provider = memory_llm or provider
+            memory_service = ChromaMemoryService(
+                llm_service=llm_manager.initialize_standalone_service(memory_provider)
+            )
 
             context_service = ContextPersistenceService()
         clipboard_service = ClipboardService()

@@ -605,6 +605,89 @@ _TOGETHER_MODELS = [
     ),
 ]
 
+_OPENCODE_GO_MODELS = [
+    Model(
+        id="glm-5.1",
+        provider="opencode_go",
+        name="GLM-5.1",
+        description="OpenCode Go curated GLM-5.1 model over the OpenAI-compatible chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=False,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+    Model(
+        id="glm-5",
+        provider="opencode_go",
+        name="GLM-5",
+        description="OpenCode Go curated GLM-5 model over the OpenAI-compatible chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=False,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+    Model(
+        id="kimi-k2.5",
+        provider="opencode_go",
+        name="Kimi K2.5",
+        description="OpenCode Go curated Kimi K2.5 model over the OpenAI-compatible chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=True,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+    Model(
+        id="kimi-k2.6",
+        provider="opencode_go",
+        name="Kimi K2.6",
+        description="OpenCode Go curated Kimi K2.6 model over the OpenAI-compatible chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=False,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+    Model(
+        id="mimo-v2-pro",
+        provider="opencode_go",
+        name="MiMo-V2-Pro",
+        description="OpenCode Go curated MiMo-V2-Pro model over the OpenAI-compatible chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=False,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+    Model(
+        id="mimo-v2-omni",
+        provider="opencode_go",
+        name="MiMo-V2-Omni",
+        description="OpenCode Go curated MiMo-V2-Omni model over the OpenAI-compatible chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=False,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+    Model(
+        id="qwen3.5-plus",
+        provider="opencode_go",
+        name="Qwen3.5 Plus",
+        description="OpenCode Go curated Qwen3.5 Plus model over the chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=False,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+    Model(
+        id="qwen3.6-plus",
+        provider="opencode_go",
+        name="Qwen3.6 Plus",
+        description="OpenCode Go curated Qwen3.6 Plus model over the chat completions endpoint",
+        capabilities=["tool_use", "stream"],
+        default=False,
+        input_token_price_1m=0.0,
+        output_token_price_1m=0.0,
+    ),
+]
+
 _GITHUB_COPILOT_MODELS = [
     Model(
         id="claude-haiku-4.5",
@@ -926,5 +1009,6 @@ AVAILABLE_MODELS = (
     + _GOOGLE_MODELS
     + _DEEPINFRA_MODELS
     + _TOGETHER_MODELS
+    + _OPENCODE_GO_MODELS
     + _GITHUB_COPILOT_MODELS
 )

@@ -23,7 +23,7 @@ def common_options(func):
         "--provider",
         type=click.Choice(PROVIDER_LIST),
         default=None,
-        help="LLM provider to use (claude, openai, google, github_copilot, deepinfra, or together)",
+        help="LLM provider to use (claude, openai, google, github_copilot, deepinfra, together, or opencode_go)",
     )
     @click.option(
         "--agent-config",
@@ -36,7 +36,15 @@ def common_options(func):
     @click.option(
         "--memory-llm",
         type=click.Choice(
-            ["claude", "openai", "google", "deepinfra", "together", "github_copilot"]
+            [
+                "claude",
+                "openai",
+                "google",
+                "deepinfra",
+                "together",
+                "opencode_go",
+                "github_copilot",
+            ]
         ),
         default=None,
         help="LLM Model use for analyzing and processing memory",
@@ -82,7 +90,7 @@ class AgentCrewApplication:
                 provider = self.setup.detect_provider()
                 if provider is None:
                     raise ValueError(
-                        "No LLM API key found. Please set either ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPINFRA_API_KEY, or TOGETHER_API_KEY"
+                        "No LLM API key found. Please set either ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPINFRA_API_KEY, TOGETHER_API_KEY, or OPENCODE_API_KEY"
                     )
 
             services = self.setup.setup_services(
@@ -195,7 +203,7 @@ class AgentCrewApplication:
                 provider = self.setup.detect_provider()
                 if provider is None:
                     raise ValueError(
-                        "No LLM API key found. Please set either ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPINFRA_API_KEY, or TOGETHER_API_KEY"
+                        "No LLM API key found. Please set either ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPINFRA_API_KEY, TOGETHER_API_KEY, or OPENCODE_API_KEY"
                     )
 
             need_memory = bool(memory_path)
@@ -320,7 +328,7 @@ class AgentCrewApplication:
                 provider = self.setup.detect_provider()
                 if provider is None:
                     raise ValueError(
-                        "No LLM API key found. Please set either ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPINFRA_API_KEY, or TOGETHER_API_KEY"
+                        "No LLM API key found. Please set either ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPINFRA_API_KEY, TOGETHER_API_KEY, or OPENCODE_API_KEY"
                     )
 
             services = self.setup.setup_services(
