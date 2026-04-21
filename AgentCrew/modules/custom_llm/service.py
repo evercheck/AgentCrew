@@ -141,7 +141,9 @@ class CustomLLMService(OpenAIService):
     def _merge_stream_tool_call_delta(
         self, tool_uses: List[Dict[str, Any]], tool_call_delta: Any
     ) -> Optional[int]:
-        tool_call_index = self._resolve_stream_tool_call_index(tool_uses, tool_call_delta)
+        tool_call_index = self._resolve_stream_tool_call_index(
+            tool_uses, tool_call_delta
+        )
         if tool_call_index is None:
             return None
 
@@ -151,9 +153,8 @@ class CustomLLMService(OpenAIService):
             tool_use["id"] = tool_call_delta.id
 
         if hasattr(tool_call_delta, "function"):
-            if (
-                hasattr(tool_call_delta.function, "name")
-                and self._has_usable_tool_name(tool_call_delta.function.name)
+            if hasattr(tool_call_delta.function, "name") and self._has_usable_tool_name(
+                tool_call_delta.function.name
             ):
                 tool_use["name"] = tool_call_delta.function.name
 
@@ -174,19 +175,6 @@ class CustomLLMService(OpenAIService):
                     pass
 
         return tool_call_index
-
-    def filter_invalid_tool_uses(
-        self, tool_uses: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        filtered_tool_uses = []
-        for tool_use in tool_uses:
-            if self._has_usable_tool_name(tool_use.get("name")):
-                filtered_tool_uses.append(tool_use)
-            elif tool_use.get("id") or tool_use.get("args_json"):
-                logger.warning(
-                    "Dropping malformed parsed tool call without a usable name"
-                )
-        return filtered_tool_uses
 
     async def process_message(self, prompt: str, temperature: float = 0) -> str:
         result_text = ""

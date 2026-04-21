@@ -388,6 +388,21 @@ class LocalAgent(BaseAgent):
     ) -> None:
         self._context_manager.enhance_messages(final_messages)
 
+    def _filter_invalid_tool_uses(
+        self, tool_uses: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        filtered_tool_uses = []
+        for tool_use in tool_uses:
+            if isinstance(tool_use.get("name"), str) and bool(
+                tool_use.get("name", "").strip()
+            ):
+                filtered_tool_uses.append(tool_use)
+            elif tool_use.get("id") or tool_use.get("args_json"):
+                logger.warning(
+                    "Dropping malformed parsed tool call without a usable name"
+                )
+        return filtered_tool_uses
+
     def _clean_shrinkable_tool_result(
         self, final_messages: List[Dict[str, Any]]
     ) -> None:
@@ -450,7 +465,11 @@ class LocalAgent(BaseAgent):
             self.input_tokens_usage = _input_tokens_usage
             self.output_tokens_usage = _output_tokens_usage
             if callback:
-                callback(_tool_uses, _input_tokens_usage, _output_tokens_usage)
+                callback(
+                    self._filter_invalid_tool_uses(_tool_uses),
+                    _input_tokens_usage,
+                    _output_tokens_usage,
+                )
             else:
                 self.tool_uses = _tool_uses
 

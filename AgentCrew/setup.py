@@ -217,7 +217,9 @@ class ApplicationSetup:
             else:
                 try:
                     image_gen_service = ImageGenerationService(provider="openai_codex")
-                    click.echo("\u2139\ufe0f Image generation using ChatGPT subscription (Codex).")
+                    click.echo(
+                        "\u2139\ufe0f Image generation using ChatGPT subscription (Codex)."
+                    )
                 except Exception:
                     image_gen_service = None
                     click.echo(
