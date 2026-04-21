@@ -886,17 +886,6 @@ _GITHUB_COPILOT_MODELS = [
         output_token_price_1m=0.0,
     ),
     Model(
-        id="claude-opus-41",
-        provider="github_copilot",
-        name="Claude Opus 4.1 (Preview)",
-        description="",
-        capabilities=["tool_use", "vision", "stream", "thinking"],
-        default=False,
-        max_context_token=80_000,
-        input_token_price_1m=0.0,
-        output_token_price_1m=0.0,
-    ),
-    Model(
         id="claude-opus-4.5",
         provider="github_copilot",
         name="Claude Opus 4.5 (Preview)",
