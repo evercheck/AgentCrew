@@ -39,11 +39,13 @@ def common_options(func):
             [
                 "claude",
                 "openai",
+                "openai_codex",
                 "google",
                 "deepinfra",
                 "together",
                 "opencode_go",
                 "github_copilot",
+                "copilot_response",
             ]
         ),
         default=None,
