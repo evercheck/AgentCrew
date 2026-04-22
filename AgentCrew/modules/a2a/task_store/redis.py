@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from a2a.types import (
     Task,
@@ -110,17 +110,31 @@ class RedisTaskStore(TaskStore):
         raw_events = json.loads(data)
         return self.deserialize_events(raw_events)
 
+    async def append_task_events(
+        self,
+        task_id: str,
+        events_to_append: Sequence[
+            Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]
+        ],
+    ) -> None:
+        if not events_to_append:
+            return
+        r = await self._get_redis()
+        key = self._key("events", task_id)
+        data = await r.get(key)
+        events = json.loads(data) if data else []
+        events.extend(
+            json.loads(event.model_dump_json(exclude_none=True))
+            for event in events_to_append
+        )
+        await r.set(key, json.dumps(events), ex=self.ttl)
+
     async def append_task_event(
         self,
         task_id: str,
         event: Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent],
     ) -> None:
-        r = await self._get_redis()
-        key = self._key("events", task_id)
-        data = await r.get(key)
-        events = json.loads(data) if data else []
-        events.append(json.loads(event.model_dump_json(exclude_none=True)))
-        await r.set(key, json.dumps(events), ex=self.ttl)
+        await self.append_task_events(task_id, [event])
 
     async def cleanup_task(self, task_id: str) -> None:
         r = await self._get_redis()

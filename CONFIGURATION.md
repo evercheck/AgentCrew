@@ -243,7 +243,6 @@ Specify which tools your agent can access:
 
 - `command_execution` - Execute shell commands
 - `clipboard` - Read/write system clipboard
-- `image_generation` - Generate images with DALL-E
 
 **Memory & Context:**
 

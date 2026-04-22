@@ -340,6 +340,7 @@ class AgentTaskManager(TaskManager):
             )
             return
 
+        await self.streaming.flush_task_events(task_id)
         stored_events = await self.store.get_task_events(task_id)
         for event in stored_events:
             yield SendStreamingMessageResponse(

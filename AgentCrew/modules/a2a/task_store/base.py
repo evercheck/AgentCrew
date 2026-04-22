@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from a2a.types import (
     Task,
@@ -58,6 +58,14 @@ class TaskStore(ABC):
         self,
         task_id: str,
         event: Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent],
+    ) -> None:
+        pass
+
+    @abstractmethod
+    async def append_task_events(
+        self,
+        task_id: str,
+        events: Sequence[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]],
     ) -> None:
         pass
 

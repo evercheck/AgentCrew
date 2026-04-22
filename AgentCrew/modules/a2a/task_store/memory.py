@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from a2a.types import (
     Task,
@@ -67,13 +67,22 @@ class InMemoryTaskStore(TaskStore):
         async with self.lock:
             return list(self.task_events.get(task_id, []))
 
+    async def append_task_events(
+        self,
+        task_id: str,
+        events: Sequence[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]],
+    ) -> None:
+        if not events:
+            return
+        async with self.lock:
+            self.task_events[task_id].extend(events)
+
     async def append_task_event(
         self,
         task_id: str,
         event: Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent],
     ) -> None:
-        async with self.lock:
-            self.task_events[task_id].append(event)
+        await self.append_task_events(task_id, [event])
 
     async def cleanup_task(self, task_id: str) -> None:
         async with self.lock:
