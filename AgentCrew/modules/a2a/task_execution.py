@@ -282,20 +282,21 @@ class TaskExecutionEngine:
         artifacts: List[Any],
     ) -> None:
         if thinking_chunk:
-            think_text_chunk, _ = thinking_chunk
-            if think_text_chunk:
-                thinking_artifact = convert_agent_response_to_a2a_artifact(
-                    think_text_chunk,
-                    artifact_id=f"thinking_{task.id}_{datetime.now()}",
-                )
-                await self.streaming.record_and_emit_event(
-                    task.id,
-                    TaskArtifactUpdateEvent(
-                        task_id=task.id,
-                        context_id=task.context_id,
-                        artifact=thinking_artifact,
-                    ),
-                )
+            pass
+            # think_text_chunk, _ = thinking_chunk
+            # if think_text_chunk:
+            #     thinking_artifact = convert_agent_response_to_a2a_artifact(
+            #         think_text_chunk,
+            #         artifact_id=f"thinking_{task.id}_{datetime.now()}",
+            #     )
+            #     await self.streaming.record_and_emit_event(
+            #         task.id,
+            #         TaskArtifactUpdateEvent(
+            #             task_id=task.id,
+            #             context_id=task.context_id,
+            #             artifact=thinking_artifact,
+            #         ),
+            #     )
 
         if chunk_text:
             artifact = convert_agent_response_to_a2a_artifact(
