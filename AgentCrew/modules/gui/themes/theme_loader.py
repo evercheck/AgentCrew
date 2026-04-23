@@ -355,6 +355,26 @@ class ThemeData:
         return self.get_style("tool_separator")
 
     @property
+    def AVATAR_BG(self) -> str:
+        return self.get_style("avatar_bg")
+
+    @property
+    def AVATAR_TEXT(self) -> str:
+        return self.get_style("avatar_text")
+
+    @property
+    def CHAT_CONTAINER_BG(self) -> str:
+        return self.get_style("chat_container_bg")
+
+    @property
+    def INPUT_CONTAINER(self) -> str:
+        return self.get_style("input_container")
+
+    @property
+    def INPUT_CONTAINER_FOCUS(self) -> str:
+        return self.get_style("input_container_focus")
+
+    @property
     def TOOL_ICONS(self) -> Dict[str, str]:
         return self._icons
 

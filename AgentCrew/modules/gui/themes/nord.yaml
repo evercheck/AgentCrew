@@ -20,6 +20,16 @@ colors:
   aurora_purple: "#b48ead"
   white: "#ffffff"
   transparent: "transparent"
+  # Modern elevation colors
+  elevation1: "#363d4d"
+  elevation2: "#3e4658"
+  bubble_user: "#5e81ac"
+  bubble_assistant: "#434c5e"
+  bubble_hover: "#4c566a"
+  input_bg: "#3b4252"
+  input_border: "#4c566a"
+  input_focus: "#88c0d0"
+  shadow: "rgba(0, 0, 0, 0.25)"
 
 icons:
   web_search: "\U0001F50D"
@@ -47,6 +57,8 @@ styles:
     }
     QSplitter::handle {
         background-color: ${polar_night_2};
+        width: 4px;
+        border-radius: 2px;
     }
     QSplitter::handle:hover {
         background-color: ${polar_night_3};
@@ -57,12 +69,15 @@ styles:
     QStatusBar {
         background-color: ${polar_night_1};
         color: ${snow_storm_0};
+        border-top: 1px solid ${polar_night_2};
     }
     QToolTip {
         background-color: ${polar_night_2};
         color: ${snow_storm_1};
         border: 1px solid ${polar_night_3};
-        padding: 4px;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
     }
     QMessageBox {
         background-color: ${polar_night_1};
@@ -75,12 +90,13 @@ styles:
         background-color: ${polar_night_2};
         color: ${snow_storm_1};
         border: 1px solid ${polar_night_3};
-        padding: 2px;
+        padding: 4px;
         outline: 0px;
+        border-radius: 8px;
     }
     QListView::item {
-        padding: 4px 8px;
-        border-radius: 2px;
+        padding: 6px 10px;
+        border-radius: 6px;
     }
     QListView::item:selected {
         background-color: ${frost_3};
@@ -91,14 +107,14 @@ styles:
     }
     QScrollBar:vertical {
         border: none;
-        background: ${polar_night_1};
-        width: 10px;
-        margin: 0px;
+        background: ${transparent};
+        width: 8px;
+        margin: 4px 2px;
     }
     QScrollBar::handle:vertical {
         background: ${polar_night_3};
-        min-height: 20px;
-        border-radius: 5px;
+        min-height: 40px;
+        border-radius: 4px;
     }
     QScrollBar::handle:vertical:hover {
         background: ${frost_3};
@@ -116,14 +132,14 @@ styles:
     }
     QScrollBar:horizontal {
         border: none;
-        background: ${polar_night_1};
-        height: 10px;
-        margin: 0px;
+        background: ${transparent};
+        height: 8px;
+        margin: 2px 4px;
     }
     QScrollBar::handle:horizontal {
         background: ${polar_night_3};
-        min-width: 20px;
-        border-radius: 5px;
+        min-width: 40px;
+        border-radius: 4px;
     }
     QScrollBar::handle:horizontal:hover {
         background: ${frost_3};
@@ -142,14 +158,15 @@ styles:
     QLabel QMenu {
         background-color: ${polar_night_1};
         border: 1px solid ${polar_night_3};
-        padding: 4px;
-        border-radius: 6px;
+        padding: 6px;
+        border-radius: 10px;
     }
     QLabel QMenu::item {
         color: ${snow_storm_1};
-        padding: 8px 24px 8px 12px;
-        border-radius: 4px;
+        padding: 8px 24px 8px 14px;
+        border-radius: 6px;
         margin: 2px;
+        font-size: 13px;
     }
     QLabel QMenu::item:selected {
         background-color: ${frost_3};
@@ -169,9 +186,10 @@ styles:
         background-color: ${frost_3};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${frost_2};
@@ -188,13 +206,15 @@ styles:
     QPushButton {
         background-color: ${polar_night_3};
         color: ${snow_storm_0};
-        border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border: 1px solid ${polar_night_2};
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${polar_night_2};
+        border-color: ${frost_3};
     }
     QPushButton:pressed {
         background-color: ${frost_3};
@@ -202,6 +222,7 @@ styles:
     QPushButton:disabled {
         background-color: ${polar_night_1};
         color: ${polar_night_2};
+        border-color: ${polar_night_2};
     }
 
   button_stop: |
@@ -209,9 +230,10 @@ styles:
         background-color: ${aurora_red};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${aurora_orange};
@@ -225,9 +247,10 @@ styles:
         background-color: ${polar_night_2};
         color: ${polar_night_3};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
 
   button_red: |
@@ -235,9 +258,10 @@ styles:
         background-color: ${aurora_red};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${aurora_orange};
@@ -255,9 +279,10 @@ styles:
         background-color: ${aurora_green};
         color: ${polar_night_0};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${frost_0};
@@ -275,9 +300,10 @@ styles:
         background-color: ${polar_night_3};
         color: ${polar_night_2};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
 
   button_menu: |
@@ -285,10 +311,11 @@ styles:
         background-color: ${frost_3};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
-        padding-left: 12px;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        padding-left: 14px;
     }
     QPushButton:hover {
         background-color: ${frost_2};
@@ -303,7 +330,7 @@ styles:
     QPushButton::menu-indicator {
         subcontrol-origin: padding;
         subcontrol-position: right center;
-        right: 5px;
+        right: 6px;
         width: 16px;
     }
 
@@ -312,10 +339,11 @@ styles:
         background-color: ${frost_3};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
-        padding-left: 12px;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        padding-left: 14px;
     }
     QPushButton:hover {
         background-color: ${frost_2};
@@ -330,46 +358,48 @@ styles:
     QPushButton::menu-indicator {
         subcontrol-origin: padding;
         subcontrol-position: right center;
-        right: 5px;
+        right: 6px;
         width: 16px;
     }
 
   button_rollback: |
     QPushButton {
-        background-color: ${aurora_purple};
+        background-color: ${polar_night_3};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 15px;
-        padding: 8px;
-        font-size: 24px;
-        font-weight: bold;
-        width: 30px;
-        height: 30px;
+        border-radius: 8px;
+        padding: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        width: 28px;
+        height: 28px;
     }
     QPushButton:hover {
-        background-color: ${frost_0};
+        background-color: ${aurora_purple};
+        color: ${white};
     }
     QPushButton:pressed {
-        background-color: ${aurora_purple};
+        background-color: ${frost_0};
     }
 
   button_consolidated: |
     QPushButton {
-        background-color: ${aurora_purple};
+        background-color: ${polar_night_3};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 15px;
-        padding: 8px;
-        font-size: 16px;
-        font-weight: bold;
-        width: 30px;
-        height: 30px;
+        border-radius: 8px;
+        padding: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        width: 28px;
+        height: 28px;
     }
     QPushButton:hover {
-        background-color: ${frost_0};
+        background-color: ${aurora_purple};
+        color: ${white};
     }
     QPushButton:pressed {
-        background-color: ${aurora_purple};
+        background-color: ${frost_0};
     }
 
   button_unconsolidate: |
@@ -377,15 +407,16 @@ styles:
         background-color: ${polar_night_3};
         color: ${snow_storm_2};
         border: none;
-        border-radius: 15px;
-        padding: 8px;
-        font-size: 16px;
-        font-weight: bold;
-        width: 30px;
-        height: 30px;
+        border-radius: 8px;
+        padding: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        width: 28px;
+        height: 28px;
     }
     QPushButton:hover {
         background-color: ${aurora_red};
+        color: ${white};
     }
     QPushButton:pressed {
         background-color: ${aurora_orange};
@@ -449,39 +480,43 @@ styles:
 
   text_input: |
     QTextEdit {
-        background-color: ${polar_night_2};
+        background-color: ${input_bg};
         color: ${snow_storm_1};
-        border: 1px solid ${polar_night_3};
-        border-radius: 4px;
-        padding: 8px;
+        border: 1px solid ${input_border};
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-size: 14px;
+        line-height: 1.5;
     }
     QTextEdit:focus {
-        border: 1px solid ${frost_1};
+        border: 1px solid ${input_focus};
     }
 
   line_edit: |
     QLineEdit {
-        background-color: ${polar_night_2};
+        background-color: ${input_bg};
         color: ${snow_storm_1};
-        border: 1px solid ${polar_night_3};
-        border-radius: 4px;
-        padding: 8px;
+        border: 1px solid ${input_border};
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
     }
     QLineEdit:focus {
-        border: 1px solid ${frost_1};
+        border: 1px solid ${input_focus};
     }
 
   menu_bar: |
     QMenuBar {
         background-color: ${polar_night_1};
         color: ${snow_storm_0};
-        padding: 2px;
+        padding: 4px 8px;
+        font-size: 13px;
     }
     QMenuBar::item {
         background-color: ${transparent};
         color: ${snow_storm_0};
-        padding: 4px 12px;
-        border-radius: 4px;
+        padding: 6px 14px;
+        border-radius: 6px;
     }
     QMenuBar::item:selected {
         background-color: ${polar_night_2};
@@ -493,11 +528,13 @@ styles:
         background-color: ${polar_night_1};
         color: ${snow_storm_1};
         border: 1px solid ${polar_night_3};
-        padding: 4px;
+        padding: 6px;
+        border-radius: 10px;
     }
     QMenu::item {
-        padding: 6px 24px 6px 12px;
-        border-radius: 4px;
+        padding: 8px 24px 8px 14px;
+        border-radius: 6px;
+        font-size: 13px;
     }
     QMenu::item:selected {
         background-color: ${frost_3};
@@ -506,8 +543,7 @@ styles:
     QMenu::separator {
         height: 1px;
         background: ${polar_night_3};
-        margin-left: 10px;
-        margin-right: 5px;
+        margin: 6px 10px;
     }
 
   context_menu: |
@@ -515,14 +551,15 @@ styles:
         background-color: ${polar_night_1};
         color: ${snow_storm_1};
         border: 1px solid ${polar_night_3};
-        padding: 4px;
-        border-radius: 6px;
+        padding: 6px;
+        border-radius: 10px;
     }
     QMenu::item {
-        padding: 8px 24px 8px 12px;
-        border-radius: 4px;
+        padding: 8px 24px 8px 14px;
+        border-radius: 6px;
         margin: 2px;
         color: ${snow_storm_2};
+        font-size: 13px;
     }
     QMenu::item:selected {
         background-color: ${frost_3};
@@ -546,38 +583,41 @@ styles:
         background-color: ${polar_night_1};
         color: ${snow_storm_1};
         border: 1px solid ${polar_night_2};
-        border-radius: 4px;
-        padding: 4px;
+        border-radius: 10px;
+        padding: 6px;
     }
     QMenu::item {
-        padding: 6px 20px;
+        padding: 8px 20px;
         background-color: ${transparent};
+        border-radius: 6px;
+        font-size: 13px;
     }
     QMenu::item:selected {
         background-color: ${frost_3};
         color: ${snow_storm_2};
-        border-radius: 3px;
+        border-radius: 6px;
     }
     QMenu::separator {
         height: 1px;
         background-color: ${polar_night_2};
-        margin-left: 5px;
-        margin-right: 5px;
+        margin-left: 8px;
+        margin-right: 8px;
     }
 
   status_indicator: |
     QLabel {
         background-color: ${polar_night_2};
-        color: ${snow_storm_1};
-        padding: 8px;
-        border-radius: 5px;
-        font-weight: bold;
+        color: ${snow_storm_0};
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 12px;
     }
 
   version_label: |
     QLabel {
-        color: ${snow_storm_0};
-        padding: 2px 8px;
+        color: ${polar_night_3};
+        padding: 2px 10px;
         font-size: 11px;
     }
 
@@ -587,7 +627,9 @@ styles:
         color: ${frost_0};
         border: none;
         text-align: left;
-        padding: 2px;
+        padding: 4px;
+        font-size: 12px;
+        font-weight: 500;
     }
     QPushButton:hover {
         color: ${frost_1};
@@ -599,7 +641,7 @@ styles:
     QListWidget {
         background-color: ${polar_night_0};
         border: 1px solid ${polar_night_2};
-        border-radius: 4px;
+        border-radius: 10px;
     }
     QListWidget::item {
         color: ${snow_storm_1};
@@ -607,7 +649,8 @@ styles:
         border: none;
         border-bottom: 1px solid ${polar_night_2};
         margin: 0px;
-        padding: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
     }
     QListWidget::item:selected {
         background-color: ${frost_3};
@@ -622,8 +665,9 @@ styles:
         background-color: ${polar_night_2};
         color: ${snow_storm_1};
         border: 1px solid ${polar_night_3};
-        border-radius: 4px;
-        padding: 8px;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
     }
     QLineEdit:focus {
         border: 1px solid ${frost_1};
@@ -631,45 +675,50 @@ styles:
 
   token_usage: |
     QLabel {
-        color: ${snow_storm_0};
-        font-weight: bold;
-        padding: 8px;
+        color: ${polar_night_3};
+        font-weight: 500;
+        padding: 8px 14px;
         background-color: ${polar_night_0};
         border-top: 1px solid ${polar_night_2};
+        font-size: 11px;
+        letter-spacing: 0.2px;
     }
 
   token_usage_widget: "background-color: ${polar_night_0};"
 
   user_bubble: |
     QFrame {
-        border-radius: 5px;
-        background-color: ${frost_3};
+        border-radius: 16px;
+        border-top-right-radius: 4px;
+        background-color: ${bubble_user};
         border: none;
-        padding: 2px;
+        padding: 4px;
     }
 
   assistant_bubble: |
     QFrame {
-        border-radius: 5px;
-        background-color: ${polar_night_2};
+        border-radius: 16px;
+        border-top-left-radius: 4px;
+        background-color: ${bubble_assistant};
         border: none;
-        padding: 2px;
+        padding: 4px;
     }
 
   thinking_bubble: |
     QFrame {
-        border-radius: 5px;
+        border-radius: 16px;
+        border-top-left-radius: 4px;
         background-color: ${polar_night_3};
         border: none;
-        padding: 2px;
+        padding: 4px;
     }
 
   consolidated_bubble: |
     QFrame {
-        border-radius: 5px;
+        border-radius: 16px;
         background-color: ${polar_night_2};
         border: 1px solid ${polar_night_3};
-        padding: 2px;
+        padding: 4px;
     }
 
   tool_dialog_text_edit: |
@@ -726,6 +775,8 @@ styles:
 
   system_message_label: |
     color: ${snow_storm_0};
+    background: none;
+    border: none;
     padding: 2px;
 
   system_message_toggle: |
@@ -911,75 +962,139 @@ styles:
 
   metadata_header_label: |
     QLabel {
-        color: ${snow_storm_0};
+        color: ${polar_night_3};
         font-style: italic;
-        padding-bottom: 5px;
+        padding-bottom: 6px;
+        font-size: 12px;
     }
 
   user_message_label: |
     QLabel {
         color: ${snow_storm_2};
+        font-size: 14px;
+        line-height: 1.6;
     }
 
   assistant_message_label: |
     QLabel {
         color: ${snow_storm_1};
+        font-size: 14px;
+        line-height: 1.6;
     }
 
   thinking_message_label: |
     QLabel {
         color: ${snow_storm_0};
+        font-size: 14px;
+        line-height: 1.6;
     }
 
   user_sender_label: |
     QLabel {
-        font-weight: bold;
+        font-weight: 600;
         color: ${snow_storm_2};
         padding: 2px;
+        font-size: 12px;
+        letter-spacing: 0.3px;
     }
 
   assistant_sender_label: |
     QLabel {
-        font-weight: bold;
-        color: ${snow_storm_1};
+        font-weight: 600;
+        color: ${frost_1};
         padding: 2px;
+        font-size: 12px;
+        letter-spacing: 0.3px;
     }
 
   thinking_sender_label: |
     QLabel {
-        font-weight: bold;
-        color: ${snow_storm_0};
+        font-weight: 600;
+        color: ${polar_night_3};
         padding: 2px;
+        font-size: 12px;
+        letter-spacing: 0.3px;
     }
 
   user_file_name_label: |
     QLabel {
-        font-weight: bold;
+        font-weight: 600;
         color: ${snow_storm_2};
         padding-left: 10px;
+        font-size: 13px;
     }
 
   assistant_file_name_label: |
     QLabel {
-        font-weight: bold;
+        font-weight: 600;
         color: ${snow_storm_1};
         padding-left: 10px;
+        font-size: 13px;
     }
 
   user_file_info_label: |
     QLabel {
         color: ${frost_2};
+        font-size: 12px;
     }
 
   assistant_file_info_label: |
     QLabel {
         color: ${polar_night_3};
+        font-size: 12px;
+    }
+
+  avatar_bg: |
+    QLabel {
+        background-color: ${frost_3};
+        color: ${white};
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 11px;
+        padding: 2px;
+    }
+
+  avatar_text: |
+    QLabel {
+        color: ${snow_storm_1};
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+  chat_container_bg: "background-color: ${polar_night_0};"
+
+  input_container: |
+    QWidget {
+        background-color: ${input_bg};
+        border: 1px solid ${input_border};
+        border-radius: 18px;
+        padding: 4px;
+    }
+
+  input_container_focus: |
+    QWidget {
+        background-color: ${input_bg};
+        border: 1px solid ${input_focus};
+        border-radius: 18px;
+        padding: 4px;
     }
 
   code_css: |
-    table td {border: 1px solid ${snow_storm_1}; padding: 5px;}
-    table { border-collapse: collapse; }
-    pre { line-height: 1; background-color: ${polar_night_1}; border-radius: 8px; padding: 12px; color: ${snow_storm_1}; white-space: pre-wrap; word-wrap: break-word; }
+    table td {border: 1px solid ${polar_night_3}; padding: 8px 10px;}
+    table { border-collapse: collapse; margin: 8px 0; border-radius: 8px; overflow: hidden; }
+    table th { background-color: ${polar_night_2}; color: ${snow_storm_1}; font-weight: 600; padding: 8px 10px; text-align: left; }
+    table tr:nth-child(even) { background-color: rgba(67, 76, 94, 0.3); }
+    pre { line-height: 1; background-color: ${polar_night_1}; border-radius: 10px; padding: 14px 16px; color: ${snow_storm_1}; white-space: pre-wrap; word-wrap: break-word; margin: 8px 0; font-size: 13px; }
+    code { background-color: ${polar_night_2}; border-radius: 4px; padding: 2px 6px; font-size: 13px; color: ${aurora_orange}; }
+    pre code { background-color: transparent; padding: 0; border-radius: 0; }
+    blockquote { border-left: 3px solid ${frost_3}; margin: 8px 0; padding-left: 14px; color: ${polar_night_3}; }
+    ul, ol { margin: 8px 0; padding-left: 20px; }
+    li { margin: 3px 0; }
+    p { margin: 6px 0; }
+    h1, h2, h3, h4, h5, h6 { margin: 12px 0 6px 0; font-weight: 600; color: ${frost_1}; }
+    hr { border: none; border-top: 1px solid ${polar_night_2}; margin: 12px 0; }
+    a { color: ${frost_3}; text-decoration: none; }
+    a:hover { text-decoration: underline; }
     td.linenos .normal { color: ${polar_night_3}; background-color: transparent; padding-left: 5px; padding-right: 5px; }
     span.linenos { color: ${polar_night_3}; background-color: transparent; padding-left: 5px; padding-right: 5px; }
     td.linenos .special { color: ${snow_storm_1}; background-color: ${polar_night_2}; padding-left: 5px; padding-right: 5px; }
@@ -1099,33 +1214,34 @@ styles:
 
   tool_card: |
     QFrame#toolCard {
-        border-radius: 6px;
-        background-color: rgba(94, 129, 172, 0.08);
-        border: 1px solid rgba(94, 129, 172, 0.4);
-        padding: 1px;
+        border-radius: 12px;
+        background-color: ${elevation1};
+        border: 1px solid ${polar_night_2};
+        padding: 2px;
     }
 
   tool_card_error: |
     QFrame#toolCard {
-        border-radius: 6px;
-        background-color: rgba(191, 97, 106, 0.08);
-        border: 1px solid rgba(191, 97, 106, 0.4);
-        padding: 1px;
+        border-radius: 12px;
+        background-color: rgba(191, 97, 106, 0.05);
+        border: 1px solid rgba(191, 97, 106, 0.3);
+        padding: 2px;
     }
 
   tool_header: |
     QLabel {
-        font-weight: 500;
+        font-weight: 600;
         color: ${snow_storm_0};
+        font-size: 13px;
     }
 
   tool_toggle_button: |
     QPushButton {
         background-color: ${transparent};
         border: none;
-        color: #9ca0a4;
+        color: ${polar_night_3};
         font-weight: normal;
-        font-size: 11px;
+        font-size: 12px;
     }
     QPushButton:hover {
         color: ${frost_3};
@@ -1133,61 +1249,69 @@ styles:
 
   tool_status: |
     QLabel {
-        font-weight: 500;
-        padding: 2px;
+        font-weight: 600;
+        padding: 2px 6px;
         font-size: 11px;
+        border-radius: 4px;
     }
     QLabel[status="running"] {
         color: ${aurora_yellow};
+        background-color: rgba(235, 203, 139, 0.1);
     }
     QLabel[status="complete"] {
         color: ${aurora_green};
+        background-color: rgba(163, 190, 140, 0.1);
     }
     QLabel[status="error"] {
         color: ${aurora_red};
+        background-color: rgba(191, 97, 106, 0.1);
     }
 
   tool_content: |
     QLabel {
         color: ${snow_storm_0};
-        padding: 1px;
-        font-size: 11px;
+        padding: 2px;
+        font-size: 12px;
+        line-height: 1.4;
     }
     QLabel[role="title"] {
-        font-weight: 500;
+        font-weight: 600;
         color: ${snow_storm_0};
         font-size: 12px;
+        margin-top: 4px;
     }
     QLabel[role="key"] {
         color: ${frost_2};
-        font-weight: 500;
-        font-size: 11px;
+        font-weight: 600;
+        font-size: 12px;
     }
     QLabel[role="value"] {
         color: #9ca0a4;
-        font-size: 11px;
+        font-size: 12px;
     }
     QLabel[role="error"] {
         color: ${aurora_red};
-        font-size: 11px;
+        font-size: 12px;
     }
 
   tool_progress: |
     QProgressBar {
         border: none;
-        background-color: rgba(76, 86, 106, 0.4);
-        border-radius: 5px;
+        background-color: ${polar_night_2};
+        border-radius: 6px;
         text-align: center;
+        height: 6px;
     }
     QProgressBar::chunk {
         background-color: ${frost_3};
-        border-radius: 5px;
+        border-radius: 6px;
     }
 
   tool_separator: |
     QFrame {
-        background-color: rgba(94, 129, 172, 0.3);
+        background-color: ${polar_night_2};
         border: none;
+        max-height: 1px;
     }
 
   diff_colors:

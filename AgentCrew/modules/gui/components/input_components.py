@@ -33,13 +33,14 @@ class InputComponents:
         self.chat_window.message_input = PasteAwareTextEdit()
 
         input_font = self.chat_window.message_input.font()
-        input_font.setPixelSize(16)
+        input_font.setPixelSize(14)
+        input_font.setFamilies(
+            ["Inter", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]
+        )
         self.chat_window.message_input.setFont(input_font)
         self.chat_window.message_input.setReadOnly(False)
-        self.chat_window.message_input.setMaximumHeight(120)
-        self.chat_window.message_input.setPlaceholderText(
-            "Type your message here... (Ctrl+Enter to send)"
-        )
+        self.chat_window.message_input.setMaximumHeight(160)
+        self.chat_window.message_input.setPlaceholderText("Message AgentCrew...")
         self.chat_window.message_input.setAcceptRichText(False)
         self.chat_window.message_input.setStyleSheet(
             self.chat_window.style_provider.get_input_style()
@@ -51,12 +52,13 @@ class InputComponents:
 
         # Create buttons layout
         buttons_layout = QVBoxLayout()
-        buttons_layout.setContentsMargins(0, 0, 5, 0)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.setSpacing(8)
 
         # Create Send button
         send_icon = qta.icon("fa6s.paper-plane", color="white")
         self.chat_window.send_button = QPushButton(send_icon, "")
-        self.chat_window.send_button.setFont(input_font)
+        self.chat_window.send_button.setFixedSize(36, 36)
         self.chat_window.send_button.setStyleSheet(
             self.chat_window.style_provider.get_button_style("primary")
         )
@@ -64,7 +66,7 @@ class InputComponents:
         # Create File button
         upload_icon = qta.icon("fa6s.arrow-up-from-bracket", color="white")
         self.chat_window.file_button = QPushButton(upload_icon, "")
-        self.chat_window.file_button.setFont(input_font)
+        self.chat_window.file_button.setFixedSize(36, 36)
         self.chat_window.file_button.setStyleSheet(
             self.chat_window.style_provider.get_button_style("secondary")
         )
@@ -72,7 +74,7 @@ class InputComponents:
         # Create Voice button
         mic_icon = qta.icon("fa6s.microphone", color="white")
         self.chat_window.voice_button = QPushButton(mic_icon, "")
-        self.chat_window.voice_button.setFont(input_font)
+        self.chat_window.voice_button.setFixedSize(36, 36)
         self.chat_window.voice_button.setStyleSheet(
             self.chat_window.style_provider.get_button_style("secondary")
         )
@@ -361,6 +363,8 @@ class InputComponents:
     def get_input_layout(self):
         """Get the input row layout for integration with main window."""
         input_row = QHBoxLayout()
+        input_row.setSpacing(10)
+        input_row.setContentsMargins(4, 4, 4, 4)
         input_row.addWidget(self.chat_window.message_input, 1)
         input_row.addLayout(self.buttons_layout)
         return input_row

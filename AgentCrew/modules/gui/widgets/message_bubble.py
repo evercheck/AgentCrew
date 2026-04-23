@@ -60,10 +60,10 @@ class MessageBubble(QFrame):
         self.streaming_timer.timeout.connect(self._render_next_character)
         self.streaming_text = ""
 
-        # Setup frame appearance
-        self.setFrameShape(QFrame.Shape.StyledPanel)
-        self.setFrameShadow(QFrame.Shadow.Raised)
-        self.setLineWidth(1)
+        # Setup frame appearance - flat modern look
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setFrameShadow(QFrame.Shadow.Plain)
+        self.setLineWidth(0)
         self.rollback_button: Optional[QPushButton] = None
 
         # Set background color based on sender
@@ -77,16 +77,15 @@ class MessageBubble(QFrame):
             self.setStyleSheet(self.style_provider.get_assistant_bubble_style())
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(6)
 
         # Add sender label - Use agent_name for non-user messages
-        label_text = "YOU:" if is_user else f"{agent_name}:"
+        label_text = "You" if is_user else agent_name
         if is_thinking:
-            label_text = f"{agent_name}'s THINKING:"
+            label_text = f"{agent_name} is thinking..."
         elif is_consolidated:
-            label_text = "CONVERSATION SUMMARY:"
-        elif is_consolidated:
-            label_text = "CONVERSATION SUMMARY:"
+            label_text = "Conversation Summary"
 
         sender_label = QLabel(label_text)
         if is_user:
@@ -107,14 +106,17 @@ class MessageBubble(QFrame):
         self.message_label = QLabel()
         self.message_label.setTextFormat(Qt.TextFormat.RichText)
         self.message_label.setWordWrap(True)
-        self.message_label.setOpenExternalLinks(True)  # Allow clicking links
+        self.message_label.setOpenExternalLinks(True)
         self.message_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
             | Qt.TextInteractionFlag.LinksAccessibleByMouse
         )
 
         font = self.message_label.font()
-        font.setPixelSize(16)
+        font.setPixelSize(14)
+        font.setFamilies(
+            ["Inter", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]
+        )
         self.message_label.setFont(font)
 
         # Set different text color for message content based on bubble type
@@ -136,7 +138,6 @@ class MessageBubble(QFrame):
         self.message_label.customContextMenuRequested.connect(self.show_context_menu)
 
         if text is not None:
-            # Add to layout
             layout.addWidget(self.message_label)
 
         # Set size policies
@@ -523,8 +524,9 @@ class MessageBubble(QFrame):
             )
             html_content = (
                 f"""<style>
-                * {{line-height: 1.5}}
-            pre {{ white-space: pre-wrap; margin-bottom: 0;}}
+                * {{ font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif; line-height: 1.6; font-size: 14px; }}
+                pre {{ white-space: pre-wrap; margin-bottom: 0; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; }}
+                code {{ font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; }}
                 {self.style_provider.get_code_color_style()}
             </style>"""
                 + html_content

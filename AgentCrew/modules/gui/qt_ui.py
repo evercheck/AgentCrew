@@ -127,10 +127,14 @@ class ChatWindow(QMainWindow, Observer):
         self.status_bar.addPermanentWidget(self.version_label)
 
         # --- Assemble Chat Area Layout ---
-        chat_area_widget = QWidget()  # Container for everything right of the sidebar
+        chat_area_widget = QWidget()
+        chat_area_widget.setStyleSheet(
+            self.style_provider.get_chat_container_bg_style()
+        )
         chat_area_layout = QVBoxLayout(chat_area_widget)
-        chat_area_layout.setContentsMargins(5, 5, 5, 0)
-        chat_area_layout.addWidget(self.chat_scroll, 1)  # Give chat area more space
+        chat_area_layout.setContentsMargins(12, 12, 12, 10)
+        chat_area_layout.setSpacing(10)
+        chat_area_layout.addWidget(self.chat_scroll, 1)
         chat_area_layout.addWidget(self.status_indicator)
 
         # Create horizontal layout for input and buttons
@@ -217,10 +221,10 @@ class ChatWindow(QMainWindow, Observer):
 
         # Add welcome message
         self.chat_components.add_system_message(
-            "Welcome! Select a past conversation or start a new one."
+            "Welcome to AgentCrew — select a conversation or start a new one."
         )
         self.chat_components.add_system_message(
-            "Press Ctrl+Enter to send, Ctrl+Shift+C to copy, Ctrl+L to clear chat."
+            "Tip: Ctrl+Enter to send, Ctrl+Shift+C to copy, Ctrl+L to clear chat."
         )
 
     def reset_bubble_state(self, **overrides):

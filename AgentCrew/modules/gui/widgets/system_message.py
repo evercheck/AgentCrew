@@ -23,18 +23,21 @@ class SystemMessageWidget(QWidget):
 
         # Create layout
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(0)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(4)
 
         # Store the full text
         self.full_text = text
         self.is_expanded = False
 
-        # Create collapsible container
+        # Create collapsible container with modern styling
         self.container = QWidget()
+        self.container.setStyleSheet(
+            "background-color: rgba(137, 180, 250, 0.06); border-radius: 10px; border: 1px solid rgba(137, 180, 250, 0.15);"
+        )
         container_layout = QVBoxLayout(self.container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setSpacing(0)
+        container_layout.setContentsMargins(12, 10, 12, 10)
+        container_layout.setSpacing(4)
 
         # Create label with HTML support
         self.message_label = QLabel()
@@ -56,6 +59,9 @@ class SystemMessageWidget(QWidget):
 
         message_label_font = self.message_label.font()
         message_label_font.setPixelSize(13)
+        message_label_font.setFamilies(
+            ["Inter", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]
+        )
         self.message_label.setFont(message_label_font)
 
         # Create expand/collapse button
@@ -63,8 +69,8 @@ class SystemMessageWidget(QWidget):
         self.toggle_button.setStyleSheet(
             self.style_provider.get_system_message_toggle_style()
         )
-        self.toggle_button.setFont(QFont("Arial", 9))
-        self.toggle_button.setMaximumHeight(16)
+        self.toggle_button.setFont(QFont("Inter", 10))
+        self.toggle_button.setMaximumHeight(22)
         self.toggle_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.toggle_button.clicked.connect(self.toggle_expansion)
 

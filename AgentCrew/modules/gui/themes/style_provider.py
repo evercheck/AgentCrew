@@ -231,5 +231,20 @@ class StyleProvider(QObject):
     def get_markdown_editor_style(self):
         return self.theme_class.MARKDOWN_EDITOR_STYLE
 
+    def get_avatar_bg_style(self):
+        return self._get_attr("AVATAR_BG")
+
+    def get_avatar_text_style(self):
+        return self._get_attr("AVATAR_TEXT")
+
+    def get_chat_container_bg_style(self):
+        return self._get_attr("CHAT_CONTAINER_BG")
+
+    def get_input_container_style(self):
+        return self._get_attr("INPUT_CONTAINER")
+
+    def get_input_container_focus_style(self):
+        return self._get_attr("INPUT_CONTAINER_FOCUS")
+
     def get_diff_colors(self):
         return self.theme_class.DIFF_COLORS

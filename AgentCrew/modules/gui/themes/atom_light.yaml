@@ -31,6 +31,16 @@ colors:
   orange: "#ff6600"
   pink: "#e91e63"
   transparent: "transparent"
+  # Modern elevation colors
+  elevation1: "#f0f0f0"
+  elevation2: "#e8e8e8"
+  bubble_user: "#4285f4"
+  bubble_assistant: "#ffffff"
+  bubble_hover: "#f5f5f5"
+  input_bg: "#ffffff"
+  input_border: "#d0d0d0"
+  input_focus: "#4285f4"
+  shadow: "rgba(0, 0, 0, 0.1)"
 
 icons:
   web_search: "\U0001F50D"
@@ -58,6 +68,8 @@ styles:
     }
     QSplitter::handle {
         background-color: ${gray};
+        width: 4px;
+        border-radius: 2px;
     }
     QSplitter::handle:hover {
         background-color: ${medium_gray};
@@ -67,13 +79,16 @@ styles:
     }
     QStatusBar {
         background-color: ${lighter_gray};
-        color: ${text_dark};
+        color: ${darker_gray};
+        border-top: 1px solid ${gray};
     }
     QToolTip {
         background-color: ${white};
         color: ${text_dark};
         border: 1px solid ${border_gray};
-        padding: 4px;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
     }
     QMessageBox {
         background-color: ${white};
@@ -86,12 +101,13 @@ styles:
         background-color: ${white};
         color: ${text_dark};
         border: 1px solid ${border_gray};
-        padding: 2px;
+        padding: 4px;
         outline: 0px;
+        border-radius: 8px;
     }
     QListView::item {
-        padding: 4px 8px;
-        border-radius: 2px;
+        padding: 6px 10px;
+        border-radius: 6px;
     }
     QListView::item:selected {
         background-color: ${blue};
@@ -102,14 +118,14 @@ styles:
     }
     QScrollBar:vertical {
         border: none;
-        background: ${light_gray};
-        width: 10px;
-        margin: 0px;
+        background: ${transparent};
+        width: 8px;
+        margin: 4px 2px;
     }
     QScrollBar::handle:vertical {
         background: ${border_gray};
-        min-height: 20px;
-        border-radius: 5px;
+        min-height: 40px;
+        border-radius: 4px;
     }
     QScrollBar::handle:vertical:hover {
         background: ${muted_gray};
@@ -127,14 +143,14 @@ styles:
     }
     QScrollBar:horizontal {
         border: none;
-        background: ${light_gray};
-        height: 10px;
-        margin: 0px;
+        background: ${transparent};
+        height: 8px;
+        margin: 2px 4px;
     }
     QScrollBar::handle:horizontal {
         background: ${border_gray};
-        min-width: 20px;
-        border-radius: 5px;
+        min-width: 40px;
+        border-radius: 4px;
     }
     QScrollBar::handle:horizontal:hover {
         background: ${muted_gray};
@@ -153,14 +169,15 @@ styles:
     QLabel QMenu {
         background-color: ${white};
         border: 1px solid ${border_gray};
-        padding: 4px;
-        border-radius: 6px;
+        padding: 6px;
+        border-radius: 10px;
     }
     QLabel QMenu::item {
         color: ${text_dark};
-        padding: 8px 24px 8px 12px;
-        border-radius: 4px;
+        padding: 8px 24px 8px 14px;
+        border-radius: 6px;
         margin: 2px;
+        font-size: 13px;
     }
     QLabel QMenu::item:selected {
         background-color: ${blue};
@@ -180,9 +197,10 @@ styles:
         background-color: ${blue};
         color: ${white};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${dark_blue};
@@ -197,22 +215,25 @@ styles:
 
   button_secondary: |
     QPushButton {
-        background-color: #a0a0a0;
-        color: ${white};
-        border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        background-color: ${white};
+        color: ${text_dark};
+        border: 1px solid ${border_gray};
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
-        background-color: ${medium_gray};
+        background-color: ${light_gray};
+        border-color: ${medium_gray};
     }
     QPushButton:pressed {
-        background-color: ${dark_gray};
+        background-color: ${gray};
     }
     QPushButton:disabled {
         background-color: ${lighter_gray};
         color: ${border_gray};
+        border-color: ${gray};
     }
 
   button_stop: |
@@ -220,9 +241,10 @@ styles:
         background-color: ${red};
         color: ${white};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${dark_red};
@@ -236,9 +258,10 @@ styles:
         background-color: ${border_gray};
         color: ${darker_gray};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
 
   button_red: |
@@ -246,9 +269,10 @@ styles:
         background-color: ${red};
         color: ${white};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${dark_red};
@@ -266,9 +290,10 @@ styles:
         background-color: ${green};
         color: ${white};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
     QPushButton:hover {
         background-color: ${dark_green};
@@ -286,9 +311,10 @@ styles:
         background-color: ${gray};
         color: ${muted_gray};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
     }
 
   button_menu: |
@@ -296,10 +322,11 @@ styles:
         background-color: ${blue};
         color: ${white};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
-        padding-left: 12px;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        padding-left: 14px;
     }
     QPushButton:hover {
         background-color: ${dark_blue};
@@ -314,7 +341,7 @@ styles:
     QPushButton::menu-indicator {
         subcontrol-origin: padding;
         subcontrol-position: right center;
-        right: 5px;
+        right: 6px;
         width: 16px;
     }
 
@@ -323,10 +350,11 @@ styles:
         background-color: ${blue};
         color: ${white};
         border: none;
-        border-radius: 4px;
-        padding: 8px;
-        font-weight: bold;
-        padding-left: 12px;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        padding-left: 14px;
     }
     QPushButton:hover {
         background-color: ${dark_blue};
@@ -341,65 +369,68 @@ styles:
     QPushButton::menu-indicator {
         subcontrol-origin: padding;
         subcontrol-position: right center;
-        right: 5px;
+        right: 6px;
         width: 16px;
     }
 
   button_rollback: |
     QPushButton {
-        background-color: ${purple};
-        color: ${white};
+        background-color: ${border_gray};
+        color: ${text_dark};
         border: none;
-        border-radius: 15px;
-        padding: 8px;
-        font-size: 24px;
-        font-weight: bold;
-        width: 30px;
-        height: 30px;
+        border-radius: 8px;
+        padding: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        width: 28px;
+        height: 28px;
     }
     QPushButton:hover {
-        background-color: ${dark_purple};
+        background-color: ${purple};
+        color: ${white};
     }
     QPushButton:pressed {
-        background-color: ${darker_purple};
+        background-color: ${dark_purple};
     }
 
   button_consolidated: |
     QPushButton {
-        background-color: ${purple};
-        color: ${white};
+        background-color: ${border_gray};
+        color: ${text_dark};
         border: none;
-        border-radius: 15px;
-        padding: 8px;
-        font-size: 16px;
-        font-weight: bold;
-        width: 30px;
-        height: 30px;
+        border-radius: 8px;
+        padding: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        width: 28px;
+        height: 28px;
     }
     QPushButton:hover {
-        background-color: ${dark_purple};
+        background-color: ${purple};
+        color: ${white};
     }
     QPushButton:pressed {
-        background-color: ${darker_purple};
+        background-color: ${dark_purple};
     }
 
   button_unconsolidate: |
     QPushButton {
-        background-color: #9e9e9e;
-        color: ${white};
+        background-color: ${border_gray};
+        color: ${text_dark};
         border: none;
-        border-radius: 15px;
-        padding: 8px;
-        font-size: 16px;
-        font-weight: bold;
-        width: 30px;
-        height: 30px;
+        border-radius: 8px;
+        padding: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        width: 28px;
+        height: 28px;
     }
     QPushButton:hover {
-        background-color: #f44336;
+        background-color: ${red};
+        color: ${white};
     }
     QPushButton:pressed {
-        background-color: #d32f2f;
+        background-color: ${dark_red};
     }
 
   api_keys_group: |
@@ -460,39 +491,43 @@ styles:
 
   text_input: |
     QTextEdit {
-        background-color: ${white};
+        background-color: ${input_bg};
         color: ${text_dark};
-        border: 1px solid ${border_gray};
-        border-radius: 4px;
-        padding: 8px;
+        border: 1px solid ${input_border};
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-size: 14px;
+        line-height: 1.5;
     }
     QTextEdit:focus {
-        border: 1px solid ${blue};
+        border: 1px solid ${input_focus};
     }
 
   line_edit: |
     QLineEdit {
-        background-color: ${white};
+        background-color: ${input_bg};
         color: ${text_dark};
-        border: 1px solid ${border_gray};
-        border-radius: 4px;
-        padding: 8px;
+        border: 1px solid ${input_border};
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
     }
     QLineEdit:focus {
-        border: 1px solid ${blue};
+        border: 1px solid ${input_focus};
     }
 
   menu_bar: |
     QMenuBar {
         background-color: ${light_gray};
         color: ${text_dark};
-        padding: 2px;
+        padding: 4px 8px;
+        font-size: 13px;
     }
     QMenuBar::item {
         background-color: ${transparent};
         color: ${text_dark};
-        padding: 4px 12px;
-        border-radius: 4px;
+        padding: 6px 14px;
+        border-radius: 6px;
     }
     QMenuBar::item:selected {
         background-color: ${light_blue};
@@ -504,11 +539,13 @@ styles:
         background-color: ${white};
         color: ${text_dark};
         border: 1px solid ${border_gray};
-        padding: 4px;
+        padding: 6px;
+        border-radius: 10px;
     }
     QMenu::item {
-        padding: 6px 24px 6px 12px;
-        border-radius: 4px;
+        padding: 8px 24px 8px 14px;
+        border-radius: 6px;
+        font-size: 13px;
     }
     QMenu::item:selected {
         background-color: ${blue};
@@ -517,8 +554,7 @@ styles:
     QMenu::separator {
         height: 1px;
         background: ${border_gray};
-        margin-left: 10px;
-        margin-right: 5px;
+        margin: 6px 10px;
     }
 
   context_menu: |
@@ -526,14 +562,15 @@ styles:
         background-color: ${white};
         color: ${text_dark};
         border: 1px solid ${border_gray};
-        padding: 4px;
-        border-radius: 6px;
+        padding: 6px;
+        border-radius: 10px;
     }
     QMenu::item {
-        padding: 8px 24px 8px 12px;
-        border-radius: 4px;
+        padding: 8px 24px 8px 14px;
+        border-radius: 6px;
         margin: 2px;
         color: ${text_dark};
+        font-size: 13px;
     }
     QMenu::item:selected {
         background-color: ${blue};
@@ -557,38 +594,41 @@ styles:
         background-color: ${white};
         color: ${text_dark};
         border: 1px solid ${gray};
-        border-radius: 4px;
-        padding: 4px;
+        border-radius: 10px;
+        padding: 6px;
     }
     QMenu::item {
-        padding: 6px 20px;
+        padding: 8px 20px;
         background-color: ${transparent};
+        border-radius: 6px;
+        font-size: 13px;
     }
     QMenu::item:selected {
         background-color: ${blue};
         color: ${white};
-        border-radius: 3px;
+        border-radius: 6px;
     }
     QMenu::separator {
         height: 1px;
         background-color: ${gray};
-        margin-left: 5px;
-        margin-right: 5px;
+        margin-left: 8px;
+        margin-right: 8px;
     }
 
   status_indicator: |
     QLabel {
         background-color: ${white};
-        color: ${text_dark};
-        padding: 8px;
-        border-radius: 5px;
-        font-weight: bold;
+        color: ${darker_gray};
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 12px;
     }
 
   version_label: |
     QLabel {
-        color: ${darker_gray};
-        padding: 2px 8px;
+        color: ${muted_gray};
+        padding: 2px 10px;
         font-size: 11px;
     }
 
@@ -598,7 +638,9 @@ styles:
         color: ${link_blue};
         border: none;
         text-align: left;
-        padding: 2px;
+        padding: 4px;
+        font-size: 12px;
+        font-weight: 500;
     }
     QPushButton:hover {
         color: ${dark_link_blue};
@@ -610,7 +652,7 @@ styles:
     QListWidget {
         background-color: ${white};
         border: 1px solid ${gray};
-        border-radius: 4px;
+        border-radius: 10px;
     }
     QListWidget::item {
         color: ${text_dark};
@@ -618,7 +660,8 @@ styles:
         border: none;
         border-bottom: 1px solid ${gray};
         margin: 0px;
-        padding: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
     }
     QListWidget::item:selected {
         background-color: ${blue};
@@ -633,8 +676,9 @@ styles:
         background-color: ${white};
         color: ${text_dark};
         border: 1px solid ${border_gray};
-        border-radius: 4px;
-        padding: 8px;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
     }
     QLineEdit:focus {
         border: 1px solid ${blue};
@@ -642,21 +686,24 @@ styles:
 
   token_usage: |
     QLabel {
-        color: ${darker_gray};
-        font-weight: bold;
-        padding: 8px;
+        color: ${muted_gray};
+        font-weight: 500;
+        padding: 8px 14px;
         background-color: ${white};
         border-top: 1px solid ${gray};
+        font-size: 11px;
+        letter-spacing: 0.2px;
     }
 
   token_usage_widget: "background-color: ${lighter_gray};"
 
   user_bubble: |
     QFrame {
-        border-radius: 5px;
-        background-color: ${blue};
+        border-radius: 16px;
+        border-top-right-radius: 4px;
+        background-color: ${bubble_user};
         border: none;
-        padding: 2px;
+        padding: 4px;
     }
     QLabel {
         border-width: 0px;
@@ -664,10 +711,11 @@ styles:
 
   assistant_bubble: |
     QFrame {
-        border-radius: 5px;
-        background-color: ${white};
+        border-radius: 16px;
+        border-top-left-radius: 4px;
+        background-color: ${bubble_assistant};
         border: 1px solid ${gray};
-        padding: 2px;
+        padding: 4px;
     }
     QLabel {
         border-width: 0px;
@@ -675,10 +723,11 @@ styles:
 
   thinking_bubble: |
     QFrame {
-        border-radius: 5px;
+        border-radius: 16px;
+        border-top-left-radius: 4px;
         background-color: ${light_gray};
         border: 1px solid ${border_gray};
-        padding: 2px;
+        padding: 4px;
     }
     QLabel {
         border-width: 0px;
@@ -686,10 +735,10 @@ styles:
 
   consolidated_bubble: |
     QFrame {
-        border-radius: 5px;
+        border-radius: 16px;
         background-color: ${white};
         border: 1px solid ${border_gray};
-        padding: 2px;
+        padding: 4px;
     }
 
   tool_dialog_text_edit: |
@@ -746,6 +795,8 @@ styles:
 
   system_message_label: |
     color: ${darker_gray};
+    background: none;
+    border: none;
     padding: 2px;
 
   system_message_toggle: |
@@ -931,75 +982,139 @@ styles:
 
   metadata_header_label: |
     QLabel {
-        color: ${darker_gray};
+        color: ${muted_gray};
         font-style: italic;
-        padding-bottom: 5px;
+        padding-bottom: 6px;
+        font-size: 12px;
     }
 
   user_message_label: |
     QLabel {
         color: ${white};
+        font-size: 14px;
+        line-height: 1.6;
     }
 
   assistant_message_label: |
     QLabel {
         color: ${text_dark};
+        font-size: 14px;
+        line-height: 1.6;
     }
 
   thinking_message_label: |
     QLabel {
         color: ${darker_gray};
+        font-size: 14px;
+        line-height: 1.6;
     }
 
   user_sender_label: |
     QLabel {
-        font-weight: bold;
+        font-weight: 600;
         color: ${white};
         padding: 2px;
+        font-size: 12px;
+        letter-spacing: 0.3px;
     }
 
   assistant_sender_label: |
     QLabel {
-        font-weight: bold;
-        color: ${text_dark};
+        font-weight: 600;
+        color: ${blue};
         padding: 2px;
+        font-size: 12px;
+        letter-spacing: 0.3px;
     }
 
   thinking_sender_label: |
     QLabel {
-        font-weight: bold;
-        color: ${darker_gray};
+        font-weight: 600;
+        color: ${muted_gray};
         padding: 2px;
+        font-size: 12px;
+        letter-spacing: 0.3px;
     }
 
   user_file_name_label: |
     QLabel {
-        font-weight: bold;
+        font-weight: 600;
         color: ${white};
         padding-left: 10px;
+        font-size: 13px;
     }
 
   assistant_file_name_label: |
     QLabel {
-        font-weight: bold;
+        font-weight: 600;
         color: ${text_dark};
         padding-left: 10px;
+        font-size: 13px;
     }
 
   user_file_info_label: |
     QLabel {
         color: ${light_blue};
+        font-size: 12px;
     }
 
   assistant_file_info_label: |
     QLabel {
         color: ${muted_gray};
+        font-size: 12px;
+    }
+
+  avatar_bg: |
+    QLabel {
+        background-color: ${blue};
+        color: ${white};
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 11px;
+        padding: 2px;
+    }
+
+  avatar_text: |
+    QLabel {
+        color: ${text_dark};
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+  chat_container_bg: "background-color: ${white};"
+
+  input_container: |
+    QWidget {
+        background-color: ${input_bg};
+        border: 1px solid ${input_border};
+        border-radius: 18px;
+        padding: 4px;
+    }
+
+  input_container_focus: |
+    QWidget {
+        background-color: ${input_bg};
+        border: 1px solid ${input_focus};
+        border-radius: 18px;
+        padding: 4px;
     }
 
   code_css: |
-    table td {border: 1px solid ${text_dark}; padding: 5px;}
-    table { border-collapse: collapse; }
-    pre { line-height: 1; background-color: ${light_gray}; border-radius: 8px; padding: 12px; color: ${text_dark}; white-space: pre-wrap; word-wrap: break-word; }
+    table td {border: 1px solid ${border_gray}; padding: 8px 10px;}
+    table { border-collapse: collapse; margin: 8px 0; border-radius: 8px; overflow: hidden; }
+    table th { background-color: ${lighter_gray}; color: ${text_dark}; font-weight: 600; padding: 8px 10px; text-align: left; }
+    table tr:nth-child(even) { background-color: rgba(240, 240, 240, 0.5); }
+    pre { line-height: 1; background-color: ${light_gray}; border-radius: 10px; padding: 14px 16px; color: ${text_dark}; white-space: pre-wrap; word-wrap: break-word; margin: 8px 0; font-size: 13px; }
+    code { background-color: ${lighter_gray}; border-radius: 4px; padding: 2px 6px; font-size: 13px; color: ${orange}; }
+    pre code { background-color: transparent; padding: 0; border-radius: 0; }
+    blockquote { border-left: 3px solid ${blue}; margin: 8px 0; padding-left: 14px; color: ${muted_gray}; }
+    ul, ol { margin: 8px 0; padding-left: 20px; }
+    li { margin: 3px 0; }
+    p { margin: 6px 0; }
+    h1, h2, h3, h4, h5, h6 { margin: 12px 0 6px 0; font-weight: 600; color: ${dark_blue}; }
+    hr { border: none; border-top: 1px solid ${gray}; margin: 12px 0; }
+    a { color: ${link_blue}; text-decoration: none; }
+    a:hover { text-decoration: underline; }
     td.linenos .normal { color: ${muted_gray}; background-color: transparent; padding-left: 5px; padding-right: 5px; }
     span.linenos { color: ${muted_gray}; background-color: transparent; padding-left: 5px; padding-right: 5px; }
     td.linenos .special { color: ${text_dark}; background-color: ${gray}; padding-left: 5px; padding-right: 5px; }
@@ -1119,24 +1234,25 @@ styles:
 
   tool_card: |
     QFrame#toolCard {
-        border-radius: 6px;
-        background-color: rgba(66, 133, 244, 0.06);
-        border: 1px solid rgba(66, 133, 244, 0.3);
-        padding: 1px;
+        border-radius: 12px;
+        background-color: ${elevation1};
+        border: 1px solid ${gray};
+        padding: 2px;
     }
 
   tool_card_error: |
     QFrame#toolCard {
-        border-radius: 6px;
-        background-color: rgba(234, 67, 53, 0.06);
-        border: 1px solid rgba(234, 67, 53, 0.3);
-        padding: 1px;
+        border-radius: 12px;
+        background-color: rgba(234, 67, 53, 0.05);
+        border: 1px solid rgba(234, 67, 53, 0.25);
+        padding: 2px;
     }
 
   tool_header: |
     QLabel {
-        font-weight: 500;
+        font-weight: 600;
         color: ${darker_gray};
+        font-size: 13px;
     }
 
   tool_toggle_button: |
@@ -1145,7 +1261,7 @@ styles:
         border: none;
         color: ${muted_gray};
         font-weight: normal;
-        font-size: 11px;
+        font-size: 12px;
     }
     QPushButton:hover {
         color: ${blue};
@@ -1153,61 +1269,69 @@ styles:
 
   tool_status: |
     QLabel {
-        font-weight: 500;
-        padding: 2px;
+        font-weight: 600;
+        padding: 2px 6px;
         font-size: 11px;
+        border-radius: 4px;
     }
     QLabel[status="running"] {
-        color: #ff9800;
+        color: #d97706;
+        background-color: rgba(251, 191, 36, 0.1);
     }
     QLabel[status="complete"] {
         color: ${green};
+        background-color: rgba(52, 168, 83, 0.1);
     }
     QLabel[status="error"] {
         color: ${red};
+        background-color: rgba(234, 67, 53, 0.1);
     }
 
   tool_content: |
     QLabel {
         color: ${darker_gray};
-        padding: 1px;
-        font-size: 11px;
+        padding: 2px;
+        font-size: 12px;
+        line-height: 1.4;
     }
     QLabel[role="title"] {
-        font-weight: 500;
+        font-weight: 600;
         color: ${darker_gray};
         font-size: 12px;
+        margin-top: 4px;
     }
     QLabel[role="key"] {
         color: ${dark_blue};
-        font-weight: 500;
-        font-size: 11px;
+        font-weight: 600;
+        font-size: 12px;
     }
     QLabel[role="value"] {
-        color: #777777;
-        font-size: 11px;
+        color: ${darker_gray};
+        font-size: 12px;
     }
     QLabel[role="error"] {
         color: ${red};
-        font-size: 11px;
+        font-size: 12px;
     }
 
   tool_progress: |
     QProgressBar {
         border: none;
-        background-color: rgba(224, 224, 224, 0.4);
-        border-radius: 5px;
+        background-color: ${lighter_gray};
+        border-radius: 6px;
         text-align: center;
+        height: 6px;
     }
     QProgressBar::chunk {
         background-color: ${blue};
-        border-radius: 5px;
+        border-radius: 6px;
     }
 
   tool_separator: |
     QFrame {
-        background-color: rgba(66, 133, 244, 0.3);
+        background-color: ${gray};
         border: none;
+        max-height: 1px;
     }
 
   diff_colors:

@@ -40,8 +40,8 @@ class TokenUsageWidget(QWidget):
     ):
         """Update the token usage information."""
         self.token_label.setText(
-            f"📊 Token Usage: Input: {input_tokens:,} | Output: {output_tokens:,} | "
-            f"Total: {input_tokens + output_tokens:,} | Cost: ${total_cost:.4f} | Session: ${session_cost:.4f}"
+            f"📊  Input: {input_tokens:,}  ·  Output: {output_tokens:,}  ·  "
+            f"Total: {input_tokens + output_tokens:,}  ·  Cost: ${total_cost:.4f}  ·  Session: ${session_cost:.4f}"
         )
 
     def update_style(self, style_provider=None):

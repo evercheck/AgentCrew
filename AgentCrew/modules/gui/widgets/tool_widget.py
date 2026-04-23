@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Dict, Any, Optional
 
 from PySide6.QtWidgets import (
@@ -49,18 +50,18 @@ class ToolWidget(QWidget):
         self.style_provider = StyleProvider()
         self.is_diff_view = False
 
-        # Setup main layout - reduced margins and spacing for compactness
+        # Setup main layout
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(2, 2, 2, 2)
-        self.main_layout.setSpacing(2)
+        self.main_layout.setContentsMargins(8, 6, 8, 6)
+        self.main_layout.setSpacing(4)
 
-        # Create card container with rounded corners and shadow - more compact
+        # Create card container with rounded corners
         self.card = QFrame(self)
         self.card.setObjectName("toolCard")
         self._apply_card_style()
         self.card_layout = QVBoxLayout(self.card)
-        self.card_layout.setContentsMargins(6, 6, 6, 6)  # Reduced from 12px
-        self.card_layout.setSpacing(4)  # Reduced from 8px
+        self.card_layout.setContentsMargins(12, 12, 12, 12)
+        self.card_layout.setSpacing(8)
 
         # Create header section
         self._create_header()
@@ -87,15 +88,55 @@ class ToolWidget(QWidget):
         """Get appropriate icon for the tool"""
         return self.style_provider.get_tool_icon(self.tool_name)
 
+    def _extract_css_value(self, css: str, property_name: str, default: str) -> str:
+        pattern = rf"{re.escape(property_name)}\s*:\s*([^;]+);"
+        match = re.search(pattern, css, flags=re.IGNORECASE)
+        if not match:
+            return default
+        return match.group(1).strip()
+
+    def _card_background_color(self) -> str:
+        css = (
+            self.style_provider.get_tool_card_error_style()
+            if self.is_error
+            else self.style_provider.get_tool_card_style()
+        )
+        return self._extract_css_value(css, "background-color", "transparent")
+
+    def _card_border_color(self) -> str:
+        css = (
+            self.style_provider.get_tool_card_error_style()
+            if self.is_error
+            else self.style_provider.get_tool_card_style()
+        )
+        border_value = self._extract_css_value(css, "border", "")
+        if border_value:
+            parts = border_value.split()
+            if parts:
+                return parts[-1]
+        return self._extract_css_value(css, "border-color", "transparent")
+
     def _create_header(self):
         """Create the header section with tool name and controls"""
         header_layout = QHBoxLayout()
+        header_layout.setSpacing(8)
 
-        # Tool icon and name - reduced sizes for subtlety
+        card_background = self._card_background_color()
+
         tool_icon = QLabel(self._get_tool_icon())
         tool_icon_font = tool_icon.font()
         tool_icon_font.setPixelSize(13)
-        tool_icon.setFont(tool_icon_font)  # Reduced from 16px
+        tool_icon.setFont(tool_icon_font)
+        tool_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        tool_icon.setFixedSize(24, 24)
+        tool_icon.setStyleSheet(
+            "QLabel {"
+            f"background-color: {card_background};"
+            "border: none;"
+            "border-radius: 8px;"
+            "padding: 0px;"
+            "}"
+        )
 
         tool_name_label = QLabel(
             f"<b>{self.tool_name.replace('_', ' ').capitalize()}</b>"
@@ -103,7 +144,13 @@ class ToolWidget(QWidget):
         tool_name_font = tool_name_label.font()
         tool_name_font.setPixelSize(13)
         tool_name_label.setFont(tool_name_font)
-        tool_name_label.setStyleSheet(self.style_provider.get_tool_header_style())
+        tool_name_label.setStyleSheet(
+            self.style_provider.get_tool_header_style() + "\nQLabel {"
+            f"background-color: {card_background};"
+            "border-radius: 8px;"
+            "padding: 4px 8px;"
+            "}"
+        )
 
         # Status indicator
         if self.is_error:
