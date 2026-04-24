@@ -272,14 +272,15 @@ class MessageHandler(Observable):
         if self.current_conversation_id and messages_for_this_turn:
             try:
                 if self.persistent_service:
-                    metadata = {
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "total_tokens": input_tokens + output_tokens,
-                    }
-                    self.persistent_service.store_conversation_metadata(
-                        self.current_conversation_id, metadata
-                    )
+                    if input_tokens > 0 or output_tokens > 0:
+                        metadata = {
+                            "input_tokens": input_tokens,
+                            "output_tokens": output_tokens,
+                            "total_tokens": input_tokens + output_tokens,
+                        }
+                        self.persistent_service.store_conversation_metadata(
+                            self.current_conversation_id, metadata
+                        )
 
                     self.persistent_service.append_conversation_messages(
                         self.current_conversation_id,
@@ -487,10 +488,11 @@ class MessageHandler(Observable):
                 # Process each tool use
                 await self.tool_manager.execute_tools_batch(tool_uses)
 
-                self._notify(
-                    "update_token_usage",
-                    {"input_tokens": input_tokens, "output_tokens": output_tokens},
-                )
+                if input_tokens > 0 or output_tokens > 0:
+                    self._notify(
+                        "update_token_usage",
+                        {"input_tokens": input_tokens, "output_tokens": output_tokens},
+                    )
 
                 if has_stop_interupted:
                     # return as soon as possible
