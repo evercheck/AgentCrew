@@ -107,7 +107,6 @@ class ApplicationSetup:
                         "together": "TOGETHER_API_KEY",
                         "opencode_go": "OPENCODE_API_KEY",
                         "github_copilot": "GITHUB_COPILOT_API_KEY",
-                        "copilot_response": "GITHUB_COPILOT_API_KEY",
                     }
                     if last_provider == "openai_codex":
                         from AgentCrew.modules.openai_codex.oauth import (
@@ -158,24 +157,7 @@ class ApplicationSetup:
         registry = ModelRegistry.get_instance()
         llm_manager = ServiceManager.get_instance()
 
-        models = registry.get_models_by_provider(provider)
-        if models:
-            default_model = next((m for m in models if m.default), models[0])
-            registry.set_current_model(f"{default_model.provider}/{default_model.id}")
-
-        models = registry.get_models_by_provider(provider)
-        if models:
-            default_model = next((m for m in models if m.default), models[0])
-            llm_service = llm_manager.get_service_for_model(default_model)
-        else:
-            llm_service = llm_manager.get_service_for_provider(provider)
-
-        if model_id:
-            model = registry.get_model(model_id)
-            if model:
-                llm_manager.set_model_for_model(model)
-            else:
-                llm_service.model = model_id
+        llm_service = None
 
         try:
             last_model = GlobalConfig().get_last_used_model()
@@ -188,6 +170,7 @@ class ApplicationSetup:
 
                 last_model_class = registry.get_model(last_model)
                 if should_restore and last_model_class:
+                    llm_service = llm_manager.get_service_for_model(last_model_class)
                     llm_manager.apply_model_defaults(
                         llm_service, last_model_class.provider, last_model_class.id
                     )
@@ -195,6 +178,24 @@ class ApplicationSetup:
         except Exception as e:
             logger.warning(f"Could not restore last used model: {e}")
             click.echo(f"\u26a0\ufe0f  Could not restore last used model: {e}")
+
+        if llm_service is None:
+            models = registry.get_models_by_provider(provider)
+            if models:
+                default_model = next((m for m in models if m.default), models[0])
+                registry.set_current_model(
+                    f"{default_model.provider}/{default_model.id}"
+                )
+                llm_service = llm_manager.get_service_for_model(default_model)
+            else:
+                llm_service = llm_manager.get_service_for_provider(provider)
+
+            if model_id:
+                model = registry.get_model(model_id)
+                if model:
+                    llm_manager.set_model_for_model(model)
+                else:
+                    llm_service.model = model_id
 
         memory_service = None
         context_service = None

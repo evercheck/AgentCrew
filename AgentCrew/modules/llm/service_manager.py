@@ -351,14 +351,11 @@ class ServiceManager:
             return True
         return False
 
-    def set_model_for_model(self, model: "Model") -> bool:
+    def set_model_for_model(self, model: Model):
         """Set the model on the service instance declared by the given model."""
         service = self.get_service_for_model(model)
-        if hasattr(service, "model"):
-            service.model = model.id
-            self.apply_model_defaults(service, model.provider, model.id)
-            return True
-        return False
+        service.model = model.id
+        self.apply_model_defaults(service, model.provider, model.id)
 
     def apply_model_defaults(
         self, service: BaseLLMService, provider: str, model_id: str
