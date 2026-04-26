@@ -120,9 +120,11 @@ class ServiceManager:
 
     def _create_opencode_go_service(self) -> BaseLLMService:
         """Lazy import and create OpenCode Go service."""
+        from AgentCrew.modules.custom_llm import OpenCodeService
+
         api_key = os.getenv("OPENCODE_API_KEY")
         if api_key:
-            llm = self._create_custom_llm_service(
+            llm = OpenCodeService(
                 base_url="https://opencode.ai/zen/go/v1",
                 api_key=api_key,
                 provider_name="opencode_go",
@@ -161,12 +163,9 @@ class ServiceManager:
         extra_headers: Optional[Dict] = None,
     ) -> BaseLLMService:
         """Lazy import and create Custom LLM service."""
-        from AgentCrew.modules.custom_llm import CustomLLMService, OpenCodeService
+        from AgentCrew.modules.custom_llm import CustomLLMService
 
-        service_class = (
-            OpenCodeService if provider_name == "opencode_go" else CustomLLMService
-        )
-        return service_class(
+        return CustomLLMService(
             base_url=base_url,
             api_key=api_key,
             provider_name=provider_name,
