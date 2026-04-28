@@ -426,52 +426,40 @@ class OnboardingService:
                 "so you can build the best possible agent."
             )
 
-            original_system_prompt = getattr(self.llm_service, "system_prompt", None)
-            original_tools = self._copy_llm_attribute("tools")
-            original_tool_handlers = self._copy_llm_attribute("tool_handlers")
             onboarding_agent = self._build_onboarding_agent()
 
-            try:
-                conversation: list = []
-                max_turns = 5
+            conversation: list = []
+            max_turns = 5
 
-                for _ in range(max_turns):
-                    prompt = self._build_chat_prompt(initial_message, conversation)
-                    result_text = await self._generate_onboarding_response(
-                        onboarding_agent, prompt
-                    )
-                    if not isinstance(result_text, str):
-                        return None
-
-                    extracted = OnboardingService._extract_toml(result_text)
-                    if extracted:
-                        try:
-                            parsed = tomllib.loads(extracted)
-                            if OnboardingService._looks_like_agent_definition(parsed):
-                                return result_text
-                        except Exception:
-                            pass
-
-                    self._print_assistant_message(result_text)
-
-                    user_answer = self._ask_onboarding_input()
-                    if user_answer is None:
-                        return None
-
-                    conversation.append({"assistant": result_text, "user": user_answer})
-
-                self._print_error(
-                    "Reached maximum conversation turns without getting an agent definition."
+            for _ in range(max_turns):
+                prompt = self._build_chat_prompt(initial_message, conversation)
+                result_text = await self._generate_onboarding_response(
+                    onboarding_agent, prompt
                 )
-                return None
+                if not isinstance(result_text, str):
+                    return None
 
-            finally:
-                self._restore_llm_attribute("tools", original_tools)
-                self._restore_llm_attribute("tool_handlers", original_tool_handlers)
-                if original_system_prompt is not None:
-                    self.llm_service.set_system_prompt(original_system_prompt)
-                else:
-                    self.llm_service.set_system_prompt("")
+                extracted = OnboardingService._extract_toml(result_text)
+                if extracted:
+                    try:
+                        parsed = tomllib.loads(extracted)
+                        if OnboardingService._looks_like_agent_definition(parsed):
+                            return result_text
+                    except Exception:
+                        pass
+
+                self._print_assistant_message(result_text)
+
+                user_answer = self._ask_onboarding_input()
+                if user_answer is None:
+                    return None
+
+                conversation.append({"assistant": result_text, "user": user_answer})
+
+            self._print_error(
+                "Reached maximum conversation turns without getting an agent definition."
+            )
+            return None
 
         except Exception as e:
             logger.warning("LLM agent generation failed: " + str(e))
@@ -486,7 +474,7 @@ class OnboardingService:
             tools=[],
             temperature=1.0,
         )
-        onboarding_agent.set_system_prompt(_ONBOARDING_SYSTEM_PROMPT)
+        onboarding_agent.llm.set_system_prompt(_ONBOARDING_SYSTEM_PROMPT)
         search_service = self.services.get("web_search")
         if search_service:
             register_web_search(search_service, onboarding_agent)
