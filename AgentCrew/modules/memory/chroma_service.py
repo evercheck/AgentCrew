@@ -49,9 +49,8 @@ class ChromaMemoryService(BaseMemoryService):
 
         self._collection = None
         self.collection_name = collection_name
-        self._worker: Optional[MemoryWorker] = None
-        self._initialize_collection()
-        self.cleanup_old_memories(months=1)
+        self._worker: MemoryWorker = MemoryWorker(llm_service=self.llm_service)
+        self._worker.start()
 
     def _initialize_collection(self) -> Collection:
         import chromadb
@@ -93,14 +92,10 @@ class ChromaMemoryService(BaseMemoryService):
             embedding_function=self.embedding_function,  # type:ignore
         )
 
-        if self._worker is None:
-            self._worker = MemoryWorker(
-                embedding_fn=self.embedding_function,
-                llm_service=self.llm_service,
-            )
-            self._worker.set_collection(self._collection)
-            self._worker.start()
+        self._worker.set_collection(self._collection)
+        self._worker.set_embedding_fn(self.embedding_function)
 
+        self.cleanup_old_memories(months=1)
         return self._collection
 
     def store_conversation(
@@ -123,14 +118,13 @@ class ChromaMemoryService(BaseMemoryService):
             "timestamp": datetime.now().isoformat(),
         }
 
-        if self._worker and self._worker.queue_store(operation_data):
+        if self._worker.queue_store(operation_data):
             return [operation_id]
         return []
 
     def clear_conversation_context(self):
-        if self._worker:
-            self._worker.current_conversation_context = {}
-            self._worker.context_embedding = []
+        self._worker.current_conversation_context = {}
+        self._worker.context_embedding = []
 
     def load_conversation_context(self, session_id: str, agent_name: str = "None"):
         collection = self._initialize_collection()
@@ -139,7 +133,7 @@ class ChromaMemoryService(BaseMemoryService):
                 "session_id": session_id,
             },
         )
-        if latest_memory["documents"] and self._worker:
+        if latest_memory["documents"]:
             self._worker.current_conversation_context[session_id] = latest_memory[
                 "documents"
             ][-1]
@@ -450,10 +444,7 @@ class ChromaMemoryService(BaseMemoryService):
             ids_to_remove = results["ids"]
             collection.delete(ids=ids_to_remove)
 
-            if (
-                self._worker
-                and conversation_id in self._worker.current_conversation_context
-            ):
+            if conversation_id in self._worker.current_conversation_context:
                 del self._worker.current_conversation_context[conversation_id]
 
             logger.info(
@@ -477,8 +468,7 @@ class ChromaMemoryService(BaseMemoryService):
 
     def shutdown(self):
         logger.info("Shutting down memory service...")
-        if self._worker:
-            self._worker.stop()
+        self._worker.stop()
         logger.info("Memory service shutdown complete")
 
     def __del__(self):

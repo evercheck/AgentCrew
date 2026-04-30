@@ -16,7 +16,7 @@ from AgentCrew.modules.prompts.constants import (
 
 if TYPE_CHECKING:
     from typing import Dict, Any, List, Optional
-    from chromadb import Collection
+    from chromadb import Collection, EmbeddingFunction
     from AgentCrew.modules.llm.base import BaseLLMService
 
 DEFAULT_QUEUE_TIMEOUT = 5.0
@@ -29,10 +29,10 @@ CONSOLIDATION_EVERY_N = 5
 class MemoryWorker:
     def __init__(
         self,
-        embedding_fn,
+        embedding_fn: Optional[EmbeddingFunction] = None,
         llm_service: Optional[BaseLLMService] = None,
     ):
-        self.embedding_function = embedding_fn
+        self._embedding_function = embedding_fn
         self.llm_service = llm_service
         self._collection: Optional[Collection] = None
 
@@ -46,6 +46,9 @@ class MemoryWorker:
 
     def set_collection(self, collection: Collection):
         self._collection = collection
+
+    def set_embedding_fn(self, embedding_fn: EmbeddingFunction):
+        self._embedding_function = embedding_fn
 
     def _parse_xml_block(self, text: str, tag_name: str) -> Optional[Dict[str, Any]]:
         open_tag = f"<{tag_name}>"
@@ -125,6 +128,10 @@ class MemoryWorker:
             collection = self._collection
             if collection is None:
                 logger.error("Memory worker: collection not set")
+                return
+
+            if self._embedding_function is None:
+                logger.error("Cannot find embedding_function")
                 return
 
             user_message = operation_data["user_message"]
@@ -215,7 +222,7 @@ class MemoryWorker:
             )
             self.current_conversation_context[session_id] = conversation_document
 
-            conversation_embedding = self.embedding_function([conversation_document])
+            conversation_embedding = self._embedding_function([conversation_document])
             self.context_embedding.append(conversation_embedding)
             if len(self.context_embedding) > 5:
                 self.context_embedding.pop(0)
@@ -399,6 +406,11 @@ class MemoryWorker:
         agent_name: str,
         collection: Collection,
     ):
+
+        if self._embedding_function is None:
+            logger.error("Cannot find embedding_function")
+            return
+
         try:
             parsed = self._parse_xml_block(result_text, "CONSOLIDATION_RESULT")
             if parsed is None:
@@ -459,7 +471,7 @@ class MemoryWorker:
 
             if final_merged_doc is not None:
                 logger.info(f"Consolidated memory preview: {final_merged_doc[:300]}...")
-                merged_embedding = self.embedding_function([final_merged_doc])
+                merged_embedding = self._embedding_function([final_merged_doc])
                 collection.upsert(
                     ids=[current_id],
                     documents=[final_merged_doc],
