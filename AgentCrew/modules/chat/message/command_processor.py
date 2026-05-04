@@ -61,13 +61,10 @@ class CommandProcessor:
             return await self._handle_evolve_command(user_input)
         elif user_input.lower().startswith("/unconsolidate"):
             return await self._handle_unconsolidate_command(user_input)
-        elif user_input.lower().startswith("/jump "):
-            jumped = self._handle_jump_command(user_input)
-            return CommandResult(handled=jumped, clear_flag=True)
-        elif user_input.lower().startswith("/fork "):
-            return self._handle_fork_command(user_input)
-        elif user_input.lower() == "/fork":
-            # Show available turns for forking
+        elif user_input.lower().startswith("/jump"):
+            result = self._handle_jump_command(user_input)
+            return CommandResult(handled=result, clear_flag=True)
+        elif user_input.lower().startswith("/fork"):
             return self._handle_fork_command(user_input)
         elif user_input.lower().startswith("/agent_mode"):
             return self._handle_agent_mode_command(user_input)
@@ -334,12 +331,36 @@ class CommandProcessor:
             return False, True
 
     def _handle_jump_command(self, command: str) -> bool:
-        """Handle the /jump command to rewind conversation to a previous turn."""
+        """Handle the /jump command to rewind conversation to a previous turn.
+
+        Usage:
+            /jump          - Show available turns for jumping
+            /jump <turn>   - Jump back to the specified turn
+        """
         try:
             parts = command.split()
-            if len(parts) != 2:
-                self.message_handler._notify("error", "Usage: /jump <turn_number>")
-                return False
+
+            # Show available turns if no turn number provided
+            if len(parts) == 1:
+                if not self.message_handler.conversation_turns:
+                    self.message_handler._notify(
+                        "system_message",
+                        "No conversation turns available for jumping.",
+                    )
+                    return True
+
+                turns_info = []
+                for i, turn in enumerate(self.message_handler.conversation_turns, 1):
+                    preview = turn.get_preview(50)
+                    turns_info.append(f"  {i}. {preview}")
+
+                message = (
+                    "📋 Available turns for jumping:\n"
+                    + "\n".join(turns_info)
+                    + "\n\nUsage: /jump <turn_number>"
+                )
+                self.message_handler._notify("system_message", message)
+                return True
 
             turn_number = int(parts[1])
 
