@@ -126,6 +126,7 @@ class OpenCodeService(CustomLLMService):
 
             if role == "tool":
                 msg.pop("tool_name", None)
+                msg.pop("is_rejected", None)
                 msg["content"] = self._stringify_content(msg.get("content", ""))
                 converted_messages.append(msg)
                 continue

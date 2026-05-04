@@ -133,6 +133,7 @@ class GithubCopilotService(CustomLLMService):
                 # Special treatment for GitHub Copilot GPT-4.1 model
                 # At the the time of writing, GitHub Copilot GPT-4.1 model cannot read tool results with array content
                 msg.pop("tool_name", None)
+                msg.pop("is_rejected", None)
                 if isinstance(msg.get("content", ""), List):
                     if self._is_github_provider() and self.model != "gpt-4.1":
                         # OpenAI format for tool responses

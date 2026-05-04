@@ -252,6 +252,7 @@ class CustomLLMService(OpenAIService):
                 msg["tool_calls"] = normalized_tool_calls
             if msg.get("role") == "tool":
                 msg.pop("tool_name", None)
+                msg.pop("is_rejected", None)
                 if isinstance(msg.get("content", ""), List):
                     cleaned_tool_content = []
                     for tool_content in msg["content"]:

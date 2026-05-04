@@ -84,6 +84,7 @@ class TogetherAIService(BaseLLMService):
             # Together AI doesn't support array content format like OpenAI/Claude
             if role == "tool":
                 msg.pop("tool_name", None)
+                msg.pop("is_rejected", None)
                 if isinstance(content, list):
                     cleaned_content = []
                     for item in content:
