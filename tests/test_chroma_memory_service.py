@@ -118,7 +118,9 @@ def main():
                 if len(parts) > 1 and parts[1].isdigit():
                     days = int(parts[1])
                     from_date = int((datetime.now() - timedelta(days=days)).timestamp())
-                    print(f"  From date set to: {datetime.fromtimestamp(from_date).strftime('%Y-%m-%d %H:%M')}")
+                    print(
+                        f"  From date set to: {datetime.fromtimestamp(from_date).strftime('%Y-%m-%d %H:%M')}"
+                    )
                 else:
                     from_date = None
                     print("  From date cleared.")
@@ -129,15 +131,21 @@ def main():
                 if len(parts) > 1 and parts[1].isdigit():
                     days = int(parts[1])
                     to_date = int((datetime.now() - timedelta(days=days)).timestamp())
-                    print(f"  To date set to: {datetime.fromtimestamp(to_date).strftime('%Y-%m-%d %H:%M')}")
+                    print(
+                        f"  To date set to: {datetime.fromtimestamp(to_date).strftime('%Y-%m-%d %H:%M')}"
+                    )
                 else:
                     to_date = None
                     print("  To date cleared.")
                 continue
 
             if query == ":dates":
-                print(f"  From: {datetime.fromtimestamp(from_date).strftime('%Y-%m-%d %H:%M') if from_date else '(none)'}")
-                print(f"  To: {datetime.fromtimestamp(to_date).strftime('%Y-%m-%d %H:%M') if to_date else '(none)'}")
+                print(
+                    f"  From: {datetime.fromtimestamp(from_date).strftime('%Y-%m-%d %H:%M') if from_date else '(none)'}"
+                )
+                print(
+                    f"  To: {datetime.fromtimestamp(to_date).strftime('%Y-%m-%d %H:%M') if to_date else '(none)'}"
+                )
                 continue
 
             if query == ":reset":
@@ -150,9 +158,13 @@ def main():
             print(f"\nRetrieving memories for: '{query}'")
             print(f"  Agent: {agent_name or '(all)'}")
             if from_date:
-                print(f"  From: {datetime.fromtimestamp(from_date).strftime('%Y-%m-%d %H:%M')}")
+                print(
+                    f"  From: {datetime.fromtimestamp(from_date).strftime('%Y-%m-%d %H:%M')}"
+                )
             if to_date:
-                print(f"  To: {datetime.fromtimestamp(to_date).strftime('%Y-%m-%d %H:%M')}")
+                print(
+                    f"  To: {datetime.fromtimestamp(to_date).strftime('%Y-%m-%d %H:%M')}"
+                )
 
             result = service.retrieve_memory(
                 keywords=query,

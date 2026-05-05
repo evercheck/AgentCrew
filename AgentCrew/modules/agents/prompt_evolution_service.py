@@ -29,7 +29,7 @@ class PromptEvolutionService:
 
 ## Memory Records
 Each memory record contains:
-- **Topic/Context**: what was discussed
+- **Topic/Flow**: what was discussed and how the conversation progressed (INTENT → EXPLORATION → OUTCOME)
 - **Insights**: durable lessons the agent learned
 - **Notes**: user corrections, preferences, caveats, workflow constraints, non-obvious decisions
 
@@ -43,7 +43,7 @@ Analyze ALL memory records to identify **repeated patterns** that appear across 
 Focus on:
 1. **Notes** — these contain direct user corrections, stated preferences, and workflow constraints. This is your primary evidence source.
 2. **Insights** — these contain durable lessons. Cross-reference with Notes for confirmation.
-3. **Context/Topic patterns** — recurring themes reveal the agent's actual usage patterns.
+3. **Flow/Topic patterns** — recurring themes and conversation arcs reveal the agent's actual usage patterns.
 
 ## Extraction Rules
 - ONLY extract patterns with evidence from multiple conversations (not one-off instructions)
@@ -274,6 +274,15 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
 
         head = mem.get("HEAD", "")
         date = mem.get("DATE", "")
+
+        flow = mem.get("FLOW", {})
+        flow_parts = []
+        if isinstance(flow, dict):
+            for flow_field in ("INTENT", "EXPLORATION", "OUTCOME"):
+                if flow.get(flow_field):
+                    flow_parts.append(f"{flow_field}: {flow[flow_field]}")
+        elif isinstance(flow, str) and flow:
+            flow_parts.append(flow)
         context = mem.get("CONTEXT", "")
 
         insights_raw = mem.get("INSIGHTS", {})
@@ -293,13 +302,16 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
         if isinstance(domains, str):
             domains = [domains]
 
-        if not notes and not insights and not context:
+        if not notes and not insights and not flow_parts and not context:
             return ""
 
         parts = [f"--- Memory #{index} ({date}) ---"]
         if head:
             parts.append(f"Topic: {head}")
-        if context:
+        if flow_parts:
+            parts.append("Flow:")
+            parts.extend(f"  {fp}" for fp in flow_parts)
+        elif context:
             parts.append(f"Context: {context}")
         if domains:
             parts.append(f"Domains: {', '.join(d for d in domains if d)}")

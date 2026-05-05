@@ -287,8 +287,16 @@ class MemoryWorker:
                 query_parts = []
                 if mem.get("HEAD"):
                     query_parts.append(mem["HEAD"])
-                if mem.get("CONTEXT"):
-                    query_parts.append(mem["CONTEXT"])
+                flow = mem.get("FLOW", {})
+                if isinstance(flow, dict):
+                    for flow_field in ("INTENT", "EXPLORATION", "OUTCOME"):
+                        if flow.get(flow_field):
+                            query_parts.append(flow[flow_field])
+                elif isinstance(flow, str) and flow:
+                    query_parts.append(flow)
+                context = mem.get("CONTEXT")
+                if context and not query_parts:
+                    query_parts.append(context)
                 entities = mem.get("ENTITIES", {}) or {}
                 entity_list = entities.get("ENTITY", [])
                 if isinstance(entity_list, dict):

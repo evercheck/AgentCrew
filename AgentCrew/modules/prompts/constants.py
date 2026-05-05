@@ -1,7 +1,7 @@
 # Instructions injected when there IS previous conversation context (merge mode)
 MERGE_INSTRUCTIONS = """When PREVIOUS_CONVERSATION_CONTEXT is provided:
 - Update HEAD to reflect the full conversation so far
-- Merge CONTEXT with new information from CONVERSATION_TURN
+- Merge FLOW with new information from CONVERSATION_TURN: combine INTENT if the topic shifted, extend EXPLORATION with new steps discussed, update OUTCOME with the latest conclusion or resolution
 - Append new INSIGHTS, ENTITIES, DOMAINS, RESOURCES from CONVERSATION_TURN
 - Keep ALL existing CONVERSATION_NOTES intact, append new ones from this turn"""
 
@@ -25,13 +25,18 @@ Date: {current_date}
 Rules:
 - Output ONLY the <MEMORY> XML block. No other text.
 - Use "" for any field with nothing relevant.
-- CONVERSATION_NOTES: capture ONLY actionable notes for future reference — caveats, edge cases, workarounds (note what they fix and when removable), non-obvious decisions with rationale, constraints, unresolved issues, user corrections/preferences. NO generic summaries like "user asked X, assistant answered Y".
+- FLOW: capture how the conversation progressed — what the user asked (INTENT), what was explored or discussed (EXPLORATION), and what was concluded or left open (OUTCOME). This is NOT a flat summary; it must show the dialogue arc from question to resolution.
+- CONVERSATION_NOTES: capture ONLY actionable notes for future reference — caveats, edge cases, workarounds (note what they fix and when removable), non-obvious decisions with rationale, constraints, unresolved issues, user corrections/preferences.
 
 <EXAMPLE>
 <MEMORY>
     <HEAD>debugging async streaming issue in task_manager</HEAD>
     <DATE>2025-06-15</DATE>
-    <CONTEXT>User debugging a race condition in async generator streaming where task state was being mutated during iteration</CONTEXT>
+    <FLOW>
+        <INTENT>User asked for help debugging a race condition in async generator streaming where task state was being mutated during iteration</INTENT>
+        <EXPLORATION>Agent identified that the task state dict was being mutated while an async generator was yielding from it, causing RuntimeError. Explored using asyncio.Lock as a synchronization workaround and discussed deep-copying state before yielding.</EXPLORATION>
+        <OUTCOME>Added asyncio.Lock around state access as a temporary fix. Identified an unresolved memory leak when clients disconnect mid-stream because generator cleanup is not triggered reliably.</OUTCOME>
+    </FLOW>
     <INSIGHTS>
         <INSIGHT>Async generators in Python need explicit cleanup — relying on GC causes resource leaks in long-running services</INSIGHT>
     </INSIGHTS>
@@ -78,13 +83,13 @@ POST_RETRIEVE_MEMORY = """
     *   `ID`: Unique identifier.
     *   `DATE`: "YYYY-MM-DD" format.
     *   `SUMMARY`: Brief summary.
-    *   `CONTEXT`: Background information.
+    *   `FLOW`: Conversation progression — INTENT (what was asked), EXPLORATION (what was discussed/tried), OUTCOME (what was concluded).
     *   `ENTITIES`: Key people, orgs, products, concepts, facts.
     *   `DOMAIN`: Subject domain(s).
 
 **Processing Instructions:**
 1.  **Relevance Filtering:**
-    *   Keep a snippet only if its `SUMMARY`, `CONTEXT`, or `ENTITIES` fields demonstrate clear and direct relevance to `INPUT_KEYWORDS`.
+    *   Keep a snippet only if its `SUMMARY`, `FLOW`, or `ENTITIES` fields demonstrate clear and direct relevance to `INPUT_KEYWORDS`.
     *   Discard snippets that are off-topic, tangentially related, or lack substantial information regarding `INPUT_KEYWORDS`.
 2.  **Recency and Conflict Resolution (Prioritize Newer):**
     *   When multiple relevant snippets address the *exact same specific fact/entity* related to `INPUT_KEYWORDS`: Retain the snippet with the most recent `DATE` and discard older ones if they present outdated or directly conflicting information on that specific point.
@@ -130,6 +135,7 @@ For each existing memory, decide ONE action:
 
 Rules:
 - When merging, combine insights, entities, notes from both into one clean <MEMORY> block
+- When merging FLOW sections: combine INTENT if topics overlap, merge EXPLORATION steps chronologically, and let the latest OUTCOME take precedence while preserving any still-relevant earlier conclusions
 - Convert any relative dates ("yesterday", "last week") to absolute dates
 - Drop conversation notes that are generic summaries with no actionable value
 - Preserve architecture decisions, user corrections, active workarounds, unresolved issues
