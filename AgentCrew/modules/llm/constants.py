@@ -498,7 +498,7 @@ _DEEPINFRA_MODELS = [
         provider="deepinfra",
         name="Nemotron 3 Super",
         description="Nemotron 3 Super is a hybrid Mixture-of-Experts (MoE) model engineered for highest compute efficiency and accuracy in multi-agent applications and specialized agentic systems",
-        capabilities=["tool_use", "stream", "structured_output"],
+        capabilities=["tool_use", "stream", "structured_output", "thinking"],
         input_token_price_1m=0.1,
         output_token_price_1m=0.5,
     ),
