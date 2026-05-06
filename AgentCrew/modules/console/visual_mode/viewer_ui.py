@@ -597,10 +597,11 @@ class VisualModeUI:
         self._live = Live(
             self._layout,
             console=self.console,
-            refresh_per_second=10,
+            auto_refresh=False,
             screen=True,
         )
         self._live.start()
+        self._live.refresh()
 
     def stop_live(self):
         if self._live:
