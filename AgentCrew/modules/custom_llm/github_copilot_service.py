@@ -201,6 +201,13 @@ class GithubCopilotService(CustomLLMService):
         thinking_content = None  # OpenAI doesn't support thinking mode
         thinking_signature = None
 
+        # Handle final chunk with usage information
+        if hasattr(chunk, "usage"):
+            if hasattr(chunk.usage, "prompt_tokens"):
+                input_tokens = chunk.usage.prompt_tokens
+            if hasattr(chunk.usage, "completion_tokens"):
+                output_tokens = chunk.usage.completion_tokens
+
         if (not chunk.choices) or (len(chunk.choices) == 0):
             return (
                 assistant_response or " ",
@@ -229,13 +236,6 @@ class GithubCopilotService(CustomLLMService):
         if hasattr(delta_chunk, "content") and delta_chunk.content is not None:
             chunk_text = chunk.choices[0].delta.content
             assistant_response += chunk_text
-
-        # Handle final chunk with usage information
-        if hasattr(chunk, "usage"):
-            if hasattr(chunk.usage, "prompt_tokens"):
-                input_tokens = chunk.usage.prompt_tokens
-            if hasattr(chunk.usage, "completion_tokens"):
-                output_tokens = chunk.usage.completion_tokens
 
         # Handle tool call chunks
         if hasattr(delta_chunk, "tool_calls"):

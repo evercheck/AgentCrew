@@ -54,6 +54,13 @@ class DeepInfraService(CustomLLMService):
         output_tokens = 0
         thinking_content = None  # OpenAI doesn't support thinking mode
 
+        # Handle final chunk with usage information
+        if hasattr(chunk, "usage"):
+            if hasattr(chunk.usage, "prompt_tokens"):
+                input_tokens = chunk.usage.prompt_tokens
+            if hasattr(chunk.usage, "completion_tokens"):
+                output_tokens = chunk.usage.completion_tokens
+
         if (not chunk.choices) or (len(chunk.choices) == 0):
             return (
                 assistant_response or " ",
@@ -95,13 +102,6 @@ class DeepInfraService(CustomLLMService):
             if self._is_thinking:
                 chunk_text = None
             # Remove chunk_text if still in thinking mode
-
-        # Handle final chunk with usage information
-        if hasattr(chunk, "usage"):
-            if hasattr(chunk.usage, "prompt_tokens"):
-                input_tokens = chunk.usage.prompt_tokens
-            if hasattr(chunk.usage, "completion_tokens"):
-                output_tokens = chunk.usage.completion_tokens
 
         # Handle tool call chunks
         if hasattr(delta_chunk, "tool_calls"):

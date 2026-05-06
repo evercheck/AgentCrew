@@ -523,6 +523,12 @@ class CustomLLMService(OpenAIService):
         output_tokens = 0
         thinking_content = None  # OpenAI doesn't support thinking mode
 
+        if hasattr(chunk, "usage"):
+            if hasattr(chunk.usage, "prompt_tokens"):
+                input_tokens = chunk.usage.prompt_tokens
+            if hasattr(chunk.usage, "completion_tokens"):
+                output_tokens = chunk.usage.completion_tokens
+
         # Handle regular content chunks
         if (
             chunk.choices
@@ -553,11 +559,6 @@ class CustomLLMService(OpenAIService):
             # Remove chunk_text if still in thinking mode
 
         # Handle final chunk with usage information
-        if hasattr(chunk, "usage"):
-            if hasattr(chunk.usage, "prompt_tokens"):
-                input_tokens = chunk.usage.prompt_tokens
-            if hasattr(chunk.usage, "completion_tokens"):
-                output_tokens = chunk.usage.completion_tokens
 
         # Handle tool call chunks
         if (

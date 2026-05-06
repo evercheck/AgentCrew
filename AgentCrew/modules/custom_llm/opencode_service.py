@@ -201,6 +201,12 @@ class OpenCodeService(CustomLLMService):
         output_tokens = 0
         thinking_content = " " if self.model.startswith("deepseek-v4") else None
 
+        if hasattr(chunk, "usage"):
+            if hasattr(chunk.usage, "prompt_tokens"):
+                input_tokens = chunk.usage.prompt_tokens
+            if hasattr(chunk.usage, "completion_tokens"):
+                output_tokens = chunk.usage.completion_tokens
+
         if chunk.choices and len(chunk.choices) > 0:
             delta = chunk.choices[0].delta
             if (
@@ -218,12 +224,6 @@ class OpenCodeService(CustomLLMService):
             if hasattr(delta, "tool_calls") and delta.tool_calls:
                 for tool_call_delta in delta.tool_calls:
                     self._merge_stream_tool_call_delta(tool_uses, tool_call_delta)
-
-        if hasattr(chunk, "usage"):
-            if hasattr(chunk.usage, "prompt_tokens"):
-                input_tokens = chunk.usage.prompt_tokens
-            if hasattr(chunk.usage, "completion_tokens"):
-                output_tokens = chunk.usage.completion_tokens
 
         return (
             assistant_response or " ",
