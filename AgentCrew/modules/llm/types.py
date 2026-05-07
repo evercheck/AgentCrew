@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Literal, Optional
+import os
 
 
 class SampleParam(BaseModel):
@@ -33,7 +34,7 @@ class Model(BaseModel):
         None
     )
     force_sample_params: Optional[SampleParam] = None
-    max_context_token: int = 65_000
+    max_context_token: int = int(os.getenv("AGENTCREW_DEFAULT_MAX_CONTEXT", 72_000))
     input_token_price_1m: float = 0.0
     output_token_price_1m: float = 0.0
     cached_token_price_1m: float = 0.0

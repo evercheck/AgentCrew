@@ -7,7 +7,7 @@ from loguru import logger
 if TYPE_CHECKING:
     from .local_agent import LocalAgent
 
-SHRINK_LENGTH_THRESHOLD = 7
+SHRINK_LENGTH_THRESHOLD = int(os.getenv("AGENTCREW_CONTEXT_SHRINK_THREASHOLD", 10))
 
 
 class AgentContextManager:
