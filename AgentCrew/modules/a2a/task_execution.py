@@ -123,8 +123,7 @@ class TaskExecutionEngine:
 
             (
                 current_response,
-                total_input_tokens,
-                total_output_tokens,
+                token_usage,
             ) = await self._process_task(
                 agent, task, task_history, artifacts, retried_count
             )
@@ -142,8 +141,8 @@ class TaskExecutionEngine:
                 current_response,
                 artifacts,
                 task_history,
-                input_tokens=total_input_tokens,
-                output_tokens=total_output_tokens,
+                input_tokens=token_usage.total_input_tokens,
+                output_tokens=token_usage.output_tokens,
             )
 
         except TaskCanceledException:
@@ -184,7 +183,7 @@ class TaskExecutionEngine:
         task_history: List[Dict[str, Any]],
         artifacts: List[Any],
         retried_count: List[int],
-        token_usage: TokenUsage = None,
+        token_usage: Optional[TokenUsage] = None,
     ) -> tuple[str, TokenUsage]:
         if token_usage is None:
             token_usage = TokenUsage()
@@ -198,7 +197,10 @@ class TaskExecutionEngine:
             def process_result(_tool_uses, _token_usage):
                 nonlocal tool_uses, token_usage
                 tool_uses = _tool_uses
-                token_usage = token_usage.merge(_token_usage)
+                if token_usage:
+                    token_usage = token_usage.merge(_token_usage)
+                else:
+                    token_usage = _token_usage
 
             async for (
                 response_message,
