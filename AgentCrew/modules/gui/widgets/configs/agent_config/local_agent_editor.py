@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QDoubleValidator
@@ -27,9 +27,9 @@ class LocalAgentEditor(QWidget):
         self,
         available_tools: list[str],
         persistence_service,
-        on_dirty_callback: Optional[Callable[[], None]] = None,
-        get_current_agent_name: Optional[Callable[[], str]] = None,
-        parent: Optional[QWidget] = None,
+        on_dirty_callback: Callable[[], None] | None = None,
+        get_current_agent_name: Callable[[], str] | None = None,
+        parent: QWidget | None = None,
     ):
         super().__init__(parent)
         self.available_tools = available_tools

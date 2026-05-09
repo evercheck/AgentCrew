@@ -15,7 +15,7 @@ from AgentCrew.modules.prompts.constants import (
 )
 
 if TYPE_CHECKING:
-    from typing import Dict, Any, List, Optional
+    from typing import Any
     from chromadb import Collection, EmbeddingFunction
     from AgentCrew.modules.llm.base import BaseLLMService
 
@@ -29,19 +29,19 @@ CONSOLIDATION_EVERY_N = 5
 class MemoryWorker:
     def __init__(
         self,
-        embedding_fn: Optional[EmbeddingFunction] = None,
-        llm_service: Optional[BaseLLMService] = None,
+        embedding_fn: EmbeddingFunction | None = None,
+        llm_service: BaseLLMService | None = None,
     ):
         self._embedding_function = embedding_fn
         self.llm_service = llm_service
-        self._collection: Optional[Collection] = None
+        self._collection: Collection | None = None
 
         self.context_embedding: list = []
-        self.current_conversation_context: Dict[str, Any] = {}
-        self._store_count_by_session: Dict[str, int] = {}
+        self.current_conversation_context: dict[str, Any] = {}
+        self._store_count_by_session: dict[str, int] = {}
 
         self._conversation_queue: queue.Queue = queue.Queue(maxsize=MAX_QUEUE_SIZE)
-        self._memory_thread: Optional[Thread] = None
+        self._memory_thread: Thread | None = None
         self._memory_stop_event = Event()
 
     def set_collection(self, collection: Collection):
@@ -50,7 +50,7 @@ class MemoryWorker:
     def set_embedding_fn(self, embedding_fn: EmbeddingFunction):
         self._embedding_function = embedding_fn
 
-    def _parse_xml_block(self, text: str, tag_name: str) -> Optional[Dict[str, Any]]:
+    def _parse_xml_block(self, text: str, tag_name: str) -> dict[str, Any] | None:
         open_tag = f"<{tag_name}>"
         close_tag = f"</{tag_name}>"
         if open_tag not in text or close_tag not in text:
@@ -92,7 +92,7 @@ class MemoryWorker:
             logger.warning("Memory queue full, dropping conversation storage")
             return False
 
-    def get_queue_status(self) -> Dict[str, Any]:
+    def get_queue_status(self) -> dict[str, Any]:
         return {
             "queue_size": self._conversation_queue.qsize(),
             "worker_alive": self._memory_thread.is_alive()
@@ -123,7 +123,7 @@ class MemoryWorker:
                 logger.error(f"Memory worker error: {e}")
         loop.close()
 
-    async def _store_conversation_internal(self, operation_data: Dict[str, Any]):
+    async def _store_conversation_internal(self, operation_data: dict[str, Any]):
         try:
             collection = self._collection
             if collection is None:
@@ -267,13 +267,13 @@ class MemoryWorker:
         self,
         current_document: str,
         current_id: str,
-        current_metadata: Dict[str, Any],
+        current_metadata: dict[str, Any],
         agent_name: str,
         collection: Collection,
     ):
         try:
             current_session_id = current_metadata.get("session_id", "")
-            where_filter: Dict[str, Any] = {
+            where_filter: dict[str, Any] = {
                 "$and": [
                     {"agent": agent_name},
                     {"session_id": {"$ne": current_session_id}},
@@ -360,8 +360,8 @@ class MemoryWorker:
         self,
         current_document: str,
         current_id: str,
-        current_metadata: Dict[str, Any],
-        candidates: List[Dict[str, Any]],
+        current_metadata: dict[str, Any],
+        candidates: list[dict[str, Any]],
         agent_name: str,
         collection: Collection,
     ):
@@ -409,8 +409,8 @@ class MemoryWorker:
         self,
         result_text: str,
         current_id: str,
-        current_metadata: Dict[str, Any],
-        candidates: List[Dict[str, Any]],
+        current_metadata: dict[str, Any],
+        candidates: list[dict[str, Any]],
         agent_name: str,
         collection: Collection,
     ):

@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
 class StreamSession:
     session_id: int
     status: str = "idle"
-    loop: Optional[asyncio.AbstractEventLoop] = None
-    task: Optional[asyncio.Task] = None
+    loop: asyncio.AbstractEventLoop | None = None
+    task: asyncio.Task | None = None
     cancel_requested: bool = False
     first_chunk_received: bool = False
     first_chunk_timeout: float = 60.0

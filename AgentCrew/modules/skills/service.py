@@ -1,5 +1,4 @@
 import os
-from typing import Dict, List, Optional
 from loguru import logger
 
 import yaml
@@ -15,7 +14,7 @@ _SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".tox"}
 
 class SkillsService:
     def __init__(self) -> None:
-        self._skills: Dict[str, Dict] = {}
+        self._skills: dict[str, dict] = {}
         self._discover()
 
     def _discover(self) -> None:
@@ -112,7 +111,7 @@ class SkillsService:
 
         return name, description, body
 
-    def _parse_yaml_lenient(self, yaml_block: str, path: str) -> Optional[Dict]:
+    def _parse_yaml_lenient(self, yaml_block: str, path: str) -> dict | None:
         try:
             return yaml.safe_load(yaml_block) or {}
         except yaml.YAMLError:
@@ -141,19 +140,19 @@ class SkillsService:
     def has_skills(self) -> bool:
         return len(self._skills) > 0
 
-    def get_catalog(self) -> List[Dict]:
+    def get_catalog(self) -> list[dict]:
         return [
             {"name": s["name"], "description": s["description"]}
             for s in self._skills.values()
         ]
 
-    def get_skill(self, name: str) -> Optional[Dict]:
+    def get_skill(self, name: str) -> dict | None:
         return self._skills.get(name)
 
-    def get_skill_names(self) -> List[str]:
+    def get_skill_names(self) -> list[str]:
         return list(self._skills.keys())
 
-    def list_resources(self, skill_dir: str) -> List[str]:
+    def list_resources(self, skill_dir: str) -> list[str]:
         resources = []
         try:
             for entry in os.scandir(skill_dir):

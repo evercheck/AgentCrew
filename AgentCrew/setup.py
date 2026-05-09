@@ -2,7 +2,7 @@ import os
 import json
 import time
 import webbrowser
-from typing import Optional, Dict, Any
+from typing import Any
 
 import click
 import requests
@@ -42,10 +42,10 @@ PROVIDER_LIST = [
 
 
 class ApplicationSetup:
-    def __init__(self, config_manager: Optional[ConfigManagement] = None):
+    def __init__(self, config_manager: ConfigManagement | None = None):
         self.config_manager = config_manager or ConfigManagement()
-        self.services: Optional[Dict[str, Any]] = None
-        self.agent_manager: Optional[AgentManager] = None
+        self.services: dict[str, Any] | None = None
+        self.agent_manager: AgentManager | None = None
 
     def load_api_keys_from_config(self) -> None:
         config_file_path = os.getenv("AGENTCREW_CONFIG_PATH")
@@ -96,7 +96,7 @@ class ApplicationSetup:
             if key_name in api_keys_config and api_keys_config[key_name]:
                 os.environ[key_name] = str(api_keys_config[key_name]).strip()
 
-    def detect_provider(self) -> Optional[str]:
+    def detect_provider(self) -> str | None:
         try:
             last_provider = GlobalConfig().get_last_used_provider()
             if last_provider:
@@ -154,11 +154,11 @@ class ApplicationSetup:
     def setup_services(
         self,
         provider: str,
-        memory_llm: Optional[str] = None,
+        memory_llm: str | None = None,
         need_memory: bool = True,
         with_voice: bool = False,
-        model_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        model_id: str | None = None,
+    ) -> dict[str, Any]:
         registry = ModelRegistry.get_instance()
         llm_manager = ServiceManager.get_instance()
 
@@ -308,10 +308,10 @@ class ApplicationSetup:
 
     def setup_agents(
         self,
-        services: Dict[str, Any],
-        config_uri: Optional[str] = None,
-        remoting_provider: Optional[str] = None,
-        model_id: Optional[str] = None,
+        services: dict[str, Any],
+        config_uri: str | None = None,
+        remoting_provider: str | None = None,
+        model_id: str | None = None,
     ) -> AgentManager:
         self.agent_manager = AgentManager.get_instance()
         llm_manager = ServiceManager.get_instance()

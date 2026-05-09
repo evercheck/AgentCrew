@@ -5,7 +5,7 @@ A2A protocol server implementation for SwissKnife.
 import os
 import json
 from contextlib import asynccontextmanager
-from typing import Callable, Optional
+from typing import Callable
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route, Mount, BaseRoute
@@ -43,10 +43,10 @@ class A2AServer:
         agent_manager: AgentManager,
         host: str = "0.0.0.0",
         port: int = 41241,
-        base_url: Optional[str] = None,
-        api_key: Optional[str] = None,
+        base_url: str | None = None,
+        api_key: str | None = None,
         store_type: str = "memory",
-        store_options: Optional[dict] = None,
+        store_options: dict | None = None,
     ):
         logger.info(f"Initializing A2A server with host={host}, port={port}")
         self.agent_manager = agent_manager
@@ -335,7 +335,7 @@ class A2AServer:
 
     async def _list_agents(self, request: Request):
         """
-        List all available agents.
+        list all available agents.
 
         Args:
             request: The HTTP request

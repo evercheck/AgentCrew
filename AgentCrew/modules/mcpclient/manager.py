@@ -1,4 +1,3 @@
-from typing import Optional
 from .config import MCPConfigManager
 from .service import MCPService
 from loguru import logger
@@ -50,7 +49,7 @@ class MCPSessionManager:
             self.mcp_service.stop()
             self.initialized = False  # Ensure it's marked as not initialized
 
-    def initialize_for_agent(self, agent_name: Optional[str] = None) -> None:
+    def initialize_for_agent(self, agent_name: str | None = None) -> None:
         if not self.initialized:
             logger.error("MCPSessionManager: Has not initialized.")
             return
@@ -64,7 +63,7 @@ class MCPSessionManager:
         except Exception as e:
             logger.error(f"MCPSessionManager: Error during async initialization: {e}")
 
-    async def initialize_servers_async(self, agent_name: Optional[str] = None) -> None:
+    async def initialize_servers_async(self, agent_name: str | None = None) -> None:
         """
         Asynchronously starts the connection management for all enabled MCP servers.
         This method is intended to be run on the MCPService's event loop.

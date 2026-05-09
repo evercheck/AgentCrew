@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -44,12 +44,12 @@ if TYPE_CHECKING:
 
 @dataclass
 class BubbleState:
-    current_response_bubble: Optional["MessageBubble"] = None
-    current_response_container: Optional[QWidget] = None
-    current_user_bubble: Optional["MessageBubble"] = None
-    current_thinking_bubble: Optional["MessageBubble"] = None
-    current_planning_widget: Optional[SystemMessageWidget] = None
-    current_file_bubble: Optional["MessageBubble"] = None
+    current_response_bubble: MessageBubble | None = None
+    current_response_container: QWidget | None = None
+    current_user_bubble: MessageBubble | None = None
+    current_thinking_bubble: MessageBubble | None = None
+    current_planning_widget: SystemMessageWidget | None = None
+    current_file_bubble: MessageBubble | None = None
 
 
 @dataclass
@@ -58,7 +58,7 @@ class StreamState:
     processing_plan: bool = False
     thinking_content: str = ""
     expecting_response: bool = False
-    delegated_user_input: Optional[str] = None
+    delegated_user_input: str | None = None
 
 
 class ChatWindow(QMainWindow, Observer):

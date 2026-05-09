@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Any
 
 from loguru import logger
 
@@ -11,7 +11,7 @@ DEFAULT_CODEX_INSTRUCTIONS = "You are a helpful assistant."
 
 
 class OpenAICodexService(OpenAIResponseService):
-    def __init__(self, token_path: Optional[str] = None):
+    def __init__(self, token_path: str | None = None):
         self._oauth = OpenAICodexOAuth(token_path=token_path)
 
         access_token = self._oauth.get_valid_access_token()

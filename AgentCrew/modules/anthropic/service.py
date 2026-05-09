@@ -1,7 +1,7 @@
 import os
 import mimetypes
 import re
-from typing import Dict, Any, List, Union
+from typing import Any, Union
 from anthropic import AsyncAnthropic
 from anthropic.types import TextBlock, TextDelta
 from dotenv import load_dotenv
@@ -170,8 +170,8 @@ class AnthropicService(BaseLLMService):
 
     @staticmethod
     def _convert_tool_to_anthropic_format(
-        tool_definition: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        tool_definition: dict[str, Any],
+    ) -> dict[str, Any]:
         """Convert an OpenAI-format tool definition to Anthropic native format."""
         if tool_definition.get("type") == "function" and "function" in tool_definition:
             func = tool_definition["function"]
@@ -197,12 +197,12 @@ class AnthropicService(BaseLLMService):
 
     def _convert_content_to_claude_format(
         self,
-        content: Union[Dict[str, Any], List[Dict[str, Any]], str],
+        content: Union[dict[str, Any], list[dict[str, Any]], str],
     ):
         new_content = None
 
         pattern = r"^data:([^;]+);base64,(.*)$"
-        if isinstance(content, Dict):
+        if isinstance(content, dict):
             if content.get("type", "text") == "image_url":
                 data_url = content.get("image_url", {}).get("url", "")
                 match = re.match(pattern, data_url, re.DOTALL)
@@ -221,7 +221,7 @@ class AnthropicService(BaseLLMService):
                     return new_content
             else:
                 return content
-        elif isinstance(content, List):
+        elif isinstance(content, list):
             new_content = []
             for c in content:
                 new_content.append(self._convert_content_to_claude_format(c))
@@ -230,7 +230,7 @@ class AnthropicService(BaseLLMService):
             return content
         return content
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]) -> Any:
+    def _convert_internal_format(self, messages: list[dict[str, Any]]) -> Any:
         claude_messages = []
         for msg in messages:
             claude_msg = {"role": msg.get("role", "")}
@@ -241,7 +241,7 @@ class AnthropicService(BaseLLMService):
             # Handle content
             if "content" in msg:
                 if msg.get("role") == "assistant" and "tool_calls" in msg:
-                    if isinstance(msg["content"], List):
+                    if isinstance(msg["content"], list):
                         claude_msg["content"] = list(msg["content"])
                     else:
                         if msg["content"] == "":

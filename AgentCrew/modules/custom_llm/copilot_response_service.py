@@ -2,7 +2,6 @@ from AgentCrew.modules.llm.model_registry import ModelRegistry
 import os
 from dotenv import load_dotenv
 from loguru import logger
-from typing import Optional
 from datetime import datetime
 from uuid import uuid4
 
@@ -11,7 +10,7 @@ from AgentCrew.modules.openai import OpenAIResponseService
 
 class GithubCopilotResponseService(OpenAIResponseService):
     def __init__(
-        self, api_key: Optional[str] = None, provider_name: str = "copilot_response"
+        self, api_key: str | None = None, provider_name: str = "copilot_response"
     ):
         if api_key is None:
             load_dotenv()

@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 from loguru import logger
 from tomli_w import dump as toml_dump
@@ -13,7 +13,7 @@ class AgentsConfig:
     def _path(self) -> str:
         return os.getenv("SW_AGENTS_CONFIG", os.path.expanduser("./agents.toml"))
 
-    def read(self) -> Dict[str, Any]:
+    def read(self) -> dict[str, Any]:
         """Return the full agents config dict, or {"agents": []} on error."""
         try:
             from AgentCrew.modules.config.config_management import ConfigManagement
@@ -23,7 +23,7 @@ class AgentsConfig:
         except Exception:
             return {"agents": []}
 
-    def write(self, config_data: Dict[str, Any]) -> None:
+    def write(self, config_data: dict[str, Any]) -> None:
         """Persist config_data to agents.toml and hot-reload live agents."""
         from AgentCrew.modules.config.config_management import ConfigManagement
 
@@ -139,8 +139,8 @@ class AgentsConfig:
         return True
 
     def export(
-        self, agent_names: List[str], output_file: str, file_format: str = "toml"
-    ) -> Dict[str, Any]:
+        self, agent_names: list[str], output_file: str, file_format: str = "toml"
+    ) -> dict[str, Any]:
         """Export selected agents to a portable file."""
         result = {
             "success": False,
@@ -224,7 +224,7 @@ class AgentsConfig:
         import_file_path: str,
         merge_strategy: str = "update",
         skip_conflicts: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Import agents from a previously exported file."""
         result = {
             "success": False,

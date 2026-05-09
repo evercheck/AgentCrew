@@ -15,7 +15,7 @@ import threading
 from AgentCrew.modules import FileLogIO
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Dict, List, Optional
+    from typing import Any, Callable
     from mcp.types import ContentBlock, Prompt, Tool
     from .config import MCPServerConfig
 
@@ -32,19 +32,19 @@ class MCPService:
         Args:
             ping_interval: Interval in seconds between keep-alive pings (default: 30)
         """
-        self.sessions: Dict[str, ClientSession] = {}
-        self.connected_servers: Dict[str, bool] = {}
-        self.tools_cache: Dict[str, Dict[str, Tool]] = {}
+        self.sessions: dict[str, ClientSession] = {}
+        self.connected_servers: dict[str, bool] = {}
+        self.tools_cache: dict[str, dict[str, Tool]] = {}
         self.loop = asyncio.new_event_loop()
-        self._server_connection_tasks: Dict[str, asyncio.Task] = {}
-        self._server_shutdown_events: Dict[str, asyncio.Event] = {}
-        self._server_keepalive_tasks: Dict[str, asyncio.Task] = {}
-        self.server_prompts: Dict[str, List[Prompt]] = {}
-        self.tokens_storage_cache: Dict[str, FileTokenStorage] = {}
+        self._server_connection_tasks: dict[str, asyncio.Task] = {}
+        self._server_shutdown_events: dict[str, asyncio.Event] = {}
+        self._server_keepalive_tasks: dict[str, asyncio.Task] = {}
+        self.server_prompts: dict[str, list[Prompt]] = {}
+        self.tokens_storage_cache: dict[str, FileTokenStorage] = {}
         self.ping_interval = ping_interval
 
     async def _manage_single_connection(
-        self, server_config: MCPServerConfig, agent_name: Optional[str] = None
+        self, server_config: MCPServerConfig, agent_name: str | None = None
     ):
         """Manages the lifecycle of a single MCP server connection."""
         server_name = server_config.name
@@ -316,7 +316,7 @@ class MCPService:
             logger.info(f"MCPService: Keep-alive worker for {server_id} stopped")
 
     def _get_server_id_format(
-        self, server_name: str, agent_name: Optional[str] = None
+        self, server_name: str, agent_name: str | None = None
     ) -> str:
         """Format server ID with optional agent name prefix."""
         return f"{agent_name}__{server_name}" if agent_name else server_name
@@ -352,7 +352,7 @@ class MCPService:
         )
 
     async def start_server_connection_management(
-        self, server_config: MCPServerConfig, agent_name: Optional[str] = None
+        self, server_config: MCPServerConfig, agent_name: str | None = None
     ):
         """Starts and manages the connection for a single MCP server."""
         combined_server_id = self._get_server_id_format(server_config.name, agent_name)
@@ -389,7 +389,7 @@ class MCPService:
         )
         self._server_connection_tasks[combined_server_id] = task
 
-    async def shutdown_all_server_connections(self, agent_name: Optional[str] = None):
+    async def shutdown_all_server_connections(self, agent_name: str | None = None):
         """Signals all active server connections to shut down and waits for them."""
         logger.info("MCPService: Shutting down all server connections...")
         active_tasks = []
@@ -460,10 +460,10 @@ class MCPService:
 
     def _filter_tools_for_registration(
         self,
-        tools: List[Tool],
-        include_tools: Optional[List[str]],
+        tools: list[Tool],
+        include_tools: list[str] | None,
         combined_server_id: str,
-    ) -> List[Tool]:
+    ) -> list[Tool]:
         if not include_tools:
             return tools
 
@@ -577,7 +577,7 @@ class MCPService:
             local_agent._register_tools_with_llm()
 
     async def deregister_server_tools(
-        self, server_name: str, agent_name: Optional[str] = None
+        self, server_name: str, agent_name: str | None = None
     ):
         agent_manager = AgentManager.get_instance()
         if agent_name:
@@ -599,7 +599,7 @@ class MCPService:
                 if combined_server_id in self.tools_cache:
                     self._remove_agent_server_tool_definitions(local_agent, server_name)
 
-    def _format_tool_definition(self, tool: Tool, server_id: str) -> Dict[str, Any]:
+    def _format_tool_definition(self, tool: Tool, server_id: str) -> dict[str, Any]:
         """
         Format a tool definition for the tool registry.
 
@@ -663,7 +663,7 @@ class MCPService:
             # This is the actual async handler the agent will await.
             async def actual_tool_executor(
                 **params,
-            ) -> list[Dict[str, Any]]:
+            ) -> list[dict[str, Any]]:
                 if server_id not in self.sessions or not self.connected_servers.get(
                     server_id
                 ):
@@ -681,15 +681,15 @@ class MCPService:
 
         return handler_factory  # Return the factory
 
-    async def list_tools(self, server_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def list_tools(self, server_id: str | None = None) -> list[dict[str, Any]]:
         """
-        List all available tools from a connected MCP server or all servers.
+        list all available tools from a connected MCP server or all servers.
 
         Args:
             server_id: Optional ID of the server to list tools from. If None, lists tools from all servers.
 
         Returns:
-            List of tools with their metadata
+            list of tools with their metadata
         """
         if server_id is not None:
             if server_id not in self.sessions or not self.connected_servers.get(
@@ -716,7 +716,7 @@ class MCPService:
                 self.connected_servers[server_id] = False
                 return []
         else:
-            # List tools from all connected servers
+            # list tools from all connected servers
             all_tools = []
             for srv_id in list(self.sessions.keys()):
                 all_tools.extend(await self.list_tools(srv_id))
@@ -726,8 +726,8 @@ class MCPService:
         self,
         server_id: str,
         prompt_name: str,
-        arguments: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        arguments: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Get a specific prompt from a connected MCP server.
 
@@ -759,7 +759,7 @@ class MCPService:
                 "status": "error",
             }
 
-    def _format_contents(self, content: List[ContentBlock]) -> List[Dict[str, Any]]:
+    def _format_contents(self, content: list[ContentBlock]) -> list[dict[str, Any]]:
         result = []
         for c in content:
             if isinstance(c, TextContent):
@@ -780,8 +780,8 @@ class MCPService:
         return result
 
     async def call_tool(
-        self, server_id: str, tool_name: str, tool_args: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, server_id: str, tool_name: str, tool_args: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Call a tool on an MCP server.
 
@@ -791,7 +791,7 @@ class MCPService:
             tool_args: Arguments to pass to the tool
 
         Returns:
-            Dict containing the tool's response
+            dict containing the tool's response
         """
         if server_id not in self.sessions or not self.connected_servers.get(server_id):
             return {

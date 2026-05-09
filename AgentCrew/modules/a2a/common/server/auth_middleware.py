@@ -1,7 +1,6 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from starlette.requests import Request
-from typing import Optional
 from loguru import logger
 
 
@@ -11,7 +10,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     Validates Bearer token in Authorization header.
     """
 
-    def __init__(self, app, api_key: Optional[str] = None):
+    def __init__(self, app, api_key: str | None = None):
         super().__init__(app)
         self.api_key = api_key or "default-api-key"  # You can configure this
         logger.debug("AuthMiddleware initialized.")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Callable
+from typing import TYPE_CHECKING, Callable
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.key_binding import KeyBindings
@@ -20,7 +20,7 @@ class VisualModeInputHandler:
     def __init__(
         self,
         ui: VisualModeUI,
-        on_copy: Optional[Callable[[str], None]] = None,
+        on_copy: Callable[[str], None] | None = None,
     ):
         self._ui = ui
         self._running = False

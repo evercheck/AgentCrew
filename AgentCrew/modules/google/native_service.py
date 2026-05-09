@@ -2,7 +2,7 @@ import os
 import re
 import json
 import mimetypes
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Tuple
 from dotenv import load_dotenv
 from google import genai
 from AgentCrew.modules.llm.model_registry import ModelRegistry
@@ -191,7 +191,7 @@ class GoogleAINativeService(BaseLLMService):
 
         return result_text
 
-    def process_file_for_message(self, file_path: str) -> Optional[Dict[str, Any]]:
+    def process_file_for_message(self, file_path: str) -> dict[str, Any] | None:
         """
         Process a file and return the appropriate message content.
 
@@ -199,7 +199,7 @@ class GoogleAINativeService(BaseLLMService):
             file_path (str): Path to the file
 
         Returns:
-            Optional[Dict[str, Any]]: The message content or None if processing failed
+            dict[str, Any] | None: The message content or None if processing failed
         """
         mime_type, _ = mimetypes.guess_type(file_path)
 
@@ -231,7 +231,7 @@ class GoogleAINativeService(BaseLLMService):
             else:
                 return None
 
-    def handle_file_command(self, file_path: str) -> Optional[List[Dict[str, Any]]]:
+    def handle_file_command(self, file_path: str) -> list[dict[str, Any]] | None:
         """
         Handle the /file command and return message content.
 
@@ -239,7 +239,7 @@ class GoogleAINativeService(BaseLLMService):
             file_path (str): Path to the file
 
         Returns:
-            Optional[List[Dict[str, Any]]]: Message content or None if processing failed
+            list[dict[str, Any]] | None: Message content or None if processing failed
         """
         result = self.process_file_for_message(file_path)
         if result:
@@ -364,13 +364,13 @@ class GoogleAINativeService(BaseLLMService):
 
         logger.info(f"🔧 Registered tool: {tool_name}")
 
-    async def stream_assistant_response(self, messages: List[Dict[str, Any]]) -> Any:
+    async def stream_assistant_response(self, messages: list[dict[str, Any]]) -> Any:
         """
         Stream the assistant's response with tool support.
         Returns a context manager compatible adapter around the Google GenAI stream.
 
         Args:
-            messages (List[Dict[str, Any]]): The conversation messages
+            messages (list[dict[str, Any]]): The conversation messages
 
         Returns:
             GoogleStreamAdapter: A context manager compatible adapter
@@ -434,15 +434,15 @@ class GoogleAINativeService(BaseLLMService):
         # Wrap in adapter that supports context manager protocol
         return GoogleStreamAdapter(stream_generator)
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]):
+    def _convert_internal_format(self, messages: list[dict[str, Any]]):
         """
         Convert standard messages to Google GenAI format.
 
         Args:
-            messages (List[Dict[str, Any]]): Standard message format
+            messages (list[dict[str, Any]]): Standard message format
 
         Returns:
-            List: Messages in Google GenAI format as Content or Part objects
+            list: Messages in Google GenAI format as Content or Part objects
         """
         from google.genai.types import Content, Part
 
@@ -511,8 +511,8 @@ class GoogleAINativeService(BaseLLMService):
         return google_messages
 
     def process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         """
         Process a single chunk from the streaming response.
 

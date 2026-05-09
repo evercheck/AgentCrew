@@ -1,12 +1,12 @@
 from abc import abstractmethod
-from typing import List, Any
+from typing import Any
 
 
 class Observable:
     """Base class for observables, implementing the observer pattern."""
 
     def __init__(self):
-        self._observers: List["Observer"] = []
+        self._observers: list["Observer"] = []
 
     def attach(self, observer: "Observer"):
         """Attaches an observer to the observable."""

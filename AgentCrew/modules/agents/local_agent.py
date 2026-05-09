@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime
 import os
 import copy
-from typing import List, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal
 
 from .base import BaseAgent, MessageType
 from AgentCrew.modules.llm.token_usage import TokenUsage
@@ -12,7 +12,7 @@ from loguru import logger
 
 if TYPE_CHECKING:
     from AgentCrew.modules.llm import BaseLLMService
-    from typing import Dict, Any, Optional, Callable, Union
+    from typing import Any, Callable, Union
 
 
 def normalize_voice_enabled(value) -> Literal["enabled", "disabled"]:
@@ -29,12 +29,12 @@ class LocalAgent(BaseAgent):
         name: str,
         description: str,
         llm_service: BaseLLMService,
-        services: Dict[str, Any],
-        tools: List[str],
-        temperature: Optional[float] = None,
+        services: dict[str, Any],
+        tools: list[str],
+        temperature: float | None = None,
         is_remoting_mode: bool = False,
         voice_enabled: Literal["enabled", "disabled"] = "disabled",
-        voice_id: Optional[str] = None,
+        voice_id: str | None = None,
     ):
         """
         Initialize a new agent.
@@ -51,7 +51,7 @@ class LocalAgent(BaseAgent):
         self.llm = llm_service
         self.temperature = temperature
         self.services = services
-        self.tools: List[str] = tools  # List of tool names that the agent needs
+        self.tools: list[str] = tools  # list of tool names that the agent needs
         self.system_prompt = None
         self.custom_system_prompt = None
         self.tool_prompts = []
@@ -60,7 +60,7 @@ class LocalAgent(BaseAgent):
         self.voice_enabled: Literal["enabled", "disabled"] = normalize_voice_enabled(
             voice_enabled
         )
-        self.voice_id: Optional[str] = voice_id
+        self.voice_id: str | None = voice_id
 
         self.tool_definitions = {}  # {tool_name: (definition_func, handler_factory, service_instance)}
         self.registered_tools = (
@@ -107,9 +107,9 @@ class LocalAgent(BaseAgent):
 
         return extract_tool_name(tool_def)
 
-    def append_message(self, messages: Union[Dict, List[Dict]]):
+    def append_message(self, messages: Union[dict, list[dict]]):
         copy_messages = copy.deepcopy(messages)
-        if isinstance(copy_messages, List):
+        if isinstance(copy_messages, list):
             self.history.extend(copy_messages)
         else:
             self.history.append(copy_messages)
@@ -246,11 +246,11 @@ class LocalAgent(BaseAgent):
 
     def _format_tool_result(
         self,
-        tool_use: Dict,
+        tool_use: dict,
         tool_result: Any,
         is_error: bool = False,
         is_rejected: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Format a tool result for OpenAI API.
 
@@ -280,17 +280,17 @@ class LocalAgent(BaseAgent):
         return message
 
     def _format_assistant_message(
-        self, assistant_response: str, tool_uses: list[Dict] | None = None
-    ) -> Dict[str, Any]:
+        self, assistant_response: str, tool_uses: list[dict] | None = None
+    ) -> dict[str, Any]:
         """
         Format the assistant's response into the appropriate message format for the LLM provider.
 
         Args:
             assistant_response (str): The text response from the assistant
-            tool_use (Dict, optional): Tool use information if a tool was used
+            tool_use (dict, optional): Tool use information if a tool was used
 
         Returns:
-            Dict[str, Any]: A properly formatted message to append to the messages list
+            dict[str, Any]: A properly formatted message to append to the messages list
         """
         valid_tool_uses = [
             tool_use
@@ -319,7 +319,7 @@ class LocalAgent(BaseAgent):
                 "content": assistant_response,
             }
 
-    def _format_thinking_message(self, thinking_data) -> Optional[Dict[str, Any]]:
+    def _format_thinking_message(self, thinking_data) -> dict[str, Any] | None:
         """
         Format thinking content into the appropriate message format for Claude.
 
@@ -328,7 +328,7 @@ class LocalAgent(BaseAgent):
                 or None if no thinking data is available
 
         Returns:
-            Dict[str, Any]: A properly formatted message containing thinking blocks
+            dict[str, Any]: A properly formatted message containing thinking blocks
         """
         if not thinking_data:
             return None
@@ -348,8 +348,8 @@ class LocalAgent(BaseAgent):
         return {"role": "assistant", "agent": self.name, "content": [thinking_block]}
 
     def format_message(
-        self, message_type: MessageType, message_data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, message_type: MessageType, message_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         if message_type == MessageType.Assistant:
             return self._format_assistant_message(
                 message_data.get("message", ""), message_data.get("tool_uses", None)
@@ -369,7 +369,7 @@ class LocalAgent(BaseAgent):
     def configure_think(self, think_setting):
         self.llm.set_think(think_setting)
 
-    async def execute_tool_call(self, tool_name: str, tool_input: Dict) -> Any:
+    async def execute_tool_call(self, tool_name: str, tool_input: dict) -> Any:
         return await self.llm.execute_tool(tool_name, tool_input)
 
     def calculate_usage_cost(
@@ -405,20 +405,20 @@ class LocalAgent(BaseAgent):
 
         return True
 
-    def _build_adaptive_behavior_context(self) -> Dict[str, Any]:
+    def _build_adaptive_behavior_context(self) -> dict[str, Any]:
         return self._context_manager.build_adaptive_context()
 
     def _get_directory_structure(self) -> str:
         return self._context_manager._get_directory_structure()
 
     def _enhance_agent_context_messages(
-        self, final_messages: List[Dict[str, Any]]
+        self, final_messages: list[dict[str, Any]]
     ) -> None:
         self._context_manager.enhance_messages(final_messages)
 
     def _filter_invalid_tool_uses(
-        self, tool_uses: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, tool_uses: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         filtered_tool_uses = []
         for tool_use in tool_uses:
             if isinstance(tool_use.get("name"), str) and bool(
@@ -432,14 +432,14 @@ class LocalAgent(BaseAgent):
         return filtered_tool_uses
 
     def _clean_shrinkable_tool_result(
-        self, final_messages: List[Dict[str, Any]]
+        self, final_messages: list[dict[str, Any]]
     ) -> None:
         self._context_manager.shrink_tool_results(final_messages)
 
     async def process_messages(
         self,
-        messages: Optional[List[Dict[str, Any]]] = None,
-        callback: Optional[Callable] = None,
+        messages: list[dict[str, Any]] | None = None,
+        callback: Callable | None = None,
     ):
         """
         Process messages using this agent.

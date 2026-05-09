@@ -20,7 +20,7 @@ from .constants import (
 from AgentCrew.modules.config.agents_config import AgentsConfig
 from loguru import logger
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .console_ui import ConsoleUI
@@ -307,12 +307,12 @@ class CommandHandlers:
             self.console.print(
                 Text(f"❌ Error listing behaviors: {str(e)}", style="bold red")
             )
-            logger.error(f"List behaviors error: {str(e)}", exc_info=True)
+            logger.error(f"list behaviors error: {str(e)}", exc_info=True)
 
     def _display_behaviors_table(
         self,
-        global_behaviors: Dict[str, str],
-        project_behaviors: Dict[str, str],
+        global_behaviors: dict[str, str],
+        project_behaviors: dict[str, str],
     ) -> None:
         if global_behaviors:
             global_table = Table(

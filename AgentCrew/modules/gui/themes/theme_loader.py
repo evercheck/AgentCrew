@@ -1,11 +1,11 @@
 import os
-from typing import Dict, Any, Optional
+from typing import Any
 import yaml
 
 
 class ThemeLoader:
-    _cache: Dict[str, "ThemeData"] = {}
-    _themes_dir: Optional[str] = None
+    _cache: dict[str, "ThemeData"] = {}
+    _themes_dir: str | None = None
 
     @classmethod
     def get_themes_dir(cls) -> str:
@@ -44,12 +44,12 @@ class ThemeLoader:
 
 
 class ThemeData:
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._data = data
         self._colors = data.get("colors", {})
         self._styles = data.get("styles", {})
         self._icons = data.get("icons", {})
-        self._computed_cache: Dict[str, str] = {}
+        self._computed_cache: dict[str, str] = {}
 
     def _interpolate(self, template: str) -> str:
         if template in self._computed_cache:
@@ -74,7 +74,7 @@ class ThemeData:
     def get_icon(self, name: str, default: str = "\U0001f527") -> str:
         return self._icons.get(name, self._icons.get("default", default))
 
-    def get_dict(self, name: str) -> Dict[str, Any]:
+    def get_dict(self, name: str) -> dict[str, Any]:
         value = self._styles.get(name, {})
         if isinstance(value, dict):
             result = {}
@@ -375,15 +375,15 @@ class ThemeData:
         return self.get_style("input_container_focus")
 
     @property
-    def TOOL_ICONS(self) -> Dict[str, str]:
+    def TOOL_ICONS(self) -> dict[str, str]:
         return self._icons
 
     @property
-    def DIFF_COLORS(self) -> Dict[str, str]:
+    def DIFF_COLORS(self) -> dict[str, str]:
         return self.get_dict("diff_colors")
 
     @property
-    def JSON_EDITOR_COLORS(self) -> Dict[str, str]:
+    def JSON_EDITOR_COLORS(self) -> dict[str, str]:
         return self.get_dict("json_editor_colors")
 
     @property
@@ -391,7 +391,7 @@ class ThemeData:
         return self.get_style("json_editor")
 
     @property
-    def MARKDOWN_EDITOR_COLORS(self) -> Dict[str, str]:
+    def MARKDOWN_EDITOR_COLORS(self) -> dict[str, str]:
         return self.get_dict("markdown_editor_colors")
 
     @property

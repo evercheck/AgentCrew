@@ -2,7 +2,7 @@ import os
 import tempfile
 import threading
 import time
-from typing import Dict, Any, Optional, Callable
+from typing import Any, Callable
 from io import BytesIO
 import queue
 import soundfile as sf
@@ -20,7 +20,7 @@ ELEVENLABS_INTER_SENTENCE_GAP_SECONDS = 0.12
 class ElevenLabsVoiceService(BaseVoiceService):
     """Service for ElevenLabs voice interactions including TTS and STT."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """Initialize the voice service with ElevenLabs API."""
         # Initialize parent class
         super().__init__()
@@ -51,8 +51,8 @@ class ElevenLabsVoiceService(BaseVoiceService):
         self._start_tts_thread()
 
     def start_voice_recording(
-        self, sample_rate: int = 16000, voice_completed_cb: Optional[Callable] = None
-    ) -> Dict[str, Any]:
+        self, sample_rate: int = 16000, voice_completed_cb: Callable | None = None
+    ) -> dict[str, Any]:
         """
         Start recording voice input.
 
@@ -72,7 +72,7 @@ class ElevenLabsVoiceService(BaseVoiceService):
             logger.error(f"Failed to start recording: {str(e)}")
             return {"success": False, "error": f"Failed to start recording: {str(e)}"}
 
-    def stop_voice_recording(self) -> Dict[str, Any]:
+    def stop_voice_recording(self) -> dict[str, Any]:
         """
         Stop recording and return status.
 
@@ -102,7 +102,7 @@ class ElevenLabsVoiceService(BaseVoiceService):
         """Check if currently recording."""
         return self.audio_handler.is_recording()
 
-    async def speech_to_text(self, audio_data: Any, sample_rate: int) -> Dict[str, Any]:
+    async def speech_to_text(self, audio_data: Any, sample_rate: int) -> dict[str, Any]:
         """
         Convert speech to text using ElevenLabs STT.
 
@@ -111,7 +111,7 @@ class ElevenLabsVoiceService(BaseVoiceService):
             sample_rate: Sample rate of the audio
 
         Returns:
-            Dict containing transcription results
+            dict containing transcription results
         """
         try:
             # Save audio to temporary file
@@ -190,7 +190,7 @@ class ElevenLabsVoiceService(BaseVoiceService):
         logger.debug("TTS worker thread stopped")
 
     def _synthesize_tts_chunk_to_audio_bytes(
-        self, text: str, voice_id: Optional[str], model_id: Optional[str]
+        self, text: str, voice_id: str | None, model_id: str | None
     ) -> bytes:
         response = self.client.text_to_speech.stream(
             text=text,
@@ -212,7 +212,7 @@ class ElevenLabsVoiceService(BaseVoiceService):
         stream(iter([audio_bytes]))
 
     def _process_tts_request(
-        self, text: str, voice_id: Optional[str], model_id: Optional[str]
+        self, text: str, voice_id: str | None, model_id: str | None
     ):
         """
         Process a single TTS request synchronously in the worker thread.
@@ -261,7 +261,7 @@ class ElevenLabsVoiceService(BaseVoiceService):
             logger.error(f"Text-to-speech processing failed: {str(e)}")
 
     def text_to_speech_stream(
-        self, text: str, voice_id: Optional[str] = None, model_id: Optional[str] = None
+        self, text: str, voice_id: str | None = None, model_id: str | None = None
     ):
         """
         Queue text-to-speech audio for streaming in a separate thread.
@@ -293,8 +293,8 @@ class ElevenLabsVoiceService(BaseVoiceService):
         except Exception as e:
             logger.error(f"Failed to queue TTS request: {str(e)}")
 
-    def list_voices(self) -> Dict[str, Any]:
-        """List available ElevenLabs voices."""
+    def list_voices(self) -> dict[str, Any]:
+        """list available ElevenLabs voices."""
         try:
             voices = self.client.voices.get_all()
             return {

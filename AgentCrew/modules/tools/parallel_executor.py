@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, List
+from typing import Any, Awaitable, Callable
 import asyncio
 
 
@@ -15,15 +15,15 @@ def is_sequential_tool(tool_name: str) -> bool:
 
 @dataclass
 class ToolResult:
-    tool_use: Dict[str, Any]
+    tool_use: dict[str, Any]
     result: Any
     is_error: bool = False
 
 
 async def execute_tools_in_parallel(
-    tool_uses: List[Dict[str, Any]],
-    executor: Callable[[str, Dict], Awaitable[Any]],
-) -> List[ToolResult]:
+    tool_uses: list[dict[str, Any]],
+    executor: Callable[[str, dict], Awaitable[Any]],
+) -> list[ToolResult]:
     if len(tool_uses) == 1:
         return [await _safe_execute(executor, tool_uses[0])]
 
@@ -32,8 +32,8 @@ async def execute_tools_in_parallel(
 
 
 async def _safe_execute(
-    executor: Callable[[str, Dict], Awaitable[Any]],
-    tool_use: Dict[str, Any],
+    executor: Callable[[str, dict], Awaitable[Any]],
+    tool_use: dict[str, Any],
 ) -> ToolResult:
     try:
         result = await executor(tool_use["name"], tool_use["input"])

@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List
+from typing import Tuple
 import asyncio
 import os
 import re
@@ -50,8 +50,8 @@ class MessageHandler(Observable):
 
     def __init__(
         self,
-        memory_service: Optional[BaseMemoryService] = None,
-        context_persistent_service: Optional[ContextPersistenceService] = None,
+        memory_service: BaseMemoryService | None = None,
+        context_persistent_service: ContextPersistenceService | None = None,
         with_voice: bool = False,
         voice_service=None,
     ):
@@ -74,13 +74,13 @@ class MessageHandler(Observable):
         self.current_user_input = None
         self.current_user_input_idx = -1
         self.last_assisstant_response_idx = -1
-        self.file_handler: Optional[FileHandler] = None
+        self.file_handler: FileHandler | None = None
         self._queued_attached_files = []
         self.stream_generator = None
         self.streamline_messages = []
         self._stream_session_counter = 0
-        self._active_stream_session: Optional[StreamSession] = None
-        self.current_conversation_id: Optional[str] = None  # ID for persistence
+        self._active_stream_session: StreamSession | None = None
+        self.current_conversation_id: str | None = None  # ID for persistence
         self.prompt_evolution_coordinator = PromptEvolutionCoordinator(
             agent_getter=lambda: self.agent,
             notify=self._notify,
@@ -114,7 +114,7 @@ class MessageHandler(Observable):
 
     def _prepare_files_processing(self, file_command):
         file_paths_str: str = file_command[6:].strip()
-        file_paths: List[str] = [
+        file_paths: list[str] = [
             os.path.expanduser(path.strip())
             for path in shlex.split(file_paths_str)
             if path.strip()
@@ -197,7 +197,7 @@ class MessageHandler(Observable):
         return await self.prompt_evolution_coordinator.start_review()
 
     async def submit_pending_evolution_review(
-        self, action: str, approved_summary: Optional[str] = None
+        self, action: str, approved_summary: str | None = None
     ) -> bool:
         return await self.prompt_evolution_coordinator.submit_review(
             action, approved_summary
@@ -209,7 +209,7 @@ class MessageHandler(Observable):
         self._active_stream_session = session
         return session
 
-    def _clear_stream_session(self, session: Optional[StreamSession]) -> None:
+    def _clear_stream_session(self, session: StreamSession | None) -> None:
         if session and self._active_stream_session is session:
             self._active_stream_session = None
             self.stream_generator = None
@@ -231,7 +231,7 @@ class MessageHandler(Observable):
             session.loop.call_soon_threadsafe(session.task.cancel)
         return True
 
-    def _get_messages_for_current_turn(self) -> List[dict]:
+    def _get_messages_for_current_turn(self) -> list[dict]:
         if self.last_assisstant_response_idx >= 0:
             return self.get_recent_agent_responses()
         if self.current_user_input_idx >= 0:
@@ -256,7 +256,7 @@ class MessageHandler(Observable):
         *,
         store_memory: bool,
         emit_response_completed: bool,
-    ) -> List[dict]:
+    ) -> list[dict]:
         if assistant_response.strip():
             self._messages_append(
                 self.agent.format_message(
@@ -324,8 +324,8 @@ class MessageHandler(Observable):
     async def _run_stream_response(
         self,
         session: StreamSession,
-        prior_token_usage: Optional[TokenUsage] = None,
-    ) -> Tuple[Optional[str], TokenUsage]:
+        prior_token_usage: TokenUsage | None = None,
+    ) -> Tuple[str | None, TokenUsage]:
         """
         Stream the assistant's response and return the response and token usage.
 
@@ -636,7 +636,7 @@ class MessageHandler(Observable):
 
     async def get_assistant_response(
         self, token_usage: TokenUsage | None = None
-    ) -> Tuple[Optional[str], TokenUsage]:
+    ) -> Tuple[str | None, TokenUsage]:
         if token_usage is None:
             token_usage = TokenUsage()
         loop = asyncio.get_running_loop()
@@ -663,11 +663,11 @@ class MessageHandler(Observable):
                 session.finalize("canceled")
             self._clear_stream_session(session)
 
-    def get_recent_agent_responses(self) -> List:
+    def get_recent_agent_responses(self) -> list:
         return self.streamline_messages[self.last_assisstant_response_idx :]
 
-    def _extract_assistant_messages_for_memory(self, messages: List[dict]) -> List[str]:
-        assistant_messages: List[str] = []
+    def _extract_assistant_messages_for_memory(self, messages: list[dict]) -> list[str]:
+        assistant_messages: list[str] = []
         for message in messages:
             if not isinstance(message, dict) or message.get("role") != "assistant":
                 continue
@@ -711,7 +711,7 @@ class MessageHandler(Observable):
             logger.warning(f"Failed to read voice_enabled setting: {e}")
             return False
 
-    def _get_configured_voice_id(self) -> Optional[str]:
+    def _get_configured_voice_id(self) -> str | None:
         """Get the voice ID from current agent settings or return default."""
         try:
             if hasattr(self.agent, "voice_id"):

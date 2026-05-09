@@ -1,19 +1,19 @@
-from typing import Any, Dict, List
+from typing import Any
 
 
 class FileTreeFormatter:
     """Builds and formats hierarchical file tree representations."""
 
-    def build_file_tree(self, file_paths: List[str]) -> Dict[str, Any]:
+    def build_file_tree(self, file_paths: list[str]) -> dict[str, Any]:
         """Build a hierarchical tree structure from flat file paths.
 
         Args:
-            file_paths: List of relative file paths
+            file_paths: list of relative file paths
 
         Returns:
             Nested dictionary representing the file tree
         """
-        tree: Dict[str, Any] = {}
+        tree: dict[str, Any] = {}
         for path in sorted(file_paths):
             parts = path.replace("\\", "/").split("/")
             current = tree
@@ -26,7 +26,7 @@ class FileTreeFormatter:
                     current = current[part]
         return tree
 
-    def format_file_tree(self, tree: Dict[str, Any], indent: str = "") -> List[str]:
+    def format_file_tree(self, tree: dict[str, Any], indent: str = "") -> list[str]:
         """Format a file tree dictionary into indented lines.
 
         Args:
@@ -34,7 +34,7 @@ class FileTreeFormatter:
             indent: Current indentation string
 
         Returns:
-            List of formatted lines
+            list of formatted lines
         """
         lines = []
         items = sorted(tree.keys())

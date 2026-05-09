@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 from loguru import logger
 
 if TYPE_CHECKING:
@@ -22,14 +22,14 @@ class AgentContextManager:
     def __init__(self, agent: "LocalAgent") -> None:
         self._agent = agent
 
-    def build_adaptive_context(self) -> Dict[str, Any]:
+    def build_adaptive_context(self) -> dict[str, Any]:
         """Build the adaptive behavior dict (cwd, git branch, open files, etc.)."""
         from AgentCrew.modules.memory.context_persistent import (
             ContextPersistenceService,
         )
 
         agent = self._agent
-        adaptive_messages: Dict[str, Any] = {
+        adaptive_messages: dict[str, Any] = {
             "role": "user",
             "content": [],
         }
@@ -131,7 +131,7 @@ Apply matching behaviors from <Adaptive_Behaviors> immediately, overriding defau
             logger.warning(f"Failed to get directory structure: {e}")
             return ""
 
-    def enhance_messages(self, final_messages: List[Dict[str, Any]]) -> None:
+    def enhance_messages(self, final_messages: list[dict[str, Any]]) -> None:
         """Inject system prompt and adaptive context into the message list in place."""
         agent = self._agent
 
@@ -216,7 +216,7 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
         if len(adaptive_messages["content"]) > 0:
             final_messages.insert(last_user_index, adaptive_messages)
 
-    def shrink_tool_results(self, final_messages: List[Dict[str, Any]]) -> None:
+    def shrink_tool_results(self, final_messages: list[dict[str, Any]]) -> None:
         """Prune large tool results when token usage exceeds 85% of model context."""
         from AgentCrew.modules.llm.model_registry import ModelRegistry
 
@@ -243,9 +243,9 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
         shrink_excluded.add("activate_skill")
         shrink_excluded.add("search_memory")
         last_agent_tool_calls = -1
-        tool_result_needed_rearrange: Dict[int, List[int]] = {}
-        tool_result_id_needed_rearrange: List[str] = []
-        tool_result_id_needed_shrink: List[str] = []
+        tool_result_needed_rearrange: dict[int, list[int]] = {}
+        tool_result_id_needed_rearrange: list[str] = []
+        tool_result_id_needed_shrink: list[str] = []
 
         for i, msg in enumerate(final_messages):
             content = None

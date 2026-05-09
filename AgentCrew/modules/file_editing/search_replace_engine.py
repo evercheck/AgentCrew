@@ -6,7 +6,7 @@ Implements search/replace blocks for precise file editing.
 """
 
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, Literal
+from typing import Tuple, Literal
 
 
 @dataclass
@@ -35,8 +35,8 @@ class BlockResult:
 
     block: SearchReplaceBlock
     status: Literal["success", "no_match", "ambiguous"]
-    match_location: Optional[MatchLocation]
-    error_message: Optional[str]
+    match_location: MatchLocation | None
+    error_message: str | None
 
 
 class SearchReplaceEngine:
@@ -54,7 +54,7 @@ class SearchReplaceEngine:
     MIDDLE_DELIMITER = "======="
     REPLACE_DELIMITER = ">>>>>>> REPLACE"
 
-    def parse_blocks(self, blocks_text: str) -> List[SearchReplaceBlock]:
+    def parse_blocks(self, blocks_text: str) -> list[SearchReplaceBlock]:
         """
         Parse search/replace blocks from text.
 
@@ -69,7 +69,7 @@ class SearchReplaceEngine:
             blocks_text: Text containing one or more search/replace blocks
 
         Returns:
-            List of SearchReplaceBlock objects
+            list of SearchReplaceBlock objects
 
         Raises:
             ValueError: If block format is invalid
@@ -134,14 +134,14 @@ class SearchReplaceEngine:
         return blocks
 
     def apply_blocks(
-        self, file_content: str, blocks: List[SearchReplaceBlock]
-    ) -> Tuple[str, List[BlockResult]]:
+        self, file_content: str, blocks: list[SearchReplaceBlock]
+    ) -> Tuple[str, list[BlockResult]]:
         """
         Apply search/replace blocks sequentially with context-aware disambiguation.
 
         Args:
             file_content: Original file content
-            blocks: List of parsed search/replace blocks
+            blocks: list of parsed search/replace blocks
 
         Returns:
             Tuple of (modified_content, results_list)
@@ -222,7 +222,7 @@ class SearchReplaceEngine:
 
         return result_content, applied_blocks
 
-    def _find_all_matches(self, content: str, search_text: str) -> List[MatchLocation]:
+    def _find_all_matches(self, content: str, search_text: str) -> list[MatchLocation]:
         """Find all exact matches of search_text in content."""
         matches = []
         start = 0
@@ -248,8 +248,8 @@ class SearchReplaceEngine:
         return matches
 
     def _disambiguate_match(
-        self, matches: List[MatchLocation], last_match_end: int, content: str
-    ) -> Optional[MatchLocation]:
+        self, matches: list[MatchLocation], last_match_end: int, content: str
+    ) -> MatchLocation | None:
         """
         Use previous block context to disambiguate multiple matches.
 
@@ -295,7 +295,7 @@ SUGGESTIONS:
         return error
 
     def _generate_ambiguous_error(
-        self, block: SearchReplaceBlock, matches: List[MatchLocation], content: str
+        self, block: SearchReplaceBlock, matches: list[MatchLocation], content: str
     ) -> str:
         """Generate error message for ambiguous matches."""
         match_locations = [

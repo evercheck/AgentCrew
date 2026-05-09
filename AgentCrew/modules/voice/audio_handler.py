@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple, Any
+from typing import Callable, Tuple, Any
 import threading
 import queue
 import numpy as np
@@ -105,7 +105,7 @@ class AudioHandler(BaseAudioHandler):
                 self._completion_queue.task_done()
 
     def start_recording(
-        self, sample_rate: int = 44100, voice_completed_cb: Optional[Callable] = None
+        self, sample_rate: int = 44100, voice_completed_cb: Callable | None = None
     ) -> None:
         """
         Start recording audio in a separate thread.
@@ -142,7 +142,7 @@ class AudioHandler(BaseAudioHandler):
         self.recording_thread.start()
         logger.info("Recording started")
 
-    def stop_recording(self) -> Tuple[Optional[Any], int]:
+    def stop_recording(self) -> Tuple[Any | None, int]:
         """
         Stop recording and return the recorded audio.
 
@@ -173,7 +173,7 @@ class AudioHandler(BaseAudioHandler):
             return None, 0
 
     def _recording_worker(
-        self, sample_rate: int, voice_completed_cb: Optional[Callable] = None
+        self, sample_rate: int, voice_completed_cb: Callable | None = None
     ):
         """Worker thread for continuous recording."""
         try:

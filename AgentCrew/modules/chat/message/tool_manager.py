@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Any
 import asyncio
 
 from loguru import logger
@@ -35,7 +35,7 @@ class ToolManager:
         """Load persistent auto-approved tools from config."""
         return set(GlobalConfig().get_auto_approval_tools())
 
-    async def execute_tool(self, tool_use: Dict[str, Any]):
+    async def execute_tool(self, tool_use: dict[str, Any]):
         """Execute a tool with proper confirmation flow."""
         tool_name = tool_use["name"]
         tool_id = tool_use["id"]
@@ -217,7 +217,7 @@ class ToolManager:
             tool_use: The tool use dictionary
 
         Returns:
-            Dict with confirmation result containing action and any additional data
+            dict with confirmation result containing action and any additional data
         """
         confirmation_id = self._next_confirmation_id
         self._next_confirmation_id += 1
@@ -316,7 +316,7 @@ class ToolManager:
             {"tool_use": tool_use, "agent_name": self.message_handler.agent.name},
         )
 
-    async def execute_tools_batch(self, tool_uses: List[Dict[str, Any]]):
+    async def execute_tools_batch(self, tool_uses: list[dict[str, Any]]):
         parallel_buffer = []
 
         for tool_use in tool_uses:
@@ -331,7 +331,7 @@ class ToolManager:
         if parallel_buffer:
             await self._execute_parallel_batch(parallel_buffer)
 
-    async def _execute_parallel_batch(self, tool_uses: List[Dict[str, Any]]):
+    async def _execute_parallel_batch(self, tool_uses: list[dict[str, Any]]):
         approved = []
         for tool_use in tool_uses:
             approval_result = await self._needs_and_gets_approval(tool_use)
@@ -384,7 +384,7 @@ class ToolManager:
                     },
                 )
 
-    async def _needs_and_gets_approval(self, tool_use: Dict[str, Any]) -> str:
+    async def _needs_and_gets_approval(self, tool_use: dict[str, Any]) -> str:
         tool_name = tool_use["name"]
         tool_id = tool_use["id"]
 

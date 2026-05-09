@@ -2,7 +2,7 @@ import asyncio
 import os
 import re
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 import tomllib
 from loguru import logger
@@ -214,8 +214,8 @@ class OnboardingService:
     def __init__(
         self,
         llm_service: Any,
-        agents_config: Optional[AgentsConfig] = None,
-        services: Optional[Dict[str, Any]] = None,
+        agents_config: AgentsConfig | None = None,
+        services: dict[str, Any] | None = None,
     ):
         self.llm_service = llm_service
         self.agents_config = agents_config or AgentsConfig()
@@ -241,7 +241,7 @@ class OnboardingService:
             elif self.llm_service.provider_name == "opencode_go":
                 self.llm_service.model = "kimi-k2.6"
 
-    def should_run(self, config_uri: Optional[str] = None) -> bool:
+    def should_run(self, config_uri: str | None = None) -> bool:
         """Check whether onboarding should run (no agents in config)."""
         config_path = config_uri or os.getenv("SW_AGENTS_CONFIG", "./agents.toml")
         config_path = os.path.expanduser(config_path)
@@ -277,7 +277,7 @@ class OnboardingService:
         return self.create_agent()
 
     def create_agent(
-        self, name: Optional[str] = None, description: Optional[str] = None
+        self, name: str | None = None, description: str | None = None
     ) -> bool:
         """Create an agent interactively, skipping the welcome header and confirmation prompt.
 
@@ -414,7 +414,7 @@ class OnboardingService:
 
     async def _run_onboarding_chat(
         self, agent_name: str, agent_description: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Run a multi-turn conversation with the LLM to gather info and generate an agent."""
         try:
             initial_message = (
@@ -483,7 +483,7 @@ class OnboardingService:
 
     async def _generate_onboarding_response(
         self, onboarding_agent: LocalAgent, prompt: str
-    ) -> Optional[str]:
+    ) -> str | None:
         history = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
         return await run_agent_loop(onboarding_agent, history)
 
@@ -511,7 +511,7 @@ class OnboardingService:
         )
         self.console.print("")
 
-    def _ask_onboarding_input(self) -> Optional[str]:
+    def _ask_onboarding_input(self) -> str | None:
         kb = self._kb_skip()
 
         @kb.add(Keys.ControlS)
@@ -545,7 +545,7 @@ class OnboardingService:
         return "".join(parts)
 
     @staticmethod
-    def _extract_toml(text: str) -> Optional[str]:
+    def _extract_toml(text: str) -> str | None:
         """Extract TOML content from a ```toml markdown block or raw [[agents]] text."""
         text = text.strip()
         pattern = r"```toml\s*\n?(.*?)\n?```"
@@ -557,7 +557,7 @@ class OnboardingService:
         return None
 
     @staticmethod
-    def _looks_like_agent_definition(parsed: Dict[str, Any]) -> bool:
+    def _looks_like_agent_definition(parsed: dict[str, Any]) -> bool:
         """Check whether parsed TOML dict contains an agent definition."""
         agents = parsed.get("agents")
         if isinstance(agents, list) and len(agents) > 0:
@@ -617,7 +617,7 @@ class OnboardingService:
             logger.error("Save agent error: " + str(e))
             return False
 
-    def _write_agent_directly(self, agent_def: Dict[str, Any]) -> None:
+    def _write_agent_directly(self, agent_def: dict[str, Any]) -> None:
         """Write agent directly to agents.toml, bypassing reload to avoid chicken-and-egg issues."""
         import tomli_w
 
@@ -626,7 +626,7 @@ class OnboardingService:
         if config_dir:
             os.makedirs(config_dir, exist_ok=True)
 
-        existing: Dict[str, Any] = {"agents": []}
+        existing: dict[str, Any] = {"agents": []}
         if os.path.exists(config_path):
             try:
                 with open(config_path, "rb") as f:

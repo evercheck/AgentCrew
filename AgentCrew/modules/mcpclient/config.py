@@ -2,7 +2,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 from loguru import logger
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
@@ -11,8 +11,8 @@ from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 class MCPOAuthOverrideConfig:
     """Normalized optional OAuth override configuration for an MCP server."""
 
-    tokens: Optional[OAuthToken] = None
-    client_info: Optional[OAuthClientInformationFull] = None
+    tokens: OAuthToken | None = None
+    client_info: OAuthClientInformationFull | None = None
 
 
 @dataclass
@@ -21,20 +21,20 @@ class MCPServerConfig:
 
     name: str
     command: str
-    args: List[str]
-    enabledForAgents: List[str]
-    env: Optional[Dict[str, str]] = None
+    args: list[str]
+    enabledForAgents: list[str]
+    env: dict[str, str] | None = None
     streaming_server: bool = False
     url: str = ""
-    headers: Optional[Dict[str, str]] = None
-    includeTools: Optional[List[str]] = None
-    oauth: Optional[MCPOAuthOverrideConfig] = None
+    headers: dict[str, str] | None = None
+    includeTools: list[str] | None = None
+    oauth: MCPOAuthOverrideConfig | None = None
 
 
 class MCPConfigManager:
     """Manager for MCP server configurations."""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """
         Initialize the configuration manager.
 
@@ -50,11 +50,11 @@ class MCPConfigManager:
                 "mcp_servers.json",
             ),
         )
-        self.configs: Dict[str, MCPServerConfig] = {}
+        self.configs: dict[str, MCPServerConfig] = {}
 
     def _normalize_include_tools(
         self, include_tools: Any, server_id: str
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """Normalize the optional MCP includeTools setting."""
         if include_tools is None:
             return None
@@ -65,7 +65,7 @@ class MCPConfigManager:
             )
             return None
 
-        normalized_tools: List[str] = []
+        normalized_tools: list[str] = []
         seen_tools = set()
         for tool_name in include_tools:
             normalized_name = str(tool_name).strip()
@@ -78,7 +78,7 @@ class MCPConfigManager:
 
     def _normalize_oauth(
         self, oauth_config: Any, server_id: str
-    ) -> Optional[MCPOAuthOverrideConfig]:
+    ) -> MCPOAuthOverrideConfig | None:
         """Normalize the optional MCP OAuth override setting."""
         if oauth_config is None:
             return None
@@ -89,8 +89,8 @@ class MCPConfigManager:
             )
             return None
 
-        tokens_override: Optional[OAuthToken] = None
-        client_info_override: Optional[OAuthClientInformationFull] = None
+        tokens_override: OAuthToken | None = None
+        client_info_override: OAuthClientInformationFull | None = None
 
         raw_tokens = oauth_config.get("tokens")
         if raw_tokens is not None:
@@ -147,7 +147,7 @@ class MCPConfigManager:
             client_info=client_info_override,
         )
 
-    def load_config(self) -> Dict[str, MCPServerConfig]:
+    def load_config(self) -> dict[str, MCPServerConfig]:
         """
         Load server configurations from the config file.
 
@@ -189,8 +189,8 @@ class MCPConfigManager:
             return {}
 
     def get_enabled_servers(
-        self, agent_name: Optional[str] = None
-    ) -> Dict[str, MCPServerConfig]:
+        self, agent_name: str | None = None
+    ) -> dict[str, MCPServerConfig]:
         """
         Get all enabled server configurations.
 

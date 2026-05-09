@@ -1,7 +1,6 @@
 import threading
 import subprocess
 from enum import Enum
-from typing import Optional, List
 from dataclasses import dataclass, field
 
 from loguru import logger
@@ -30,14 +29,14 @@ class CommandProcess:
     process: subprocess.Popen
     platform: str
     start_time: float
-    stdout_lines: List[str] = field(default_factory=list)
-    stderr_lines: List[str] = field(default_factory=list)
+    stdout_lines: list[str] = field(default_factory=list)
+    stderr_lines: list[str] = field(default_factory=list)
     output_lock: threading.Lock = field(default_factory=threading.Lock)
     state: CommandState = CommandState.QUEUED
-    exit_code: Optional[int] = None
-    reader_threads: List[threading.Thread] = field(default_factory=list)
+    exit_code: int | None = None
+    reader_threads: list[threading.Thread] = field(default_factory=list)
     stop_event: threading.Event = field(default_factory=threading.Event)
-    working_dir: Optional[str] = None
+    working_dir: str | None = None
 
     def transition_to(self, new_state: CommandState):
         """Transition to new state with validation"""

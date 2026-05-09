@@ -10,7 +10,7 @@ from loguru import logger
 from .token_usage import TokenUsage
 
 if TYPE_CHECKING:
-    from typing import List, Dict, Any, Optional, Tuple
+    from typing import Any, Tuple
 
 
 def read_text_file(file_path):
@@ -107,12 +107,12 @@ class BaseLLMService(ABC):
         self._temperature = value
 
     @property
-    def structured_output(self) -> Optional[Dict[str, Any]]:
+    def structured_output(self) -> dict[str, Any] | None:
         """Get the temperature for this service."""
         return getattr(self, "_structured_output", None)
 
     @structured_output.setter
-    def structured_output(self, value: Dict):
+    def structured_output(self, value: dict):
         self._structured_output = value
 
     def _extract_tool_name(self, tool_def) -> str:
@@ -124,7 +124,7 @@ class BaseLLMService(ABC):
     def parse_user_context_summary(
         self,
         assistant_response: str,
-    ) -> Tuple[Optional[Dict[str, Any]], str]:
+    ) -> Tuple[dict[str, Any] | None, str]:
         """
         Parses the <user_context_summary> JSON block from the beginning of a string.
 
@@ -138,7 +138,7 @@ class BaseLLMService(ABC):
             - The rest of the string after the summary block (or the original
             string if the block wasn't found).
         """
-        summary_data: Optional[Dict[str, Any]] = None
+        summary_data: dict[str, Any] | None = None
         cleaned_response: str = (
             assistant_response
             if not assistant_response.startswith("<user_context_summary>")
@@ -224,17 +224,17 @@ class BaseLLMService(ABC):
         pass
 
     @abstractmethod
-    def process_file_for_message(self, file_path: str) -> Optional[Dict[str, Any]]:
+    def process_file_for_message(self, file_path: str) -> dict[str, Any] | None:
         """Process a file and return the appropriate message content."""
         pass
 
     @abstractmethod
-    def handle_file_command(self, file_path: str) -> Optional[List[Dict[str, Any]]]:
+    def handle_file_command(self, file_path: str) -> list[dict[str, Any]] | None:
         """Handle the /file command and return message content."""
         pass
 
     @abstractmethod
-    async def stream_assistant_response(self, messages: List[Dict[str, Any]]) -> Any:
+    async def stream_assistant_response(self, messages: list[dict[str, Any]]) -> Any:
         """Stream the assistant's response."""
         pass
 
@@ -272,7 +272,7 @@ class BaseLLMService(ABC):
         return await handler(**tool_params)
 
     @abstractmethod
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]) -> Any:
+    def _convert_internal_format(self, messages: list[dict[str, Any]]) -> Any:
         """
         Convert agent message format to the provider-specific format.
         """
@@ -294,7 +294,7 @@ class BaseLLMService(ABC):
     @abstractmethod
     def process_stream_chunk(
         self, chunk, assistant_response, tool_uses
-    ) -> tuple[str, list[Dict] | None, TokenUsage, str | None, tuple | None]:
+    ) -> tuple[str, list[dict] | None, TokenUsage, str | None, tuple | None]:
         """
         Process a single chunk from the streaming response.
 
@@ -306,7 +306,7 @@ class BaseLLMService(ABC):
         Returns:
             tuple: (
                 updated_assistant_response (str),
-                updated_tool_uses (List of dict or empty),
+                updated_tool_uses (list of dict or empty),
                 token_usage (TokenUsage) - token usage for this chunk,
                 chunk_text (str or None) - text to print for this chunk,
                 thinking_content (tuple or None) - thinking content from this chunk

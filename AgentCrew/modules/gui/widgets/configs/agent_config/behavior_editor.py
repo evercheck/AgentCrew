@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -26,9 +26,9 @@ class BehaviorEditor(QWidget):
     def __init__(
         self,
         persistence_service: ContextPersistenceService,
-        on_dirty_callback: Optional[Callable[[], None]] = None,
-        get_current_agent_name: Optional[Callable[[], str]] = None,
-        parent: Optional[QWidget] = None,
+        on_dirty_callback: Callable[[], None] | None = None,
+        get_current_agent_name: Callable[[], str] | None = None,
+        parent: QWidget | None = None,
     ):
         super().__init__(parent)
         self.persistence_service = persistence_service

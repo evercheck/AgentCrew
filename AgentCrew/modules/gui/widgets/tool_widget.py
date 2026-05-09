@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, Any, Optional
+from typing import Any
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -24,8 +24,8 @@ class ToolWidget(QWidget):
     def __init__(
         self,
         tool_name: str,
-        tool_data: Dict[str, Any],
-        result_data: Optional[Any] = None,
+        tool_data: dict[str, Any],
+        result_data: Any | None = None,
         is_error: bool = False,
         parent=None,
     ):

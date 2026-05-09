@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import xmltodict
 from loguru import logger
@@ -84,7 +84,7 @@ Return ONLY valid JSON:
 2. PRESERVE all existing role definitions, mission statements, and identity descriptions
 3. PRESERVE all tool/safety/transfer/approval rules unchanged
 4. PRESERVE all placeholders exactly: {{current_date}}, {{cwd}}, {{current_agent_name}}, {{current_agent_description}}
-5. PRESERVE any XML-like structural tags (e.g., <Agent_Instructions>, <Available_Agents_List>)
+5. PRESERVE any XML-like structural tags (e.g., <Agent_Instructions>, <Transferable_Agents>)
 6. INTEGRATE the approved improvements naturally into existing sections where they fit best
 7. If no existing section fits, add a concise new section near the end (before any closing tags)
 8. CONSOLIDATE overlapping instructions instead of appending near-duplicates
@@ -120,13 +120,13 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
         self,
         memory_service=None,
         persistence_service=None,
-        agents_config: Optional[AgentsConfig] = None,
+        agents_config: AgentsConfig | None = None,
     ):
         self.memory_service = memory_service
         self.persistence_service = persistence_service
         self.agents_config = agents_config or AgentsConfig()
 
-    async def create_evolution_proposal(self, agent: Any) -> Dict[str, Any]:
+    async def create_evolution_proposal(self, agent: Any) -> dict[str, Any]:
         if not isinstance(agent, LocalAgent):
             raise ValueError("/evolve is only supported for local agents.")
 
@@ -184,10 +184,10 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
         agent: LocalAgent,
         revised_prompt: str,
         approved_summary: str,
-        generated_summary: Optional[str] = None,
-        memory_ids: Optional[List[str]] = None,
+        generated_summary: str | None = None,
+        memory_ids: list[str] | None = None,
         edited_by_user: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         previous_prompt = agent.get_system_prompt()
         normalized_generated_summary = generated_summary or approved_summary
         normalized_memory_ids = memory_ids or []
@@ -243,7 +243,7 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
             "edited_by_user": edited_by_user,
         }
 
-    def _get_memory_corpus(self, agent: LocalAgent) -> List[Dict[str, Any]]:
+    def _get_memory_corpus(self, agent: LocalAgent) -> list[dict[str, Any]]:
         if not self.memory_service:
             return []
         return self.memory_service.get_agent_memory_corpus(
@@ -251,7 +251,7 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
             max_items=self.DEFAULT_MEMORY_ITEMS,
         )
 
-    def _prepare_corpus_for_analysis(self, memory_corpus: List[Dict[str, Any]]) -> str:
+    def _prepare_corpus_for_analysis(self, memory_corpus: list[dict[str, Any]]) -> str:
         entries = []
         for i, item in enumerate(memory_corpus, 1):
             doc = item.get("document", "")
@@ -325,8 +325,8 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
         return "\n".join(parts)
 
     async def _run_analysis(
-        self, agent: LocalAgent, memory_corpus: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, agent: LocalAgent, memory_corpus: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         corpus_text = self._prepare_corpus_for_analysis(memory_corpus)
         prompt = self.ANALYSIS_PROMPT.format(
             agent_name=agent.name,
@@ -338,7 +338,7 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
         raw_response = await agent.llm.process_message(prompt)
         return self._parse_json_response(raw_response)
 
-    def _parse_json_response(self, raw_response: str) -> Dict[str, Any]:
+    def _parse_json_response(self, raw_response: str) -> dict[str, Any]:
         raw_response = raw_response.strip()
         if raw_response.startswith("```"):
             lines = raw_response.split("\n")
@@ -357,8 +357,8 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
                 )
             return json.loads(match.group(0))
 
-    def _sanitize_analysis(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
-        sanitized: Dict[str, Any] = {
+    def _sanitize_analysis(self, analysis: dict[str, Any]) -> dict[str, Any]:
+        sanitized: dict[str, Any] = {
             "durable_traits": self._sanitize_items(analysis.get("durable_traits", [])),
             "output_preferences": self._sanitize_items(
                 analysis.get("output_preferences", [])
@@ -379,7 +379,7 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
         }
         return sanitized
 
-    def _sanitize_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _sanitize_items(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         sanitized = []
         for item in items:
             text = str(item.get("item", "")).strip()
@@ -398,7 +398,7 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
     def _is_project_specific(self, text: str) -> bool:
         return any(pattern.search(text) for pattern in self.PROJECT_SPECIFIC_PATTERNS)
 
-    def _format_user_summary(self, analysis: Dict[str, Any]) -> str:
+    def _format_user_summary(self, analysis: dict[str, Any]) -> str:
         sections = []
         for title, key in (
             ("Durable traits", "durable_traits"),

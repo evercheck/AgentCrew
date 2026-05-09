@@ -14,7 +14,6 @@ Error Codes (Section 8.2):
 - -32007: AuthenticatedExtendedCardNotConfiguredError
 """
 
-from typing import Optional
 from a2a.types import (
     TaskNotFoundError,
     TaskNotCancelableError,
@@ -51,7 +50,7 @@ class A2AError:
 
     @staticmethod
     def content_type_not_supported(
-        mime_type: str, supported_types: Optional[list[str]] = None
+        mime_type: str, supported_types: list[str] | None = None
     ) -> ContentTypeNotSupportedError:
         error = ContentTypeNotSupportedError()
         error.data = {"mime_type": mime_type}

@@ -20,7 +20,7 @@ from loguru import logger
 
 from AgentCrew.modules.config import ConfigManagement
 from AgentCrew.modules.config.global_config import GlobalConfig
-from typing import List, Optional, Dict, Any
+from typing import Any
 from AgentCrew.modules.gui.themes import StyleProvider
 
 
@@ -28,8 +28,8 @@ class ModelEditorDialog(QDialog):
     def __init__(
         self,
         provider_name: str,
-        model_data: Optional[Dict[str, Any]] = None,
-        existing_model_ids: Optional[List[str]] = None,
+        model_data: dict[str, Any] | None = None,
+        existing_model_ids: list[str] | None = None,
         parent=None,
     ):
         super().__init__(parent)
@@ -104,7 +104,7 @@ class ModelEditorDialog(QDialog):
         if self.model_data_to_edit:
             self.populate_fields(self.model_data_to_edit)
 
-    def populate_fields(self, data: Dict[str, Any]):
+    def populate_fields(self, data: dict[str, Any]):
         self.id_edit.setText(data.get("id", ""))
         self.name_edit.setText(data.get("name", ""))
         self.description_edit.setPlainText(data.get("description", ""))
@@ -125,7 +125,7 @@ class ModelEditorDialog(QDialog):
         # Model.provider is set by self.provider_name
         # Model.default is not directly edited here, assumed False for models within a custom provider list
 
-    def get_model_data(self) -> Dict[str, Any]:
+    def get_model_data(self) -> dict[str, Any]:
         # Collect capabilities from checkboxes
         capabilities_list = []
         if self.capabilities_tool_use_checkbox.isChecked():
@@ -391,7 +391,7 @@ class CustomLLMProvidersConfigTab(QWidget):
         """Initialize the UI components."""
         main_layout = QHBoxLayout(self)
 
-        # Left Panel: List of providers and action buttons
+        # Left Panel: list of providers and action buttons
         left_panel_widget = QWidget()
         left_panel_layout = QVBoxLayout(left_panel_widget)
 
@@ -640,7 +640,7 @@ class CustomLLMProvidersConfigTab(QWidget):
             "api_base_url": api_base_url,
             "api_key": api_key,
             "default_model_id": default_model_id,
-            "available_models": available_models_data,  # List of model dictionaries
+            "available_models": available_models_data,  # list of model dictionaries
             "extra_headers": extra_headers,  # Add the extra_headers field
         }
 

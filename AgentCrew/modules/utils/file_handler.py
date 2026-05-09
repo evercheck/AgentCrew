@@ -1,6 +1,6 @@
 import os
 import mimetypes
-from typing import Optional, Dict, Any
+from typing import Any
 import sys
 from loguru import logger
 
@@ -107,7 +107,7 @@ class FileHandler:
             except Exception as e:
                 logger.error(f"Failed to initialize Docling converter: {str(e)}")
 
-    def _guess_mime_by_extension(self, file_path: str) -> Optional[str]:
+    def _guess_mime_by_extension(self, file_path: str) -> str | None:
         extension = os.path.splitext(file_path)[1].lower().lstrip(".")
         if extension in EXTENSION_MIME_MAPPING:
             return EXTENSION_MIME_MAPPING[extension]
@@ -149,7 +149,7 @@ class FileHandler:
 
         return True
 
-    def process_file(self, file_path: str) -> Optional[Dict[str, Any]]:
+    def process_file(self, file_path: str) -> dict[str, Any] | None:
         """
         Process a file using Docling or fallback methods.
 
@@ -157,7 +157,7 @@ class FileHandler:
             file_path: Path to the file
 
         Returns:
-            Optional[Dict[str, Any]]: Processed file content or None if processing failed
+            dict[str, Any] | None: Processed file content or None if processing failed
         """
         # Validate file first
         if not self.validate_file(file_path):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Sequence, Union
 
 from a2a.types import (
     Task,
@@ -52,7 +52,7 @@ class RedisTaskStore(TaskStore):
     def _key(self, namespace: str, id: str) -> str:
         return f"{self.prefix}:{namespace}:{id}"
 
-    async def get_task(self, task_id: str) -> Optional[Task]:
+    async def get_task(self, task_id: str) -> Task | None:
         r = await self._get_redis()
         data = await r.get(self._key("task", task_id))
         if data is None:
@@ -72,7 +72,7 @@ class RedisTaskStore(TaskStore):
         r = await self._get_redis()
         return await r.exists(self._key("task", task_id)) > 0
 
-    async def get_task_history(self, context_id: str) -> List[Dict[str, Any]]:
+    async def get_task_history(self, context_id: str) -> list[dict[str, Any]]:
         r = await self._get_redis()
         data = await r.get(self._key("history", context_id))
         if data is None:
@@ -80,14 +80,14 @@ class RedisTaskStore(TaskStore):
         return json.loads(data)
 
     async def save_task_history(
-        self, context_id: str, history: List[Dict[str, Any]]
+        self, context_id: str, history: list[dict[str, Any]]
     ) -> None:
         r = await self._get_redis()
         key = self._key("history", context_id)
         await r.set(key, json.dumps(history, default=str), ex=self.ttl)
 
     async def append_task_history_message(
-        self, context_id: str, message: Dict[str, Any]
+        self, context_id: str, message: dict[str, Any]
     ) -> None:
         r = await self._get_redis()
         key = self._key("history", context_id)
@@ -102,7 +102,7 @@ class RedisTaskStore(TaskStore):
 
     async def get_task_events(
         self, task_id: str
-    ) -> List[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]:
+    ) -> list[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]:
         r = await self._get_redis()
         raw_events = [
             json.loads(item)

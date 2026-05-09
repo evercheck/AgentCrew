@@ -4,7 +4,7 @@ import io
 import os
 import tempfile
 from PIL import ImageGrab, Image
-from typing import Dict, Any, Optional
+from typing import Any
 
 from loguru import logger
 
@@ -16,7 +16,7 @@ class ClipboardService:
         """Initialize the clipboard service."""
         self.temp_files = []  # Keep track of temporary files for cleanup
 
-    def write_text(self, content: str) -> Dict[str, Any]:
+    def write_text(self, content: str) -> dict[str, Any]:
         """
         Write text content to the clipboard.
 
@@ -24,7 +24,7 @@ class ClipboardService:
             content: Text content to write to clipboard
 
         Returns:
-            Dict containing success status and any error information
+            dict containing success status and any error information
         """
         try:
             pyperclip.copy(content)
@@ -38,7 +38,7 @@ class ClipboardService:
                 "error": f"Failed to write to clipboard: {str(e)}",
             }
 
-    def _create_temp_file_from_image(self, image: Image.Image) -> Optional[str]:
+    def _create_temp_file_from_image(self, image: Image.Image) -> str | None:
         """
         Create a temporary file from a PIL Image.
 
@@ -68,12 +68,12 @@ class ClipboardService:
             logger.error(f"Failed to create temporary file from image: {str(e)}")
             return None
 
-    def read(self) -> Dict[str, Any]:
+    def read(self) -> dict[str, Any]:
         """
         Read content from the clipboard and automatically determine the content type.
 
         Returns:
-            Dict containing the clipboard content or error information
+            dict containing the clipboard content or error information
         """
         try:
             # First check if there's an image in the clipboard
@@ -110,13 +110,13 @@ class ClipboardService:
                 "error": f"Failed to read from clipboard: {str(e)}",
             }
 
-    def read_and_process_paste(self) -> Dict[str, Any]:
+    def read_and_process_paste(self) -> dict[str, Any]:
         """
         Read clipboard content and if it's an image or binary file, create a temporary file
         and return a file command that can be processed.
 
         Returns:
-            Dict containing either processed file command or regular text content
+            dict containing either processed file command or regular text content
         """
 
         image = ImageGrab.grabclipboard()
@@ -175,7 +175,7 @@ class ClipboardService:
 
         self.temp_files = []
 
-    def write(self, content: str) -> Dict[str, Any]:
+    def write(self, content: str) -> dict[str, Any]:
         """
         Write content to the clipboard.
 
@@ -183,7 +183,7 @@ class ClipboardService:
             content: Content to write to clipboard
 
         Returns:
-            Dict containing success status and any error information
+            dict containing success status and any error information
         """
         return self.write_text(content)
 

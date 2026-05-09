@@ -7,7 +7,7 @@ from chromadb.utils.embedding_functions.schemas import validate_config_schema
 import os
 
 if TYPE_CHECKING:
-    from typing import Optional, List, Dict, Any
+    from typing import Any
 
 
 class VoyageEmbeddingFunction(EmbeddingFunction[Documents]):
@@ -15,7 +15,7 @@ class VoyageEmbeddingFunction(EmbeddingFunction[Documents]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model_name: str = "voyage-3.5-lite",
         api_key_env_var: str = "CHROMA_VOYAGE_API_KEY",
     ):
@@ -67,7 +67,7 @@ class VoyageEmbeddingFunction(EmbeddingFunction[Documents]):
             input,
             model=self.model_name,
         )
-        # Convert to the expected Embeddings type (List[Vector])
+        # Convert to the expected Embeddings type (list[Vector])
         return cast(Embeddings, embedding_result.embeddings)
 
     @staticmethod
@@ -77,11 +77,11 @@ class VoyageEmbeddingFunction(EmbeddingFunction[Documents]):
     def default_space(self) -> Space:
         return "cosine"
 
-    def supported_spaces(self) -> List[Space]:
+    def supported_spaces(self) -> list[Space]:
         return ["cosine", "l2", "ip"]
 
     @staticmethod
-    def build_from_config(config: Dict[str, Any]) -> "EmbeddingFunction[Documents]":
+    def build_from_config(config: dict[str, Any]) -> "EmbeddingFunction[Documents]":
         api_key_env_var = config.get("api_key_env_var")
         model_name = config.get("model_name")
         task_type = config.get("task_type")
@@ -94,14 +94,14 @@ class VoyageEmbeddingFunction(EmbeddingFunction[Documents]):
             model_name=model_name,
         )
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         return {
             "api_key_env_var": self.api_key_env_var,
             "model_name": self.model_name,
         }
 
     def validate_config_update(
-        self, old_config: Dict[str, Any], new_config: Dict[str, Any]
+        self, old_config: dict[str, Any], new_config: dict[str, Any]
     ) -> None:
         if "model_name" in new_config:
             raise ValueError(
@@ -113,7 +113,7 @@ class VoyageEmbeddingFunction(EmbeddingFunction[Documents]):
             )
 
     @staticmethod
-    def validate_config(config: Dict[str, Any]) -> None:
+    def validate_config(config: dict[str, Any]) -> None:
         """
         Validate the configuration using the JSON schema.
 

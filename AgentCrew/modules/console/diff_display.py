@@ -4,7 +4,6 @@ Provides split view diff display with syntax highlighting.
 """
 
 import difflib
-from typing import List, Dict
 from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
@@ -76,7 +75,7 @@ class DiffDisplay:
         )
 
     @staticmethod
-    def has_search_replace_blocks(blocks: List[Dict]) -> bool:
+    def has_search_replace_blocks(blocks: list[dict]) -> bool:
         """Check if input is a valid list of search/replace blocks."""
         if not isinstance(blocks, list):
             return False
@@ -85,15 +84,15 @@ class DiffDisplay:
         )
 
     @staticmethod
-    def parse_search_replace_blocks(blocks: List[Dict]) -> List[Dict]:
+    def parse_search_replace_blocks(blocks: list[dict]) -> list[dict]:
         """
         Parse search/replace blocks from list format.
 
         Args:
-            blocks: List of dicts with 'search' and 'replace' keys
+            blocks: list of dicts with 'search' and 'replace' keys
 
         Returns:
-            List of dicts with 'index', 'search', and 'replace' keys
+            list of dicts with 'index', 'search', and 'replace' keys
         """
         if not isinstance(blocks, list):
             return []

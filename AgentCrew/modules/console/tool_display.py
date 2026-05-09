@@ -5,7 +5,6 @@ Handles rendering of tool-related information like tool use, results, errors, an
 
 from __future__ import annotations
 import json
-from typing import Dict
 from rich.console import Group
 from rich.panel import Panel
 from rich.box import HORIZONTALS
@@ -50,7 +49,7 @@ class ToolDisplayHandlers:
         }
         return tool_icons.get(tool_name, "🔧")
 
-    def display_delegate_started(self, tool_use: Dict):
+    def display_delegate_started(self, tool_use: dict):
         """Display a compact 'working' line for a delegate tool call."""
         params = tool_use.get("input") or tool_use.get("arguments", {})
         target_agent = (
@@ -66,7 +65,7 @@ class ToolDisplayHandlers:
         line.append(f": {task_preview}", style=RICH_STYLE_GRAY)
         self.console.print(line)
 
-    def display_delegate_completed(self, tool_use: Dict):
+    def display_delegate_completed(self, tool_use: dict):
         """Display a compact 'done' line when a delegate tool finishes."""
         params = tool_use.get("input") or tool_use.get("arguments", {})
         target_agent = (
@@ -80,7 +79,7 @@ class ToolDisplayHandlers:
         line.append(" completed", style=RICH_STYLE_GREEN)
         self.console.print(line)
 
-    def display_tool_use(self, tool_use: Dict):
+    def display_tool_use(self, tool_use: dict):
         """Display information about a tool being used."""
         tool_icon = self.get_tool_icon(tool_use["name"])
 
@@ -140,7 +139,7 @@ class ToolDisplayHandlers:
             )
         )
 
-    def _display_write_or_edit_file_use(self, tool_use: Dict, file_path: str, blocks):
+    def _display_write_or_edit_file_use(self, tool_use: dict, file_path: str, blocks):
         """Display write_or_edit_file tool with split diff view."""
         tool_icon = self.get_tool_icon(tool_use["name"])
 
@@ -159,7 +158,7 @@ class ToolDisplayHandlers:
                 )
                 self.console.print(diff_table)
 
-    def display_tool_result(self, data: Dict):
+    def display_tool_result(self, data: dict):
         """Display the result of a tool execution."""
         tool_use = data["tool_use"]
         tool_result = data["tool_result"]
@@ -194,7 +193,7 @@ class ToolDisplayHandlers:
             )
         )
 
-    def display_tool_error(self, data: Dict):
+    def display_tool_error(self, data: dict):
         """Display an error that occurred during tool execution."""
         tool_use = data["tool_use"]
         error = data["error"]

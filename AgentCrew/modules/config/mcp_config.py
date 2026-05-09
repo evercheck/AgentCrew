@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 
 class MCPConfig:
@@ -10,7 +10,7 @@ class MCPConfig:
     def _path(self) -> str:
         return os.getenv("MCP_CONFIG_PATH", os.path.expanduser("./mcp_servers.json"))
 
-    def read(self) -> Dict[str, Any]:
+    def read(self) -> dict[str, Any]:
         """Return MCP server config, or {} on error."""
         try:
             with open(self._path, "r", encoding="utf-8") as f:
@@ -18,7 +18,7 @@ class MCPConfig:
         except Exception:
             return {}
 
-    def write(self, config_data: Dict[str, Any]) -> None:
+    def write(self, config_data: dict[str, Any]) -> None:
         """Persist config_data and trigger agent reload."""
         from AgentCrew.modules.config.agents_config import AgentsConfig
 

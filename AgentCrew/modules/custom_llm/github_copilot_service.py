@@ -3,7 +3,7 @@ from .service import CustomLLMService
 import os
 from dotenv import load_dotenv
 from loguru import logger
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Any, Tuple
 from datetime import datetime
 from uuid import uuid4
 from AgentCrew.modules.llm.token_usage import TokenUsage
@@ -11,7 +11,7 @@ from AgentCrew.modules.llm.token_usage import TokenUsage
 
 class GithubCopilotService(CustomLLMService):
     def __init__(
-        self, api_key: Optional[str] = None, provider_name: str = "github_copilot"
+        self, api_key: str | None = None, provider_name: str = "github_copilot"
     ):
         if api_key is None:
             load_dotenv()
@@ -99,7 +99,7 @@ class GithubCopilotService(CustomLLMService):
                 return True
         return False
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]):
+    def _convert_internal_format(self, messages: list[dict[str, Any]]):
         thinking_block = None
         for i, msg in enumerate(messages):
             msg.pop("agent", None)
@@ -109,7 +109,7 @@ class GithubCopilotService(CustomLLMService):
                     msg["reasoning_opaque"] = thinking_block.get("signature", "")
                     thinking_block = None
                     del messages[i - 1]
-                if isinstance(msg.get("content", ""), List):
+                if isinstance(msg.get("content", ""), list):
                     thinking_block = next(
                         (
                             block
@@ -135,7 +135,7 @@ class GithubCopilotService(CustomLLMService):
                 # At the the time of writing, GitHub Copilot GPT-4.1 model cannot read tool results with array content
                 msg.pop("tool_name", None)
                 msg.pop("is_rejected", None)
-                if isinstance(msg.get("content", ""), List):
+                if isinstance(msg.get("content", ""), list):
                     if self._is_github_provider() and self.model != "gpt-4.1":
                         # OpenAI format for tool responses
                         parsed_tool_result = []
@@ -176,8 +176,8 @@ class GithubCopilotService(CustomLLMService):
         return await super().process_message(prompt, temperature)
 
     def _process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         chunk_text = ""
         input_tokens = 0
         output_tokens = 0

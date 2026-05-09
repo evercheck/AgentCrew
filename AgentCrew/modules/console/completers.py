@@ -282,7 +282,7 @@ class ChatCompleter(Completer):
             ("/model", "Switch model or list available models (usage: /model [id])"),
             (
                 "/mcp",
-                "List MCP prompts or fetch specific prompt (usage: /mcp [server_id/prompt_name])",
+                "list MCP prompts or fetch specific prompt (usage: /mcp [server_id/prompt_name])",
             ),
             ("/file", "Process a file (usage: /file <path>)"),
             (
@@ -303,7 +303,7 @@ class ChatCompleter(Completer):
                 "/edit_config",
                 "Open AgentCrew global configuration file in default editor",
             ),
-            ("/list", "List available conversations"),
+            ("/list", "list available conversations"),
             ("/load", "Load or browse conversations (usage: /load [conversation_id])"),
             ("/help", "Show help message"),
             ("/retry", "Retry the last assistant response"),
@@ -316,7 +316,7 @@ class ChatCompleter(Completer):
                 "/toggle_session_yolo",
                 "Toggle Auto-Approve Mode for Tool Calls (this session only)",
             ),
-            ("/list_behaviors", "List all agent adaptive behaviors"),
+            ("/list_behaviors", "list all agent adaptive behaviors"),
             (
                 "/update_behavior",
                 "Update or create an adaptive behavior (usage: /update_behavior <scope> <id> <behavior_text>)",

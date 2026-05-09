@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QMessageBox, QApplication
 from AgentCrew.modules.chat.agent_evaluation import parse_agent_evaluation
@@ -179,14 +179,14 @@ class ConversationComponents:
 
         self.chat_window.command_handler.clear_chat()
 
-    def display_consolidation(self, result: Dict[str, Any]):
+    def display_consolidation(self, result: dict[str, Any]):
         """Display the result of a conversation consolidation."""
         self.display_conversation(
             self.chat_window.message_handler.streamline_messages,
             self.chat_window.message_handler.current_conversation_id,
         )
 
-    def display_unconsolidation(self, result: Dict[str, Any]):
+    def display_unconsolidation(self, result: dict[str, Any]):
         """Display the result of a conversation unconsolidation."""
         if result.get("success"):
             # Reload the conversation to show unconsolidated state

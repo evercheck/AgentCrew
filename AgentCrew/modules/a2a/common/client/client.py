@@ -24,7 +24,7 @@ from a2a.types import (
 )
 
 if TYPE_CHECKING:
-    from typing import Any, Dict, Optional
+    from typing import Any
     from httpx._types import TimeoutTypes
     from a2a.types import (
         AgentCard,
@@ -43,9 +43,9 @@ class A2AClient:
     def __init__(
         self,
         agent_card: AgentCard,
-        url: Optional[str] = None,
+        url: str | None = None,
         timeout: TimeoutTypes = 60.0,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
     ):
         if agent_card:
             self.url = agent_card.url

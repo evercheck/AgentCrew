@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 MAX_ITEMS_OUT = 40
 
@@ -6,14 +6,14 @@ MAX_ITEMS_OUT = 40
 class TextMapFormatter:
     """Formats code analysis results into a hierarchical text map."""
 
-    def generate_text_map(self, analysis_results: List[Dict[str, Any]]) -> str:
+    def generate_text_map(self, analysis_results: list[dict[str, Any]]) -> str:
         """Generate a hierarchical text representation of the code structure analysis."""
 
         sorted_results = sorted(analysis_results, key=lambda x: x["path"])
 
         results_by_path = {result["path"]: result for result in sorted_results}
 
-        tree: Dict[str, Any] = {}
+        tree: dict[str, Any] = {}
         for result in sorted_results:
             path = result["path"].replace("\\", "/")
             parts = path.split("/")
@@ -31,7 +31,7 @@ class TextMapFormatter:
 
         output_lines = []
 
-        def format_tree(node: Dict[str, Any], indent: str = "") -> None:
+        def format_tree(node: dict[str, Any], indent: str = "") -> None:
             items = sorted(node.keys())
             for name in items:
                 child = node[name]
@@ -56,8 +56,8 @@ class TextMapFormatter:
         )
 
     def _format_node(
-        self, node: Dict[str, Any], prefix: str = "", is_last: bool = True
-    ) -> List[str]:
+        self, node: dict[str, Any], prefix: str = "", is_last: bool = True
+    ) -> list[str]:
         lines = []
 
         node_type = node.get("type", "")
@@ -166,8 +166,8 @@ class TextMapFormatter:
         return lines
 
     def _process_children(
-        self, children: List[Dict], prefix: str, is_last: bool
-    ) -> List[str]:
+        self, children: list[dict], prefix: str, is_last: bool
+    ) -> list[str]:
         if not children:
             return []
 
@@ -234,8 +234,8 @@ class TextMapFormatter:
         return lines
 
     def _get_file_code_content(
-        self, result: Dict[str, Any], file_indent: str
-    ) -> List[str]:
+        self, result: dict[str, Any], file_indent: str
+    ) -> list[str]:
         """Generate code structure content for a single file."""
         lines = []
         structure = result.get("structure")

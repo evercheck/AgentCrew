@@ -2,7 +2,7 @@
 JavaScript/TypeScript language parser for code analysis.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import BaseLanguageParser
 
@@ -16,7 +16,7 @@ class JavaScriptParser(BaseLanguageParser):
 
     def process_node(
         self, node, source_code: bytes, process_children_callback
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         result = self._create_base_result(node)
 
         if node.type in [
@@ -66,7 +66,7 @@ class JavaScriptParser(BaseLanguageParser):
 
     def _handle_export_statement(
         self, node, source_code: bytes, process_children_callback
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         for child in node.children:
             if child.type in [
                 "class_declaration",
@@ -86,9 +86,9 @@ class JavaScriptParser(BaseLanguageParser):
         self,
         node,
         source_code: bytes,
-        result: Dict[str, Any],
+        result: dict[str, Any],
         process_children_callback,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         parent = node.parent
         if parent and parent.type == "variable_declarator":
             for sibling in parent.children:
@@ -108,9 +108,9 @@ class JavaScriptParser(BaseLanguageParser):
         self,
         node,
         source_code: bytes,
-        result: Dict[str, Any],
+        result: dict[str, Any],
         process_children_callback,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         for child in node.children:
             if child.type == "variable_declarator":
                 var_name = None
@@ -142,7 +142,7 @@ class JavaScriptParser(BaseLanguageParser):
         return result
 
     def _handle_regular_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
+        self, node, source_code: bytes, result: dict[str, Any]
     ) -> None:
         for child in node.children:
             if child.type in ["identifier", "type_identifier", "property_identifier"]:
@@ -160,9 +160,9 @@ class JavaScriptParser(BaseLanguageParser):
         self,
         node,
         source_code: bytes,
-        result: Dict[str, Any],
+        result: dict[str, Any],
         process_children_callback,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         for child in node.children:
             if child.type == "variable_declaration_list":
                 for declarator in child.children:
@@ -207,8 +207,8 @@ class JavaScriptParser(BaseLanguageParser):
         return result
 
     def _handle_property_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, node, source_code: bytes, result: dict[str, Any]
+    ) -> dict[str, Any]:
         prop_name = None
         prop_type = None
 

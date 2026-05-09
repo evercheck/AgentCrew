@@ -2,7 +2,7 @@ from .service import CustomLLMService
 import os
 from dotenv import load_dotenv
 from loguru import logger
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Tuple, Any
 
 from AgentCrew.modules.llm.model_registry import ModelRegistry
 from AgentCrew.modules.llm.token_usage import TokenUsage
@@ -25,7 +25,7 @@ class FireworksService(CustomLLMService):
         self._is_thinking = False
         logger.info("Initialized Fireworks AI Service")
 
-    def _build_stream_params(self) -> Tuple[Dict[str, Any], bool]:
+    def _build_stream_params(self) -> Tuple[dict[str, Any], bool]:
         stream_params, is_streamable = super()._build_stream_params()
         full_model_id = f"{self._provider_name}/{self.model}"
         forced_sample_params = ModelRegistry.get_model_sample_params(full_model_id)
@@ -61,8 +61,8 @@ class FireworksService(CustomLLMService):
         return stream_params, is_streamable
 
     def _process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         chunk_text = ""
         input_tokens = 0
         output_tokens = 0

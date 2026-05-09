@@ -1,7 +1,7 @@
 import tomllib as toml
 import json
 from enum import Enum
-from typing import Dict, Any, Optional, List
+from typing import Any
 
 from .base import BaseAgent
 from .local_agent import LocalAgent
@@ -35,7 +35,7 @@ class AgentManager:
                         Supports @hub/ prefix which converts to https://agentplace.cloud/
 
         Returns:
-            List of agent dictionaries.
+            list of agent dictionaries.
         """
 
         if config_uri.startswith("@hub/"):
@@ -97,12 +97,12 @@ class AgentManager:
     def __init__(self):
         """Initialize the agent manager."""
         if not self._initialized:
-            self.agents: Dict[str, BaseAgent] = {}
-            self.current_agent: Optional[BaseAgent] = None
+            self.agents: dict[str, BaseAgent] = {}
+            self.current_agent: BaseAgent | None = None
             self.agent_mode: AgentMode = AgentMode.TRANSFER
             self.one_turn_process: bool = False
             self.context_shrink_enabled: bool = True
-            self.shrink_excluded_list: List[str] = []
+            self.shrink_excluded_list: list[str] = []
             self._defered_transfer: str = ""
             self._initialized = True
 
@@ -163,7 +163,7 @@ class AgentManager:
             return True
         return False
 
-    def get_agent(self, agent_name: str) -> Optional[BaseAgent]:
+    def get_agent(self, agent_name: str) -> BaseAgent | None:
         """
         Get an agent by name.
 
@@ -175,7 +175,7 @@ class AgentManager:
         """
         return self.agents.get(agent_name)
 
-    def get_local_agent(self, agent_name) -> Optional[LocalAgent]:
+    def get_local_agent(self, agent_name) -> LocalAgent | None:
         agent = self.agents.get(agent_name)
         if isinstance(agent, LocalAgent):
             return agent
@@ -245,7 +245,7 @@ class AgentManager:
             raise ValueError("Current agent is not set")
         return self.current_agent
 
-    def perform_transfer(self, target_agent_name: str, task: str) -> Dict[str, Any]:
+    def perform_transfer(self, target_agent_name: str, task: str) -> dict[str, Any]:
         """
         Perform a transfer to another agent.
 
@@ -281,7 +281,7 @@ class AgentManager:
                         if isinstance(processing_content, str):
                             content = msg.get("content", "")
                         elif (
-                            isinstance(processing_content, List)
+                            isinstance(processing_content, list)
                             and len(processing_content) > 0
                         ):
                             if "text" == processing_content[0].get("type", ""):

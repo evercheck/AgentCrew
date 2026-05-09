@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import shutil
-from typing import Any, Dict, List, Optional
+from typing import Any
 from loguru import logger
 
 from AgentCrew.modules.command_execution.service import CommandExecutionService
@@ -57,15 +57,15 @@ class GrepTextService:
         """
         self.platform = sys.platform
         self._is_windows = self.platform == "win32"
-        self._tool_availability_cache: Dict[str, bool] = {}
-        self._git_repo_cache: Dict[str, bool] = {}
+        self._tool_availability_cache: dict[str, bool] = {}
+        self._git_repo_cache: dict[str, bool] = {}
 
-    def _get_tool_priority(self) -> List[str]:
+    def _get_tool_priority(self) -> list[str]:
         """
         Get the tool priority list based on the current platform.
 
         Returns:
-            List[str]: Ordered list of tools to try, from best to worst
+            list[str]: Ordered list of tools to try, from best to worst
         """
         if self._is_windows:
             return self.TOOL_PRIORITY_WINDOWS.copy()
@@ -482,7 +482,7 @@ class GrepTextService:
 
     def _execute_command(
         self, command: str, timeout: int = DEFAULT_TIMEOUT
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute the grep command using CommandExecutionService.
 
@@ -491,7 +491,7 @@ class GrepTextService:
             timeout: Timeout in seconds (default: 30)
 
         Returns:
-            Dict[str, Any]: Command execution result with status, output, error, exit_code
+            dict[str, Any]: Command execution result with status, output, error, exit_code
 
         Raises:
             GrepTextError: If command execution fails
@@ -525,7 +525,7 @@ class GrepTextService:
             logger.error(error_msg)
             raise GrepTextError(error_msg) from e
 
-    def _normalize_paths(self, path: list[str] | str) -> List[str]:
+    def _normalize_paths(self, path: list[str] | str) -> list[str]:
         """
         Normalize path input into a validated absolute path list.
 
@@ -533,7 +533,7 @@ class GrepTextService:
             path: An array of file/directory paths. A single string is still normalized defensively.
 
         Returns:
-            List[str]: Validated absolute paths with exact duplicates removed
+            list[str]: Validated absolute paths with exact duplicates removed
 
         Raises:
             GrepTextError: If no valid paths are provided or any path item is invalid
@@ -548,7 +548,7 @@ class GrepTextService:
             logger.error(error_msg)
             raise GrepTextError(error_msg)
 
-        normalized_paths: List[str] = []
+        normalized_paths: list[str] = []
         seen_paths = set()
 
         for index, item in enumerate(raw_paths):
@@ -620,7 +620,7 @@ class GrepTextService:
     def _format_line_context(
         self,
         line_content: str,
-        pattern: Optional[str] = None,
+        pattern: str | None = None,
         case_sensitive: bool = True,
     ) -> str:
         max_length = self.MATCH_CONTEXT_CHARS * 2
@@ -650,8 +650,8 @@ class GrepTextService:
     def _parse_output(
         self,
         output: str,
-        max_results: Optional[int] = None,
-        pattern: Optional[str] = None,
+        max_results: int | None = None,
+        pattern: str | None = None,
         case_sensitive: bool = True,
     ) -> str:
         """
@@ -745,7 +745,7 @@ class GrepTextService:
         pattern: str,
         path: list[str] | str,
         case_sensitive: bool = True,
-        max_results: Optional[int] = None,
+        max_results: int | None = None,
     ) -> str:
         """
         Search for text patterns within one or more files and directories.

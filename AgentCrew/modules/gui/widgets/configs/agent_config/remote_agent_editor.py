@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -22,8 +22,8 @@ class RemoteAgentEditor(QWidget):
 
     def __init__(
         self,
-        on_dirty_callback: Optional[Callable[[], None]] = None,
-        parent: Optional[QWidget] = None,
+        on_dirty_callback: Callable[[], None] | None = None,
+        parent: QWidget | None = None,
     ):
         super().__init__(parent)
         self._on_dirty_callback = on_dirty_callback

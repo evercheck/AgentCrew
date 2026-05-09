@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 from loguru import logger
 
 from .service import CodeAnalysisService
@@ -13,7 +13,7 @@ from .grep_service import GrepTextService
 # ============================================================================
 
 
-def get_code_analysis_tool_definition() -> Dict[str, Any]:
+def get_code_analysis_tool_definition() -> dict[str, Any]:
     """
     Return the tool definition for code analysis based on provider.
 
@@ -21,7 +21,7 @@ def get_code_analysis_tool_definition() -> Dict[str, Any]:
         provider: The LLM provider ("claude", "openai", or another OpenAI-compatible provider)
 
     Returns:
-        Dict containing the tool definition
+        dict containing the tool definition
     """
     description = "Analyzes the structure of source code files within a repository, creating a structural map. This identifies key code elements, enabling code understanding and project organization insights."
 
@@ -33,7 +33,7 @@ def get_code_analysis_tool_definition() -> Dict[str, Any]:
         "exclude_patterns": {
             "type": "array",
             "items": {"type": "string"},
-            "description": 'List of glob patterns to exclude certain files or directories from analysis. Always use double quotes " for array string. Example: ["tests/*", "*.md"]',
+            "description": 'list of glob patterns to exclude certain files or directories from analysis. Always use double quotes " for array string. Example: ["tests/*", "*.md"]',
         },
         "feature_scope": {
             "type": "string",
@@ -117,7 +117,7 @@ def get_file_content_tool_definition():
         provider: The LLM provider ("claude", "openai", or another OpenAI-compatible provider)
 
     Returns:
-        Dict containing the tool definition
+        dict containing the tool definition
     """
     tool_description = "Gets the content of a file, or a specific lines within that file (function or class body). Use this to examine the logic of specific functions, the structure of classes, or the overall content of a file. Also supports reading document files (PDF, DOCX, XLSX, PPTX, images) which will be converted to text/markdown - for document files, start_line and end_line parameters are ignored."
 
@@ -187,7 +187,7 @@ def get_file_content_tool_handler(
 # ============================================================================
 
 
-def get_find_files_tool_definition() -> Dict[str, Any]:
+def get_find_files_tool_definition() -> dict[str, Any]:
     """
     Return the tool definition for file search based on provider.
 
@@ -201,7 +201,7 @@ def get_find_files_tool_definition() -> Dict[str, Any]:
                  "openai" for OpenAI-compatible providers)
 
     Returns:
-        Dict containing the tool definition in provider-specific format
+        dict containing the tool definition in provider-specific format
 
     Example Claude Format:
         {
@@ -303,7 +303,7 @@ def get_find_files_tool_handler(service_instance: FileSearchService) -> Callable
                 - max_results (int, optional): Maximum results to return (default: None)
 
         Returns:
-            List of dictionaries with "type" and "text" keys containing search results summary and details
+            list of dictionaries with "type" and "text" keys containing search results summary and details
 
         Raises:
             Exception: For validation errors or file search failures
@@ -372,7 +372,7 @@ def get_find_files_tool_handler(service_instance: FileSearchService) -> Callable
 # ============================================================================
 
 
-def get_grep_text_tool_definition() -> Dict[str, Any]:
+def get_grep_text_tool_definition() -> dict[str, Any]:
     """
     Return the tool definition for grep text search based on provider.
 
@@ -381,7 +381,7 @@ def get_grep_text_tool_definition() -> Dict[str, Any]:
                  "openai" for OpenAI-compatible providers)
 
     Returns:
-        Dict containing the tool definition in provider-specific format
+        dict containing the tool definition in provider-specific format
     """
     description = "Searches for text patterns within files in specified file or directory paths using grep-like functionality. "
 
@@ -461,7 +461,7 @@ def get_grep_text_tool_handler(service_instance: GrepTextService) -> Callable:
                 - max_results (int, optional): Maximum results to return (default: None)
 
         Returns:
-            List of dictionaries with "type" and "text" keys containing search results
+            list of dictionaries with "type" and "text" keys containing search results
 
         Raises:
             Exception: For parameter validation errors or search failures

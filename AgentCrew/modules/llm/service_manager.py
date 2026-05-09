@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Optional, Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 from AgentCrew.modules.llm.base import BaseLLMService
 from AgentCrew.modules.llm.model_registry import ModelRegistry
 from loguru import logger
@@ -28,11 +28,11 @@ class ServiceManager:
                 "ServiceManager is a singleton. Use get_instance() instead."
             )
 
-        self.services: Dict[str, BaseLLMService] = {}
+        self.services: dict[str, BaseLLMService] = {}
 
         # Lazy import factories keyed by service implementation name.
         # A single vendor (e.g. openai) may expose multiple service families.
-        self.service_factories: Dict[str, Callable[[], BaseLLMService]] = {
+        self.service_factories: dict[str, Callable[[], BaseLLMService]] = {
             "claude": self._create_anthropic_service,
             "openai": self._create_openai_service,
             "openai_response": self._create_openai_response_service,
@@ -48,7 +48,7 @@ class ServiceManager:
         }
 
         # Store details for custom providers
-        self.custom_provider_details: Dict[str, Dict] = {}
+        self.custom_provider_details: dict[str, dict] = {}
         self._load_custom_provider_configs()
 
     # Lazy import factory methods
@@ -135,7 +135,7 @@ class ServiceManager:
         raise RuntimeError("API key for OpenCode Go not found.")
 
     def _create_github_copilot_service(
-        self, api_key: Optional[str] = None, provider_name: str = "github_copilot"
+        self, api_key: str | None = None, provider_name: str = "github_copilot"
     ) -> BaseLLMService:
         """Lazy import and create GitHub Copilot service."""
         if os.getenv("GITHUB_COPILOT_API_KEY"):
@@ -145,7 +145,7 @@ class ServiceManager:
         raise RuntimeError("API key for GitHub Copilot not found.")
 
     def _create_copilot_response_service(
-        self, api_key: Optional[str] = None, provider_name: str = "github_copilot"
+        self, api_key: str | None = None, provider_name: str = "github_copilot"
     ) -> BaseLLMService:
         """Lazy import and create Copilot Response service."""
         if os.getenv("GITHUB_COPILOT_API_KEY"):
@@ -169,7 +169,7 @@ class ServiceManager:
         base_url: str,
         api_key: str,
         provider_name: str,
-        extra_headers: Optional[Dict] = None,
+        extra_headers: dict | None = None,
     ) -> BaseLLMService:
         """Lazy import and create Custom LLM service."""
         from AgentCrew.modules.custom_llm import CustomLLMService
@@ -252,7 +252,7 @@ class ServiceManager:
         return self.initialize_standalone_service(model.resolved_service_name())
 
     def get_service(
-        self, service_name: str, provider_name: Optional[str] = None
+        self, service_name: str, provider_name: str | None = None
     ) -> BaseLLMService:
         """
         Get or create a service instance for the specified service name.
@@ -267,7 +267,7 @@ class ServiceManager:
         if service_name in self.services:
             return self.services[service_name]
 
-        service_instance: Optional[BaseLLMService] = None
+        service_instance: BaseLLMService | None = None
 
         if service_name in self.custom_provider_details:
             details = self.custom_provider_details[service_name]

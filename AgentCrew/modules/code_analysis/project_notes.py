@@ -1,5 +1,6 @@
+from __future__ import annotations
 import os
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from loguru import logger
 
@@ -22,14 +23,14 @@ KNOWN_RULE_FILES = [
 class ProjectNotesExtractor:
     """Extracts project notes, rules, and conventions from analysis results."""
 
-    def __init__(self, llm_service: Optional["BaseLLMService"] = None):
+    def __init__(self, llm_service: BaseLLMService | None = None):
         self._llm_service = llm_service
 
     async def extract_project_notes(
         self,
         analysis_result: str,
         repo_path: str,
-        feature_scope: Optional[str] = None,
+        feature_scope: str | None = None,
     ) -> str:
         """Extract project notes, rules, and conventions from the analysis result using LLM.
 
@@ -109,7 +110,7 @@ Keep it under 600 words."""
 
     @staticmethod
     def _fallback_project_notes(
-        repo_path: str, feature_scope: Optional[str] = None
+        repo_path: str, feature_scope: str | None = None
     ) -> str:
         """Generate minimal project notes when LLM is unavailable."""
         found_rule_files = []

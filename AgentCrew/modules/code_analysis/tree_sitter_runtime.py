@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Set
 
 from tree_sitter_language_pack import (
     available_languages,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-ALIAS_TO_PACK: Dict[str, str] = {
+ALIAS_TO_PACK: dict[str, str] = {
     "c-sharp": "csharp",
     "c_sharp": "csharp",
     "c#": "csharp",
@@ -29,7 +29,7 @@ ALIAS_TO_PACK: Dict[str, str] = {
     "objective_c": "objc",
 }
 
-EXTENSION_TO_LANGUAGE: Dict[str, str] = {
+EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".py": "python",
     ".js": "javascript",
     ".jsx": "javascript",
@@ -74,18 +74,18 @@ EXTENSION_TO_LANGUAGE: Dict[str, str] = {
 
 
 class TreeSitterRuntime:
-    _instance: Optional["TreeSitterRuntime"] = None
+    _instance: TreeSitterRuntime | None = None
 
     @classmethod
-    def get_instance(cls) -> "TreeSitterRuntime":
+    def get_instance(cls) -> TreeSitterRuntime:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
     def __init__(self) -> None:
-        self._parser_cache: Dict[str, "Parser"] = {}
-        self._language_cache: Dict[str, "Language"] = {}
-        self._manifest: Optional[Set[str]] = None
+        self._parser_cache: dict[str, "Parser"] = {}
+        self._language_cache: dict[str, "Language"] = {}
+        self._manifest: Set[str] | None = None
 
     def _resolve_name(self, name: str) -> str:
         lower = name.lower().strip()
@@ -96,7 +96,7 @@ class TreeSitterRuntime:
             self._manifest = set(manifest_languages())
         return self._manifest
 
-    def detect_language_for_file(self, file_path: str) -> Optional[str]:
+    def detect_language_for_file(self, file_path: str) -> str | None:
         ext = os.path.splitext(file_path)[1].lower()
         return EXTENSION_TO_LANGUAGE.get(ext)
 
@@ -125,13 +125,13 @@ class TreeSitterRuntime:
             self._language_cache[resolved] = lang
         return self._language_cache[resolved]
 
-    def get_available_languages(self) -> List[str]:
+    def get_available_languages(self) -> list[str]:
         return list(available_languages())
 
-    def get_manifest_languages(self) -> List[str]:
+    def get_manifest_languages(self) -> list[str]:
         return list(self._get_manifest())
 
-    def prewarm(self, languages: List[str]) -> int:
+    def prewarm(self, languages: list[str]) -> int:
         resolved = [self._resolve_name(lang) for lang in languages]
         valid = [lang for lang in resolved if lang in self._get_manifest()]
         if not valid:

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 from loguru import logger
 from AgentCrew.modules.chat.history import ConversationTurn
@@ -73,7 +73,7 @@ class ConversationManager:
         )
         self.message_handler.conversation_turns.append(turn)
 
-    def list_conversations(self) -> List[Dict[str, Any]]:
+    def list_conversations(self) -> list[dict[str, Any]]:
         """Lists available conversations from the persistence service."""
         try:
             if self.message_handler.persistent_service:
@@ -84,7 +84,7 @@ class ConversationManager:
             self.message_handler._notify("error", f"Failed to list conversations: {e}")
             return []
 
-    def load_conversation(self, conversation_id: str) -> Optional[List[Dict[str, Any]]]:
+    def load_conversation(self, conversation_id: str) -> list[dict[str, Any]] | None:
         """Loads a specific conversation history and sets it as active."""
         try:
             self.message_handler.agent_manager.clean_agents_messages()
@@ -260,7 +260,7 @@ class ConversationManager:
             self.message_handler._notify("error", {"message": error_msg})
             return False
 
-    def fork_conversation(self, turn_number: int) -> Optional[str]:
+    def fork_conversation(self, turn_number: int) -> str | None:
         """
         Creates a fork of the current conversation at a specific turn.
 
@@ -367,7 +367,7 @@ class ConversationManager:
             return True
         return False
 
-    def list_conversations_with_forks(self) -> List[Dict[str, Any]]:
+    def list_conversations_with_forks(self) -> list[dict[str, Any]]:
         """
         Lists conversations with fork relationship information.
 
@@ -382,7 +382,7 @@ class ConversationManager:
             logger.error(f"Error listing conversations with forks: {e}")
             return []
 
-    def get_fork_info(self, conversation_id: str) -> Dict[str, Any]:
+    def get_fork_info(self, conversation_id: str) -> dict[str, Any]:
         """
         Gets fork-related information for a conversation.
 

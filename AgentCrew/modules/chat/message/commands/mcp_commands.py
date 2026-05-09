@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from AgentCrew.modules.chat.message import MessageHandler
@@ -21,7 +21,7 @@ class MCPCommands:
             Tuple of (exit_flag, clear_flag)
         """
         parts = command.strip().split()
-        mcp_service: Optional[MCPService] = self.message_handler.mcp_manager.mcp_service
+        mcp_service: MCPService | None = self.message_handler.mcp_manager.mcp_service
         # /mcp with no args: list all prompts
         if len(parts) == 1:
             prompts = []

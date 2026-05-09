@@ -3,7 +3,7 @@ import json
 import warnings
 import tomllib as toml
 from tomli_w import dump as toml_dump
-from typing import Dict, Any, Optional, List
+from typing import Any
 
 
 class ConfigManagement:
@@ -12,7 +12,7 @@ class ConfigManagement:
     Supports reading, writing, and updating configuration files.
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """
         Initialize the ConfigManagement class.
 
@@ -37,7 +37,7 @@ class ConfigManagement:
         self.config_path = config_path
         self.load_config()
 
-    def load_config(self) -> Dict[str, Any]:
+    def load_config(self) -> dict[str, Any]:
         """
         Load the configuration from the file.
 
@@ -104,7 +104,7 @@ class ConfigManagement:
         except Exception as e:
             raise ValueError(f"Error saving configuration: {str(e)}")
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """
         Get the current configuration data.
 
@@ -114,8 +114,8 @@ class ConfigManagement:
         return self.config_data
 
     def update_config(
-        self, new_data: Dict[str, Any], merge: bool = True
-    ) -> Dict[str, Any]:
+        self, new_data: dict[str, Any], merge: bool = True
+    ) -> dict[str, Any]:
         """
         Update the configuration with new data.
 
@@ -134,7 +134,7 @@ class ConfigManagement:
 
         return self.config_data
 
-    def _deep_update(self, target: Dict[str, Any], source: Dict[str, Any]) -> None:
+    def _deep_update(self, target: dict[str, Any], source: dict[str, Any]) -> None:
         """
         Deep update a nested dictionary.
 
@@ -218,7 +218,7 @@ class ConfigManagement:
             return True
         return False
 
-    def get_sections(self) -> List[str]:
+    def get_sections(self) -> list[str]:
         """
         Get the top-level sections of the configuration.
 
@@ -227,7 +227,7 @@ class ConfigManagement:
         """
         return list(self.config_data.keys())
 
-    def get_section(self, section: str) -> Dict[str, Any]:
+    def get_section(self, section: str) -> dict[str, Any]:
         """
         Get a specific section of the configuration.
 
@@ -239,7 +239,7 @@ class ConfigManagement:
         """
         return self.config_data.get(section, {})
 
-    def read_agents_config(self) -> Dict[str, Any]:
+    def read_agents_config(self) -> dict[str, Any]:
         warnings.warn(
             "Use AgentsConfig().read() directly.", DeprecationWarning, stacklevel=2
         )
@@ -247,7 +247,7 @@ class ConfigManagement:
 
         return AgentsConfig().read()
 
-    def write_agents_config(self, config_data: Dict[str, Any]) -> None:
+    def write_agents_config(self, config_data: dict[str, Any]) -> None:
         warnings.warn(
             "Use AgentsConfig().write() directly.", DeprecationWarning, stacklevel=2
         )
@@ -263,7 +263,7 @@ class ConfigManagement:
 
         AgentsConfig().reload()
 
-    def read_mcp_config(self) -> Dict[str, Any]:
+    def read_mcp_config(self) -> dict[str, Any]:
         warnings.warn(
             "Use MCPConfig().read() directly.", DeprecationWarning, stacklevel=2
         )
@@ -271,7 +271,7 @@ class ConfigManagement:
 
         return MCPConfig().read()
 
-    def write_mcp_config(self, config_data: Dict[str, Any]) -> None:
+    def write_mcp_config(self, config_data: dict[str, Any]) -> None:
         warnings.warn(
             "Use MCPConfig().write() directly.", DeprecationWarning, stacklevel=2
         )
@@ -279,7 +279,7 @@ class ConfigManagement:
 
         MCPConfig().write(config_data)
 
-    def read_global_config_data(self) -> Dict[str, Any]:
+    def read_global_config_data(self) -> dict[str, Any]:
         warnings.warn(
             "Use GlobalConfig().read() directly.", DeprecationWarning, stacklevel=2
         )
@@ -287,7 +287,7 @@ class ConfigManagement:
 
         return GlobalConfig().read()
 
-    def write_global_config_data(self, config_data: Dict[str, Any]) -> None:
+    def write_global_config_data(self, config_data: dict[str, Any]) -> None:
         warnings.warn(
             "Use GlobalConfig().write() directly.", DeprecationWarning, stacklevel=2
         )
@@ -295,7 +295,7 @@ class ConfigManagement:
 
         GlobalConfig().write(config_data)
 
-    def read_custom_llm_providers_config(self) -> List[Dict[str, Any]]:
+    def read_custom_llm_providers_config(self) -> list[dict[str, Any]]:
         warnings.warn(
             "Use GlobalConfig().read_custom_llm_providers_config() directly.",
             DeprecationWarning,
@@ -306,7 +306,7 @@ class ConfigManagement:
         return GlobalConfig().read_custom_llm_providers_config()
 
     def write_custom_llm_providers_config(
-        self, providers_data: List[Dict[str, Any]]
+        self, providers_data: list[dict[str, Any]]
     ) -> None:
         warnings.warn(
             "Use GlobalConfig().write_custom_llm_providers_config() directly.",
@@ -317,7 +317,7 @@ class ConfigManagement:
 
         GlobalConfig().write_custom_llm_providers_config(providers_data)
 
-    def get_last_used_settings(self) -> Dict[str, Any]:
+    def get_last_used_settings(self) -> dict[str, Any]:
         warnings.warn(
             "Use GlobalConfig().get_last_used_settings() directly.",
             DeprecationWarning,
@@ -347,7 +347,7 @@ class ConfigManagement:
 
         GlobalConfig().set_last_used_agent(agent_name)
 
-    def get_last_used_model(self) -> Optional[str]:
+    def get_last_used_model(self) -> str | None:
         warnings.warn(
             "Use GlobalConfig().get_last_used_model() directly.",
             DeprecationWarning,
@@ -357,7 +357,7 @@ class ConfigManagement:
 
         return GlobalConfig().get_last_used_model()
 
-    def get_last_used_provider(self) -> Optional[str]:
+    def get_last_used_provider(self) -> str | None:
         warnings.warn(
             "Use GlobalConfig().get_last_used_provider() directly.",
             DeprecationWarning,
@@ -367,7 +367,7 @@ class ConfigManagement:
 
         return GlobalConfig().get_last_used_provider()
 
-    def get_last_used_agent(self) -> Optional[str]:
+    def get_last_used_agent(self) -> str | None:
         warnings.warn(
             "Use GlobalConfig().get_last_used_agent() directly.",
             DeprecationWarning,
@@ -377,7 +377,7 @@ class ConfigManagement:
 
         return GlobalConfig().get_last_used_agent()
 
-    def get_auto_approval_tools(self) -> List[str]:
+    def get_auto_approval_tools(self) -> list[str]:
         warnings.warn(
             "Use GlobalConfig().get_auto_approval_tools() directly.",
             DeprecationWarning,
@@ -398,8 +398,8 @@ class ConfigManagement:
         GlobalConfig().write_auto_approval_tools(tool_name, add)
 
     def export_agents(
-        self, agent_names: List[str], output_file: str, file_format: str = "toml"
-    ) -> Dict[str, Any]:
+        self, agent_names: list[str], output_file: str, file_format: str = "toml"
+    ) -> dict[str, Any]:
         warnings.warn(
             "Use AgentsConfig().export() directly.", DeprecationWarning, stacklevel=2
         )
@@ -412,7 +412,7 @@ class ConfigManagement:
         import_file_path: str,
         merge_strategy: str = "update",
         skip_conflicts: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         warnings.warn(
             "Use AgentsConfig().import_agents() directly.",
             DeprecationWarning,

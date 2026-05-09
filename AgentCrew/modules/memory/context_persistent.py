@@ -2,7 +2,7 @@ import json
 import os
 import uuid
 import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
 from loguru import logger
 
 
@@ -20,7 +20,7 @@ class ContextPersistenceService:
     ADAPTIVE_BEHAVIORS_FILE = "adaptive.json"
     PROMPT_EVOLUTIONS_FILE = "prompt_evolutions.json"
 
-    def __init__(self, persistence_dir_override: Optional[str] = None):
+    def __init__(self, persistence_dir_override: str | None = None):
         """
         Initializes the service, setting up paths and ensuring directories exist.
 
@@ -206,7 +206,7 @@ class ContextPersistenceService:
             return False
 
     def append_conversation_messages(
-        self, conversation_id: str, new_messages: List[Dict[str, Any]], force=False
+        self, conversation_id: str, new_messages: list[dict[str, Any]], force=False
     ):
         """
         Appends a list of new message dictionaries to a conversation history file.
@@ -268,7 +268,7 @@ class ContextPersistenceService:
 
     def get_conversation_history(
         self, conversation_id: str
-    ) -> List[Dict[str, Any]] | None:
+    ) -> list[dict[str, Any]] | None:
         """
         Loads and returns the message list for a specific conversation.
 
@@ -291,7 +291,7 @@ class ContextPersistenceService:
         return history
 
     def store_conversation_metadata(
-        self, conversation_id: str, metadata: Dict[str, Any]
+        self, conversation_id: str, metadata: dict[str, Any]
     ) -> bool:
         """
         Merges metadata into a conversation's existing metadata file.
@@ -331,7 +331,7 @@ class ContextPersistenceService:
             logger.error(f"ERROR: Failed to store metadata for {conversation_id}: {e}")
             return False
 
-    def get_conversation_metadata(self, conversation_id: str) -> Dict[str, Any]:
+    def get_conversation_metadata(self, conversation_id: str) -> dict[str, Any]:
         """
         Retrieves metadata for a conversation.
 
@@ -379,7 +379,7 @@ class ContextPersistenceService:
         return "[Non-text Content]"
 
     def _resolve_conversation_title(
-        self, metadata: Dict[str, Any], preview: str
+        self, metadata: dict[str, Any], preview: str
     ) -> str:
         return metadata.get("fork_title") or preview
 
@@ -388,7 +388,7 @@ class ContextPersistenceService:
             "Memories related to the user request:"
         ) and not preview.startswith("Content of ")
 
-    def _extract_preview(self, history: List[Dict[str, Any]]) -> str:
+    def _extract_preview(self, history: list[dict[str, Any]]) -> str:
         """
         Extracts a preview string from a conversation history.
 
@@ -417,8 +417,8 @@ class ContextPersistenceService:
         return preview
 
     def _extract_fork_title_from_history(
-        self, history: List[Dict[str, Any]], metadata: Dict[str, Any]
-    ) -> Optional[str]:
+        self, history: list[dict[str, Any]], metadata: dict[str, Any]
+    ) -> str | None:
         fork_point = metadata.get("fork_point")
         if (
             not isinstance(history, list)
@@ -436,7 +436,7 @@ class ContextPersistenceService:
 
         return None
 
-    def list_conversations(self) -> List[Dict[str, Any]]:
+    def list_conversations(self) -> list[dict[str, Any]]:
         """
         Scans the conversations directory and returns metadata for available conversations.
 
@@ -509,7 +509,7 @@ class ContextPersistenceService:
 
     # --- Adaptive Behavior Management ---
 
-    def get_adaptive_behaviors(self, agent_name: str, is_local=False) -> Dict[str, str]:
+    def get_adaptive_behaviors(self, agent_name: str, is_local=False) -> dict[str, str]:
         """
         Retrieves all adaptive behaviors for a specific agent.
 
@@ -641,7 +641,7 @@ class ContextPersistenceService:
 
     def fork_conversation(
         self, parent_conversation_id: str, message_index: int
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Creates a fork of an existing conversation at a specific message index.
 
@@ -704,7 +704,7 @@ class ContextPersistenceService:
             logger.error(f"Error forking conversation: {e}")
             return None
 
-    def get_fork_info(self, conversation_id: str) -> Dict[str, Any]:
+    def get_fork_info(self, conversation_id: str) -> dict[str, Any]:
         """
         Gets fork-related information for a conversation from its metadata.
 
@@ -724,7 +724,7 @@ class ContextPersistenceService:
             "fork_children": fork_children,
         }
 
-    def list_conversations_with_forks(self) -> List[Dict[str, Any]]:
+    def list_conversations_with_forks(self) -> list[dict[str, Any]]:
         """
         Lists all conversations with fork relationship info, ordered as a tree.
 
@@ -739,7 +739,7 @@ class ContextPersistenceService:
         Returns:
             A flat list of conversation dicts in tree-display order.
         """
-        base_conversations: List[Dict[str, Any]] = []
+        base_conversations: list[dict[str, Any]] = []
 
         try:
             filenames = os.listdir(self.conversations_dir)
@@ -794,12 +794,12 @@ class ContextPersistenceService:
             )
             raise
 
-        conv_by_id: Dict[str, Dict[str, Any]] = {}
+        conv_by_id: dict[str, dict[str, Any]] = {}
         for conv in base_conversations:
             conv_by_id[conv["id"]] = conv
 
-        children_map: Dict[str, List[str]] = {}
-        created_from_ts: Dict[str, str] = {}
+        children_map: dict[str, list[str]] = {}
+        created_from_ts: dict[str, str] = {}
 
         for conv in base_conversations:
             parent_id = conv.pop("parent_id")
@@ -811,7 +811,7 @@ class ContextPersistenceService:
         roots = [c for c in base_conversations if not c.get("is_fork")]
         roots.sort(key=lambda x: x["timestamp"], reverse=True)
 
-        result: List[Dict[str, Any]] = []
+        result: list[dict[str, Any]] = []
 
         def _insert_subtree(conv_id: str, indent: int):
             conv = conv_by_id.get(conv_id)
@@ -833,7 +833,7 @@ class ContextPersistenceService:
 
         return result
 
-    def list_all_adaptive_behaviors(self) -> Dict[str, Dict[str, str]]:
+    def list_all_adaptive_behaviors(self) -> dict[str, dict[str, str]]:
         """
         Retrieves all adaptive behaviors for all agents.
 
@@ -852,7 +852,7 @@ class ContextPersistenceService:
 
         return adaptive_data
 
-    def store_prompt_evolution(self, agent_name: str, record: Dict[str, Any]) -> None:
+    def store_prompt_evolution(self, agent_name: str, record: dict[str, Any]) -> None:
         history = self._read_json_file(
             self.prompt_evolutions_file_path, default_value={}
         )
@@ -871,7 +871,7 @@ class ContextPersistenceService:
         history[agent_name] = agent_history
         self._write_json_file(self.prompt_evolutions_file_path, history)
 
-    def list_prompt_evolutions(self, agent_name: str) -> List[Dict[str, Any]]:
+    def list_prompt_evolutions(self, agent_name: str) -> list[dict[str, Any]]:
         history = self._read_json_file(
             self.prompt_evolutions_file_path, default_value={}
         )

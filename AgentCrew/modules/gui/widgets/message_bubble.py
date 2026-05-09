@@ -1,4 +1,3 @@
-from typing import Optional
 import markdown
 import os
 import sys
@@ -64,7 +63,7 @@ class MessageBubble(QFrame):
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setFrameShadow(QFrame.Shadow.Plain)
         self.setLineWidth(0)
-        self.rollback_button: Optional[QPushButton] = None
+        self.rollback_button: QPushButton | None = None
 
         # Set background color based on sender
         if is_user:

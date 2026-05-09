@@ -10,7 +10,7 @@ import numpy.typing as npt
 import os
 
 if TYPE_CHECKING:
-    from typing import Optional, List, Dict, Any
+    from typing import Any
 
 
 class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
@@ -18,7 +18,7 @@ class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model_name: str = "models/embedding-001",
         task_type: str = "RETRIEVAL_DOCUMENT",
         api_key_env_var: str = "CHROMA_GOOGLE_GENAI_API_KEY",
@@ -68,7 +68,7 @@ class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
                 "Google Generative AI only supports text documents, not images"
             )
 
-        embeddings_list: List[npt.NDArray[np.float32]] = []
+        embeddings_list: list[npt.NDArray[np.float32]] = []
         for text in input:
             embedding_result = self._genai.models.embed_content(
                 model=self.model_name,
@@ -80,7 +80,7 @@ class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
                     np.array(embedding_result.embeddings[0].values, dtype=np.float32)
                 )
 
-        # Convert to the expected Embeddings type (List[Vector])
+        # Convert to the expected Embeddings type (list[Vector])
         return cast(Embeddings, embeddings_list)
 
     @staticmethod
@@ -90,11 +90,11 @@ class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
     def default_space(self) -> Space:
         return "cosine"
 
-    def supported_spaces(self) -> List[Space]:
+    def supported_spaces(self) -> list[Space]:
         return ["cosine", "l2", "ip"]
 
     @staticmethod
-    def build_from_config(config: Dict[str, Any]) -> "EmbeddingFunction[Documents]":
+    def build_from_config(config: dict[str, Any]) -> "EmbeddingFunction[Documents]":
         api_key_env_var = config.get("api_key_env_var")
         model_name = config.get("model_name")
         task_type = config.get("task_type")
@@ -106,7 +106,7 @@ class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
             api_key_env_var=api_key_env_var, model_name=model_name, task_type=task_type
         )
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         return {
             "api_key_env_var": self.api_key_env_var,
             "model_name": self.model_name,
@@ -114,7 +114,7 @@ class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
         }
 
     def validate_config_update(
-        self, old_config: Dict[str, Any], new_config: Dict[str, Any]
+        self, old_config: dict[str, Any], new_config: dict[str, Any]
     ) -> None:
         if "model_name" in new_config:
             raise ValueError(
@@ -126,7 +126,7 @@ class GoogleGenAiEmbeddingFunction(EmbeddingFunction[Documents]):
             )
 
     @staticmethod
-    def validate_config(config: Dict[str, Any]) -> None:
+    def validate_config(config: dict[str, Any]) -> None:
         """
         Validate the configuration using the JSON schema.
 

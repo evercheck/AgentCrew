@@ -5,7 +5,7 @@ Provides Rich-based UI for listing and loading conversations with preview.
 
 from __future__ import annotations
 
-from typing import List, Dict, Any, Optional, Callable
+from typing import Any, Callable
 
 from rich.console import Console
 from rich.text import Text
@@ -25,10 +25,8 @@ class ConversationBrowser:
     def __init__(
         self,
         console: Console,
-        get_conversation_history: Optional[
-            Callable[[str], List[Dict[str, Any]]]
-        ] = None,
-        on_delete: Optional[Callable[[List[str]], bool]] = None,
+        get_conversation_history: Callable[[str], list[dict[str, Any]]] | None = None,
+        on_delete: Callable[[list[str]], bool] | None = None,
     ):
         """Initialize the conversation browser.
 
@@ -47,11 +45,11 @@ class ConversationBrowser:
             on_delete=on_delete,
         )
 
-    def set_conversations(self, conversations: List[Dict[str, Any]]):
+    def set_conversations(self, conversations: list[dict[str, Any]]):
         """Set the conversations list to browse."""
         self._ui.set_conversations(conversations)
 
-    def get_selected_conversation_id(self) -> Optional[str]:
+    def get_selected_conversation_id(self) -> str | None:
         """Get the ID of the currently selected conversation."""
         return self._ui.get_selected_conversation_id()
 
@@ -69,7 +67,7 @@ class ConversationBrowser:
         """Access the input handler component directly."""
         return self._input_handler
 
-    def show(self) -> Optional[str]:
+    def show(self) -> str | None:
         """Show the interactive conversation browser.
 
         Returns:

@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Any, Dict, List, Optional, Literal
+from typing import Any, Literal
 from loguru import logger
 
 from AgentCrew.modules.command_execution.service import CommandExecutionService
@@ -47,18 +47,18 @@ class FileSearchService:
         """
         self.platform = sys.platform
         self._is_windows = self.platform == "win32"
-        self._searcher_availability_cache: Dict[str, bool] = {}
+        self._searcher_availability_cache: dict[str, bool] = {}
         self._searcher_priority = self._get_searcher_priority()
 
         logger.info(f"FileSearchService initialized for platform: {self.platform} ")
         logger.debug(f"Searcher priority: {self._searcher_priority}")
 
-    def _get_searcher_priority(self) -> List[str]:
+    def _get_searcher_priority(self) -> list[str]:
         """
         Get the searcher priority list based on the current platform.
 
         Returns:
-            List[str]: Ordered list of searchers to try, from best to worst
+            list[str]: Ordered list of searchers to try, from best to worst
         """
         if self._is_windows:
             return self.SEARCHER_PRIORITY_WINDOWS.copy()
@@ -126,7 +126,7 @@ class FileSearchService:
         return is_available
 
     def _build_fd_command(
-        self, pattern: str, directory: str, max_results: Optional[int] = None
+        self, pattern: str, directory: str, max_results: int | None = None
     ) -> str:
         """
         Build fd command for file searching.
@@ -233,7 +233,7 @@ class FileSearchService:
         return " ".join(cmd_parts)
 
     def _build_powershell_command(
-        self, pattern: str, directory: str, max_results: Optional[int] = None
+        self, pattern: str, directory: str, max_results: int | None = None
     ) -> str:
         """
         Build PowerShell Get-ChildItem command for file searching.
@@ -271,7 +271,7 @@ class FileSearchService:
         # Wrap in powershell execution with proper quoting
         return f"powershell -Command '{ps_command}'"
 
-    def _execute_search(self, searcher: str, command: str) -> Dict[str, Any]:
+    def _execute_search(self, searcher: str, command: str) -> dict[str, Any]:
         """
         Execute search command using CommandExecutionService.
 
@@ -280,7 +280,7 @@ class FileSearchService:
             command: Command string to execute
 
         Returns:
-            Dict: Command execution result with status, output, error, exit_code
+            dict: Command execution result with status, output, error, exit_code
         """
         cmd_service = CommandExecutionService.get_instance()
 
@@ -304,16 +304,16 @@ class FileSearchService:
                 "exit_code": 1,
             }
 
-    def _convert_to_relative_paths(self, paths: List[str], base_dir: str) -> List[str]:
+    def _convert_to_relative_paths(self, paths: list[str], base_dir: str) -> list[str]:
         """
         Convert list of absolute paths to paths relative to base_dir.
 
         Args:
-            paths: List of absolute file paths
+            paths: list of absolute file paths
             base_dir: Base directory to calculate relative paths from
 
         Returns:
-            List[str]: List of relative file paths
+            list[str]: list of relative file paths
         """
         import os
 
@@ -338,12 +338,12 @@ class FileSearchService:
 
         return relative_paths
 
-    def _format_results_as_markdown(self, files: List[str]) -> str:
+    def _format_results_as_markdown(self, files: list[str]) -> str:
         """
         Convert list of file paths to markdown format with summary.
 
         Args:
-            files: List of file paths
+            files: list of file paths
 
         Returns:
             str: Markdown formatted string with count summary and file paths
@@ -360,8 +360,8 @@ class FileSearchService:
         return "\n".join(markdown_lines)
 
     def _parse_search_results(
-        self, output: str, searcher: str, max_results: Optional[int] = None
-    ) -> List[str]:
+        self, output: str, searcher: str, max_results: int | None = None
+    ) -> list[str]:
         """
         Parse searcher output into list of file paths.
 
@@ -374,7 +374,7 @@ class FileSearchService:
             max_results: Maximum number of results to return (post-processing)
 
         Returns:
-            List[str]: List of absolute file paths
+            list[str]: list of absolute file paths
         """
         if not output or not output.strip():
             return []
@@ -449,7 +449,7 @@ class FileSearchService:
         self,
         pattern: str,
         directory: str = ".",
-        max_results: Optional[int] = None,
+        max_results: int | None = None,
         path_type: Literal["absolute", "relative"] = "absolute",
     ) -> str:
         """

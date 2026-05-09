@@ -1,7 +1,7 @@
 import os
 import json
 import mimetypes
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Tuple
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from AgentCrew.modules.llm.base import BaseLLMService, read_binary_file, read_text_file
@@ -74,7 +74,7 @@ class OpenAIService(BaseLLMService):
             return input_cost + output_cost + cached_cost
         return 0.0
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]):
+    def _convert_internal_format(self, messages: list[dict[str, Any]]):
         for msg in messages:
             msg.pop("agent", None)
             msg.pop("tool_name", None)
@@ -268,8 +268,8 @@ class OpenAIService(BaseLLMService):
         return await self.client.chat.completions.create(**stream_params, stream=True)
 
     def process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         """
         Process a single chunk from the streaming response.
 

@@ -1,10 +1,10 @@
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 
 from AgentCrew.modules.agents import AgentManager
 from AgentCrew.modules.agents.agent_runner import run_agent_loop
 
 
-def get_delegate_tool_definition() -> Dict[str, Any]:
+def get_delegate_tool_definition() -> dict[str, Any]:
     tool_description = (
         "Delegates a task to a specialized agent for independent execution. "
         "The target agent completes the task and returns the result. "
@@ -17,7 +17,7 @@ def get_delegate_tool_definition() -> Dict[str, Any]:
             "type": "string",
             "description": (
                 "The name of the agent to delegate to. "
-                "Refer to <Available_Agents_List> for options."
+                "Refer to <Transferable_Agents> for options."
             ),
         },
         "task_description": {

@@ -2,7 +2,7 @@
 Python language parser for code analysis.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import BaseLanguageParser
 
@@ -26,7 +26,7 @@ class PythonParser(BaseLanguageParser):
 
     def process_node(
         self, node, source_code: bytes, process_children_callback
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         result = self._create_base_result(node)
 
         if node.type in ["class_definition", "function_definition"]:

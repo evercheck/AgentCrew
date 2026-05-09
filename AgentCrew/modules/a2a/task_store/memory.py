@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Sequence, Union
 
 from a2a.types import (
     Task,
@@ -15,15 +15,15 @@ from .base import TaskStore
 
 class InMemoryTaskStore(TaskStore):
     def __init__(self):
-        self.tasks: Dict[str, Task] = {}
-        self.task_history: Dict[str, List[Dict[str, Any]]] = {}
-        self.task_events: Dict[
-            str, List[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]
+        self.tasks: dict[str, Task] = {}
+        self.task_history: dict[str, list[dict[str, Any]]] = {}
+        self.task_events: dict[
+            str, list[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]
         ] = defaultdict(list)
-        self.pending_tools: Dict[str, dict] = {}
+        self.pending_tools: dict[str, dict] = {}
         self.lock = asyncio.Lock()
 
-    async def get_task(self, task_id: str) -> Optional[Task]:
+    async def get_task(self, task_id: str) -> Task | None:
         async with self.lock:
             return self.tasks.get(task_id)
 
@@ -39,18 +39,18 @@ class InMemoryTaskStore(TaskStore):
         async with self.lock:
             return task_id in self.tasks
 
-    async def get_task_history(self, context_id: str) -> List[Dict[str, Any]]:
+    async def get_task_history(self, context_id: str) -> list[dict[str, Any]]:
         async with self.lock:
             return self.task_history.get(context_id, [])
 
     async def save_task_history(
-        self, context_id: str, history: List[Dict[str, Any]]
+        self, context_id: str, history: list[dict[str, Any]]
     ) -> None:
         async with self.lock:
             self.task_history[context_id] = history
 
     async def append_task_history_message(
-        self, context_id: str, message: Dict[str, Any]
+        self, context_id: str, message: dict[str, Any]
     ) -> None:
         async with self.lock:
             if context_id not in self.task_history:
@@ -63,7 +63,7 @@ class InMemoryTaskStore(TaskStore):
 
     async def get_task_events(
         self, task_id: str
-    ) -> List[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]:
+    ) -> list[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]:
         async with self.lock:
             return list(self.task_events.get(task_id, []))
 

@@ -3,7 +3,7 @@ Adapters for converting between SwissKnife and A2A message formats.
 """
 
 import base64
-from typing import Dict, Any, List, Optional
+from typing import Any
 from a2a.types import (
     GetTaskResponse,
     Message,
@@ -22,7 +22,7 @@ from a2a.types import (
 
 
 # TODO: cover all of cases for images
-def convert_a2a_message_to_agent(message: Message) -> Dict[str, Any]:
+def convert_a2a_message_to_agent(message: Message) -> dict[str, Any]:
     """
     Convert an A2A message to SwissKnife format.
 
@@ -72,7 +72,7 @@ def convert_a2a_message_to_agent(message: Message) -> Dict[str, Any]:
 
 # TODO: cover all of cases for images
 def convert_agent_message_to_a2a(
-    message: Dict[str, Any], message_id: Optional[str] = None
+    message: dict[str, Any], message_id: str | None = None
 ) -> Message:
     """
     Convert a SwissKnife message to A2A format.
@@ -135,8 +135,8 @@ def convert_agent_message_to_a2a(
 
 def convert_agent_response_to_a2a_artifact(
     response: str,
-    tool_uses: Optional[List[Dict[str, Any]]] = None,
-    artifact_id: Optional[str] = None,
+    tool_uses: list[dict[str, Any]] | None = None,
+    artifact_id: str | None = None,
 ) -> Artifact:
     """
     Convert a SwissKnife response to an A2A artifact.
@@ -165,8 +165,8 @@ def convert_agent_response_to_a2a_artifact(
 
 def convert_agent_response_to_a2a_message(
     response: str,
-    tool_uses: Optional[List[Dict[str, Any]]] = None,
-    message_id: Optional[str] = None,
+    tool_uses: list[dict[str, Any]] | None = None,
+    message_id: str | None = None,
     role: Role = Role.agent,
 ) -> Message:
     """
@@ -196,7 +196,7 @@ def convert_agent_response_to_a2a_message(
 
 
 def convert_file_to_a2a_part(
-    file_path: str, file_content: bytes, mime_type: Optional[str] = None
+    file_path: str, file_content: bytes, mime_type: str | None = None
 ) -> Part:
     """
     Convert a file to an A2A part.
@@ -233,7 +233,7 @@ def convert_file_to_a2a_part(
 
 def convert_a2a_send_task_response_to_agent_message(
     response: SendMessageResponse | GetTaskResponse, agent_name: str
-) -> Optional[str]:
+) -> str | None:
     """Convert A2A response to agent message format"""
     if not response or not hasattr(response, "root"):
         return None

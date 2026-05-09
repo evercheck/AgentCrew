@@ -1,5 +1,4 @@
 import re
-from typing import List
 from .base import BaseTextCleaner
 
 
@@ -121,7 +120,7 @@ class TextCleaner(BaseTextCleaner):
 
         return text
 
-    def split_into_sentences(self, text: str) -> List[str]:
+    def split_into_sentences(self, text: str) -> list[str]:
         """
         Split text into sentences for streaming.
 
@@ -129,7 +128,7 @@ class TextCleaner(BaseTextCleaner):
             text: Text to split
 
         Returns:
-            List of sentences
+            list of sentences
         """
         normalized_text = re.sub(r"\s+", " ", text).strip()
         if not normalized_text:

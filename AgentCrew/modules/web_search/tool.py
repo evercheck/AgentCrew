@@ -22,7 +22,7 @@ def get_web_search_tool_definition():
         "included_domains": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "List of specific domains that search engine will search on",
+            "description": "list of specific domains that search engine will search on",
         },
         "max_results": {
             "type": "integer",

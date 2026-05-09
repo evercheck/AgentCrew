@@ -4,7 +4,6 @@ Provides visual diff comparison for search/replace blocks.
 """
 
 import difflib
-from typing import List, Dict
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -58,7 +57,7 @@ class DiffWidget(QWidget):
         self.main_layout.setSpacing(8)
 
     @staticmethod
-    def has_search_replace_blocks(blocks: List[Dict]) -> bool:
+    def has_search_replace_blocks(blocks: list[dict]) -> bool:
         """Check if input is a valid list of search/replace blocks."""
         if not isinstance(blocks, list):
             return False
@@ -67,15 +66,15 @@ class DiffWidget(QWidget):
         )
 
     @staticmethod
-    def parse_search_replace_blocks(blocks: List[Dict]) -> List[Dict]:
+    def parse_search_replace_blocks(blocks: list[dict]) -> list[dict]:
         """
         Parse search/replace blocks from list format.
 
         Args:
-            blocks: List of dicts with 'search' and 'replace' keys
+            blocks: list of dicts with 'search' and 'replace' keys
 
         Returns:
-            List of dicts with 'index', 'search', and 'replace' keys
+            list of dicts with 'index', 'search', and 'replace' keys
         """
         if not isinstance(blocks, list):
             return []
@@ -90,12 +89,12 @@ class DiffWidget(QWidget):
             if isinstance(block, dict)
         ]
 
-    def set_diff_content(self, blocks: List[Dict], file_path: str = ""):
+    def set_diff_content(self, blocks: list[dict], file_path: str = ""):
         """
         Set the diff content to display.
 
         Args:
-            blocks: List of search/replace block dicts
+            blocks: list of search/replace block dicts
             file_path: Optional file path to display in header
         """
         self._clear_layout()
@@ -347,7 +346,7 @@ class CompactDiffWidget(QWidget):
         self.main_layout.setContentsMargins(4, 4, 4, 4)
         self.main_layout.setSpacing(4)
 
-    def set_diff_content(self, blocks: List[Dict], file_path: str = ""):
+    def set_diff_content(self, blocks: list[dict], file_path: str = ""):
         """Set the diff content to display in compact form."""
         self._clear_layout()
         colors = self._colors

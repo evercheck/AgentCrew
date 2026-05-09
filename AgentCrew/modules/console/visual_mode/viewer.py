@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Dict, Any, Optional, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from rich.console import Console
 from rich.text import Text
@@ -21,14 +21,14 @@ class VisualModeViewer:
     def __init__(
         self,
         console: Console,
-        on_copy: Optional[Callable[[str], None]] = None,
+        on_copy: Callable[[str], None] | None = None,
     ):
         self._console = console
         self._on_copy = on_copy
         self._ui = VisualModeUI(console)
         self._input_handler = VisualModeInputHandler(self._ui, on_copy=on_copy)
 
-    def set_messages(self, messages: List[Dict[str, Any]]):
+    def set_messages(self, messages: list[dict[str, Any]]):
         self._ui.set_messages(messages)
 
     def show(self):

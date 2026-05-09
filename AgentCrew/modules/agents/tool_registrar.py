@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable
 from loguru import logger
 from AgentCrew.modules.tools.utils import extract_tool_name
 
@@ -149,7 +149,7 @@ class AgentToolRegistrar:
         self,
         definition_func: Callable,
         handler_factory: Callable,
-        service_instance: Optional[Any] = None,
+        service_instance: Any | None = None,
     ) -> None:
         """Add a single tool definition to the agent's local map."""
         tool_def = definition_func() if callable(definition_func) else definition_func

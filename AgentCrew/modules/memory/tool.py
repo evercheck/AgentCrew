@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 from .base_service import BaseMemoryService
 from .context_persistent import ContextPersistenceService
@@ -37,7 +37,7 @@ def _coerce_persistence_service_context(
     )
 
 
-def get_memory_forget_tool_definition() -> Dict[str, Any]:
+def get_memory_forget_tool_definition() -> dict[str, Any]:
     """Optimized memory forgetting tool definition."""
 
     tool_description = """Removes memories using IDs from memory bank.
@@ -95,7 +95,7 @@ def get_memory_forget_tool_handler(
     return handle_memory_forget
 
 
-def get_memory_retrieve_tool_definition() -> Dict[str, Any]:
+def get_memory_retrieve_tool_definition() -> dict[str, Any]:
     """Optimized memory retrieval tool definition."""
 
     tool_description = """Search relevant information from conversation history using semantic search.
@@ -215,7 +215,7 @@ def get_memory_retrieve_tool_handler(
     return handle_memory_retrieve
 
 
-def get_learn_behavior_tool_definition() -> Dict[str, Any]:
+def get_learn_behavior_tool_definition() -> dict[str, Any]:
     """Optimized adaptive behavior tool definition."""
 
     tool_description = """Stores behavioral patterns to personalize future interactions based on user preferences and successful approaches.
@@ -236,7 +236,7 @@ All behaviors must follow 'when..., [action]...' format for automatic activation
         "action_steps": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "List of action steps to execute when the condition is met. Each step should be a clear, actionable instruction. Example: ['provide step-by-step troubleshooting', 'include code examples', 'explain the root cause'].",
+            "description": "list of action steps to execute when the condition is met. Each step should be a clear, actionable instruction. Example: ['provide step-by-step troubleshooting', 'include code examples', 'explain the root cause'].",
         },
         "scope": {
             "type": "string",

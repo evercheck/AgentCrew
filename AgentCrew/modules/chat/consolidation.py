@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Any
 
 from AgentCrew.modules.llm.base import BaseLLMService
 
@@ -19,8 +19,8 @@ class ConversationConsolidator:
         self.llm = llm_service
 
     async def consolidate(
-        self, messages: List[Dict[str, Any]], preserve_count: int
-    ) -> Dict[str, Any]:
+        self, messages: list[dict[str, Any]], preserve_count: int
+    ) -> dict[str, Any]:
         """
         Consolidate conversation messages, preserving the specified number of recent messages.
 
@@ -108,7 +108,7 @@ class ConversationConsolidator:
 
         return result
 
-    async def generate_summary(self, messages: List[Dict[str, Any]]) -> str:
+    async def generate_summary(self, messages: list[dict[str, Any]]) -> str:
         """
         Generate a summary of the given messages using the current agent's LLM.
 
@@ -127,7 +127,7 @@ class ConversationConsolidator:
 
         return summary
 
-    def format_conversation_for_summary(self, messages: List[Dict[str, Any]]) -> str:
+    def format_conversation_for_summary(self, messages: list[dict[str, Any]]) -> str:
         """
         Format conversation messages for summarization.
 
@@ -222,7 +222,7 @@ The conversation to summarize is delimited between triple quotes:
             + f'"""\n{conversation}\n"""'
         )
 
-    async def unconsolidate(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def unconsolidate(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Remove the last consolidated message and restore original messages.
 
@@ -261,7 +261,7 @@ The conversation to summarize is delimited between triple quotes:
             "restoration_note": "Consolidated message removed. Original messages would need to be restored from backup if available.",
         }
 
-    def has_consolidated_message(self, messages: List[Dict[str, Any]]) -> bool:
+    def has_consolidated_message(self, messages: list[dict[str, Any]]) -> bool:
         """
         Check if the message list contains any consolidated messages.
 
@@ -273,7 +273,7 @@ The conversation to summarize is delimited between triple quotes:
         """
         return any(msg.get("role") == "consolidated" for msg in messages)
 
-    def estimate_token_count(self, messages: List[Dict[str, Any]]) -> int:
+    def estimate_token_count(self, messages: list[dict[str, Any]]) -> int:
         """
         Estimate the token count for the given messages.
 

@@ -4,11 +4,11 @@ File editing tool definitions and handlers for AgentCrew.
 Provides file_write_or_edit tool for intelligent file editing with search/replace blocks.
 """
 
-from typing import Dict, Any, Callable, Optional, List
+from typing import Any, Callable
 from .service import FileEditingService
 
 
-def convert_blocks_to_string(blocks: List[Dict[str, str]]) -> str:
+def convert_blocks_to_string(blocks: list[dict[str, str]]) -> str:
     result_parts = []
     for block in blocks:
         search_text = block.get("search", "")
@@ -20,7 +20,7 @@ def convert_blocks_to_string(blocks: List[Dict[str, str]]) -> str:
     return "\n".join(result_parts)
 
 
-def is_full_content_mode(blocks: List[Dict[str, str]]) -> bool:
+def is_full_content_mode(blocks: list[dict[str, str]]) -> bool:
     if len(blocks) == 1:
         block = blocks[0]
         search_text = block.get("search", "")
@@ -28,7 +28,7 @@ def is_full_content_mode(blocks: List[Dict[str, str]]) -> bool:
     return False
 
 
-def get_file_write_or_edit_tool_definition() -> Dict[str, Any]:
+def get_file_write_or_edit_tool_definition() -> dict[str, Any]:
     tool_description = """Write/edit files via search/replace blocks.
 
 FORMAT: Array of {"search": "...", "replace": "..."} objects
@@ -164,7 +164,7 @@ def get_file_write_or_edit_tool_handler(
     return handle_file_write_or_edit
 
 
-def register(service_instance: Optional[FileEditingService] = None, agent=None):
+def register(service_instance: FileEditingService | None = None, agent=None):
     from AgentCrew.modules.tools.registration import register_tool
 
     if service_instance is None:

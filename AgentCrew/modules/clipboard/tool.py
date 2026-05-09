@@ -1,8 +1,8 @@
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 from .service import ClipboardService
 
 
-def get_clipboard_read_tool_definition() -> Dict[str, Any]:
+def get_clipboard_read_tool_definition() -> dict[str, Any]:
     """
     Get the tool definition for reading from clipboard based on provider.
 
@@ -10,7 +10,7 @@ def get_clipboard_read_tool_definition() -> Dict[str, Any]:
         provider: The LLM provider ("claude" or another OpenAI-compatible provider)
 
     Returns:
-        Dict containing the tool definition
+        dict containing the tool definition
     """
     tool_description = "Reads the current content from the system clipboard. Automatically detects whether the content is text or an image. Use this to access data the user may have copied from another application. Useful when the user refers to content they've copied from another source without explicitly providing it. If the user seems to be referencing external content without providing it, consider using this tool."
     tool_arguments = {}
@@ -29,7 +29,7 @@ def get_clipboard_read_tool_definition() -> Dict[str, Any]:
     }
 
 
-def get_clipboard_write_tool_definition() -> Dict[str, Any]:
+def get_clipboard_write_tool_definition() -> dict[str, Any]:
     """
     Get the tool definition for writing to clipboard based on provider.
 
@@ -37,7 +37,7 @@ def get_clipboard_write_tool_definition() -> Dict[str, Any]:
         provider: The LLM provider ("claude" or another OpenAI-compatible provider)
 
     Returns:
-        Dict containing the tool definition
+        dict containing the tool definition
     """
     tool_description = "Writes content to the system clipboard, making it accessible for pasting into other applications. Use this to provide information to the user in a readily accessible format. Always explain *why* you are writing to the clipboard and what the user should do with the copied content. For example, 'I have written the generated code snippet to your clipboard. You can now paste it into your code editor."
     tool_arguments = {
@@ -72,7 +72,7 @@ def get_clipboard_read_tool_handler(clipboard_service: ClipboardService) -> Call
         Function that handles clipboard read requests
     """
 
-    async def handle_clipboard_read() -> str | list[Dict[str, Any]]:
+    async def handle_clipboard_read() -> str | list[dict[str, Any]]:
         result = clipboard_service.read()
         if result["type"] == "image":
             return [
@@ -102,7 +102,7 @@ def get_clipboard_write_tool_handler(clipboard_service: ClipboardService) -> Cal
         Function that handles clipboard write requests
     """
 
-    async def handle_clipboard_write(**params) -> str | list[Dict[str, Any]]:
+    async def handle_clipboard_write(**params) -> str | list[dict[str, Any]]:
         content = params.get("content")
         if not content:
             raise Exception("Invalid Argument")

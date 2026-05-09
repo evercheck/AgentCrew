@@ -9,21 +9,21 @@ import warnings
 from datetime import datetime
 
 if TYPE_CHECKING:
-    from typing import List, Dict, Any, Optional
+    from typing import Any
 
 
 class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model_name: str = "text-embedding-ada-002",
-        organization_id: Optional[str] = None,
-        api_base: Optional[str] = None,
-        api_type: Optional[str] = None,
-        api_version: Optional[str] = None,
-        deployment_id: Optional[str] = None,
-        default_headers: Optional[Dict[str, str]] = None,
-        dimensions: Optional[int] = None,
+        organization_id: str | None = None,
+        api_base: str | None = None,
+        api_type: str | None = None,
+        api_version: str | None = None,
+        deployment_id: str | None = None,
+        default_headers: dict[str, str] | None = None,
+        dimensions: int | None = None,
         api_key_env_var: str = "CHROMA_OPENAI_API_KEY",
     ):
         """
@@ -44,7 +44,7 @@ class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
                 it will use the api version for the OpenAI API. This can be used to
                 point to a different deployment, such as an Azure deployment.
             deployment_id (str, optional): Deployment ID for Azure OpenAI.
-            default_headers (Dict[str, str], optional): A mapping of default headers to be sent with each API request.
+            default_headers (dict[str, str], optional): A mapping of default headers to be sent with each API request.
             dimensions (int, optional): The number of dimensions for the embeddings.
                 Only supported for `text-embedding-3` or later models from OpenAI.
                 https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
@@ -81,7 +81,7 @@ class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
         self.dimensions = dimensions
 
         # Initialize the OpenAI client
-        client_params: Dict[str, Any] = {"api_key": self.api_key}
+        client_params: dict[str, Any] = {"api_key": self.api_key}
 
         if self.organization_id is not None:
             client_params["organization"] = self.organization_id
@@ -152,7 +152,7 @@ class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
             return []
 
         # Prepare embedding parameters
-        embedding_params: Dict[str, Any] = {
+        embedding_params: dict[str, Any] = {
             "model": self.model_name,
             "input": input,
         }
@@ -176,11 +176,11 @@ class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
         # OpenAI embeddings work best with cosine similarity
         return "cosine"
 
-    def supported_spaces(self) -> List[Space]:
+    def supported_spaces(self) -> list[Space]:
         return ["cosine", "l2", "ip"]
 
     @staticmethod
-    def build_from_config(config: Dict[str, Any]) -> "EmbeddingFunction[Documents]":
+    def build_from_config(config: dict[str, Any]) -> "EmbeddingFunction[Documents]":
         # Extract parameters from config
         api_key_env_var = config.get("api_key_env_var")
         model_name = config.get("model_name")
@@ -208,7 +208,7 @@ class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
             dimensions=dimensions,
         )
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         return {
             "api_key_env_var": self.api_key_env_var,
             "model_name": self.model_name,
@@ -222,7 +222,7 @@ class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
         }
 
     def validate_config_update(
-        self, old_config: Dict[str, Any], new_config: Dict[str, Any]
+        self, old_config: dict[str, Any], new_config: dict[str, Any]
     ) -> None:
         if "model_name" in new_config:
             raise ValueError(
@@ -230,7 +230,7 @@ class GithubCopilotEmbeddingFunction(EmbeddingFunction[Documents]):
             )
 
     @staticmethod
-    def validate_config(config: Dict[str, Any]) -> None:
+    def validate_config(config: dict[str, Any]) -> None:
         """
         Validate the configuration using the JSON schema.
 

@@ -176,7 +176,7 @@ class CommandHandler:
 
         Args:
             title: Section title for the debug output
-            messages: List of message dictionaries
+            messages: list of message dictionaries
             max_content_length: Maximum length for message content (default: 200)
         """
         formatted_messages = self._format_messages_for_debug(
@@ -198,11 +198,11 @@ class CommandHandler:
         """Format messages for debug display with truncated content.
 
         Args:
-            messages: List of message dictionaries
+            messages: list of message dictionaries
             max_content_length: Maximum length for message content
 
         Returns:
-            List of formatted message dictionaries
+            list of formatted message dictionaries
         """
         formatted = []
 

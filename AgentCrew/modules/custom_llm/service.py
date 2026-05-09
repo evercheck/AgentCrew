@@ -2,7 +2,7 @@ from AgentCrew.modules.llm.model_registry import ModelRegistry
 from AgentCrew.modules.openai import OpenAIService
 from AgentCrew.modules.llm.base import AsyncIterator
 from AgentCrew.modules.llm.token_usage import TokenUsage
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Tuple
 import json
 from loguru import logger
 
@@ -15,7 +15,7 @@ class CustomLLMService(OpenAIService):
         base_url: str,
         api_key: str,
         provider_name: str,
-        extra_headers: Optional[Dict[str, str]] = None,
+        extra_headers: dict[str, str] | None = None,
     ):
         """
         Initializes the CustomLLMService.
@@ -25,7 +25,7 @@ class CustomLLMService(OpenAIService):
             api_key (str): The API key for the service.
             provider_name (str): The name of the custom provider.
             is_stream (bool): Whether to enable streaming responses by default.
-            extra_headers (Optional[List[Dict[str, str]]]): Custom HTTP headers to include in API requests.
+            extra_headers (Optional[list[dict[str, str]]]): Custom HTTP headers to include in API requests.
         """
         super().__init__(api_key=api_key, base_url=base_url)
         self._provider_name = provider_name
@@ -39,7 +39,7 @@ class CustomLLMService(OpenAIService):
         return isinstance(name, str) and bool(name.strip())
 
     @staticmethod
-    def _safe_json_loads(raw_arguments: Any) -> Dict[str, Any]:
+    def _safe_json_loads(raw_arguments: Any) -> dict[str, Any]:
         if isinstance(raw_arguments, dict):
             return raw_arguments
         if not raw_arguments:
@@ -53,8 +53,8 @@ class CustomLLMService(OpenAIService):
         return {}
 
     def _normalize_tool_call_for_request(
-        self, raw_tool_call: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, raw_tool_call: dict[str, Any]
+    ) -> dict[str, Any] | None:
         tool_call = dict(raw_tool_call)
         tool_name = tool_call.get("name")
         if not self._has_usable_tool_name(tool_name):
@@ -73,7 +73,7 @@ class CustomLLMService(OpenAIService):
         }
 
     def _append_non_stream_tool_call(
-        self, tool_uses: List[Dict[str, Any]], tool_call: Any
+        self, tool_uses: list[dict[str, Any]], tool_call: Any
     ) -> bool:
         function = getattr(tool_call, "function", None)
         tool_name = getattr(function, "name", None) if function else None
@@ -98,8 +98,8 @@ class CustomLLMService(OpenAIService):
         return True
 
     def _resolve_stream_tool_call_index(
-        self, tool_uses: List[Dict[str, Any]], tool_call_delta: Any
-    ) -> Optional[int]:
+        self, tool_uses: list[dict[str, Any]], tool_call_delta: Any
+    ) -> int | None:
         tool_call_index = getattr(tool_call_delta, "index", None)
         if tool_call_index is not None:
             while len(tool_uses) <= tool_call_index:
@@ -140,8 +140,8 @@ class CustomLLMService(OpenAIService):
         return None
 
     def _merge_stream_tool_call_delta(
-        self, tool_uses: List[Dict[str, Any]], tool_call_delta: Any
-    ) -> Optional[int]:
+        self, tool_uses: list[dict[str, Any]], tool_call_delta: Any
+    ) -> int | None:
         tool_call_index = self._resolve_stream_tool_call_index(
             tool_uses, tool_call_delta
         )
@@ -252,7 +252,7 @@ class CustomLLMService(OpenAIService):
 
         return result_text
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]):
+    def _convert_internal_format(self, messages: list[dict[str, Any]]):
         for msg in messages:
             msg.pop("agent", None)
             if "tool_calls" in msg and msg.get("tool_calls", []):
@@ -267,7 +267,7 @@ class CustomLLMService(OpenAIService):
             if msg.get("role") == "tool":
                 msg.pop("tool_name", None)
                 msg.pop("is_rejected", None)
-                if isinstance(msg.get("content", ""), List):
+                if isinstance(msg.get("content", ""), list):
                     cleaned_tool_content = []
                     for tool_content in msg["content"]:
                         if isinstance(tool_content, dict):
@@ -277,7 +277,7 @@ class CustomLLMService(OpenAIService):
                                 )
                     msg["content"] = "\n".join(cleaned_tool_content)
             elif msg.get("role") == "assistant":
-                if isinstance(msg.get("content", ""), List):
+                if isinstance(msg.get("content", ""), list):
                     for assistant_content in msg["content"]:
                         if isinstance(assistant_content, dict):
                             if assistant_content.get("type", "text") == "thinking":
@@ -291,7 +291,7 @@ class CustomLLMService(OpenAIService):
 
     def _build_stream_params(
         self,
-    ) -> Tuple[Dict[str, Any], bool]:
+    ) -> Tuple[dict[str, Any], bool]:
         """Build stream parameters for the API call.
 
         Override this in derived classes to customize parameters without
@@ -388,8 +388,8 @@ class CustomLLMService(OpenAIService):
             return AsyncIterator(response.choices)
 
     def process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         if "stream" in ModelRegistry.get_model_capabilities(
             f"{self._provider_name}/{self.model}"
         ):
@@ -399,7 +399,7 @@ class CustomLLMService(OpenAIService):
 
     def _process_non_stream_chunk(
         self, chunk, assistant_response, tool_uses
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         """
         Process a single chunk from the streaming response.
 
@@ -510,8 +510,8 @@ class CustomLLMService(OpenAIService):
         )
 
     def _process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         """
         Process a single chunk from the streaming response.
 

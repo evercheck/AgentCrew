@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import uuid
-from typing import TYPE_CHECKING, List, Dict, Any, Optional
+from typing import TYPE_CHECKING, Any
 from datetime import datetime, timedelta
 from loguru import logger
 
@@ -21,7 +21,7 @@ class ChromaMemoryService(BaseMemoryService):
     def __init__(
         self,
         collection_name="conversation",
-        llm_service: Optional[BaseLLMService] = None,
+        llm_service: BaseLLMService | None = None,
     ):
         self.db_path = os.getenv("MEMORYDB_PATH", MEMORY_DB_PATH)
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
@@ -113,10 +113,10 @@ class ChromaMemoryService(BaseMemoryService):
     def store_conversation(
         self,
         user_message: str,
-        assistant_messages: List[str],
+        assistant_messages: list[str],
         agent_name: str = "None",
-        session_id: Optional[str] = None,
-    ) -> List[str]:
+        session_id: str | None = None,
+    ) -> list[str]:
         self._initialize_collection()
 
         operation_id = str(uuid.uuid4())
@@ -152,13 +152,13 @@ class ChromaMemoryService(BaseMemoryService):
 
     def list_memory_headers(
         self,
-        from_date: Optional[int] = None,
-        to_date: Optional[int] = None,
+        from_date: int | None = None,
+        to_date: int | None = None,
         agent_name: str = "None",
-    ) -> List[str]:
+    ) -> list[str]:
         collection = self._initialize_collection()
 
-        and_conditions: List[Dict[str, Any]] = []
+        and_conditions: list[dict[str, Any]] = []
 
         if self.session_id.strip():
             and_conditions.append({"session_id": {"$ne": self.session_id}})
@@ -192,13 +192,13 @@ class ChromaMemoryService(BaseMemoryService):
     def retrieve_memory(
         self,
         keywords: str,
-        from_date: Optional[int] = None,
-        to_date: Optional[int] = None,
+        from_date: int | None = None,
+        to_date: int | None = None,
         agent_name: str = "",
     ) -> str:
         collection = self._initialize_collection()
 
-        and_conditions: List[Dict[str, Any]] = []
+        and_conditions: list[dict[str, Any]] = []
 
         if self.session_id.strip():
             and_conditions.append({"session_id": {"$ne": self.session_id}})
@@ -292,14 +292,14 @@ class ChromaMemoryService(BaseMemoryService):
         self,
         agent_name: str,
         max_items: int = 100,
-        exclude_session_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        exclude_session_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         collection = self._initialize_collection()
 
         if not agent_name.strip() or max_items <= 0:
             return []
 
-        and_conditions: List[Dict[str, Any]] = [{"agent": agent_name}]
+        and_conditions: list[dict[str, Any]] = [{"agent": agent_name}]
         session_to_exclude = exclude_session_id or self.session_id
         if session_to_exclude.strip():
             and_conditions.append({"session_id": {"$ne": session_to_exclude}})
@@ -315,7 +315,7 @@ class ChromaMemoryService(BaseMemoryService):
         documents = records.get("documents") or []
         metadatas = records.get("metadatas") or []
 
-        corpus: List[Dict[str, Any]] = []
+        corpus: list[dict[str, Any]] = []
         for item_id, document, metadata in zip(ids, documents, metadatas):
             metadata = metadata or {}
             if metadata.get("evolved_at"):
@@ -342,7 +342,7 @@ class ChromaMemoryService(BaseMemoryService):
 
     def mark_memories_evolved(
         self,
-        memory_ids: List[str],
+        memory_ids: list[str],
         agent_name: str,
     ) -> int:
         if not memory_ids:
@@ -377,13 +377,13 @@ class ChromaMemoryService(BaseMemoryService):
     def forget_topic(
         self,
         topic: str,
-        from_date: Optional[int] = None,
-        to_date: Optional[int] = None,
+        from_date: int | None = None,
+        to_date: int | None = None,
         agent_name: str = "None",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         try:
             collection = self._initialize_collection()
-            and_conditions: List[Dict[str, Any]] = []
+            and_conditions: list[dict[str, Any]] = []
 
             if agent_name.strip():
                 and_conditions.append({"agent": agent_name})
@@ -427,7 +427,7 @@ class ChromaMemoryService(BaseMemoryService):
                 "count": 0,
             }
 
-    def forget_ids(self, ids: List[str], agent_name: str = "None") -> Dict[str, Any]:
+    def forget_ids(self, ids: list[str], agent_name: str = "None") -> dict[str, Any]:
         collection = self._initialize_collection()
         collection.delete(ids=ids, where={"agent": agent_name})
 
@@ -437,7 +437,7 @@ class ChromaMemoryService(BaseMemoryService):
             "count": len(ids),
         }
 
-    def delete_by_conversation_id(self, conversation_id: str) -> Dict[str, Any]:
+    def delete_by_conversation_id(self, conversation_id: str) -> dict[str, Any]:
         try:
             collection = self._initialize_collection()
 

@@ -7,7 +7,7 @@ import threading
 import queue
 
 if TYPE_CHECKING:
-    from typing import Callable, Dict, Any, Optional, List
+    from typing import Callable, Any
     from .text_cleaner import TextCleaner
 
 
@@ -30,23 +30,23 @@ class BaseVoiceService(ABC):
 
         # Core components that implementations should initialize
         self.audio_handler = None
-        self.text_cleaner: Optional[TextCleaner] = None
+        self.text_cleaner: TextCleaner | None = None
 
         # Audio streaming and threading
         self.audio_queue: queue.Queue = queue.Queue()
         self.is_playing: bool = False
-        self.playback_thread: Optional[threading.Thread] = None
+        self.playback_thread: threading.Thread | None = None
 
         # TTS threading management
         self.tts_queue: queue.Queue = queue.Queue(maxsize=100)
-        self.tts_thread: Optional[threading.Thread] = None
+        self.tts_thread: threading.Thread | None = None
         self.tts_thread_running: bool = False
         self.tts_lock: threading.Lock = threading.Lock()
 
     @abstractmethod
     def start_voice_recording(
-        self, sample_rate: int = 44100, voice_completed_cb: Optional[Callable] = None
-    ) -> Dict[str, Any]:
+        self, sample_rate: int = 44100, voice_completed_cb: Callable | None = None
+    ) -> dict[str, Any]:
         """
         Start recording voice input.
 
@@ -59,7 +59,7 @@ class BaseVoiceService(ABC):
         pass
 
     @abstractmethod
-    def stop_voice_recording(self) -> Dict[str, Any]:
+    def stop_voice_recording(self) -> dict[str, Any]:
         """
         Stop recording and return status.
 
@@ -79,7 +79,7 @@ class BaseVoiceService(ABC):
         pass
 
     @abstractmethod
-    async def speech_to_text(self, audio_data: Any, sample_rate: int) -> Dict[str, Any]:
+    async def speech_to_text(self, audio_data: Any, sample_rate: int) -> dict[str, Any]:
         """
         Convert speech to text using the service's STT capabilities.
 
@@ -88,12 +88,12 @@ class BaseVoiceService(ABC):
             sample_rate: Sample rate of the audio
 
         Returns:
-            Dict containing transcription results with keys:
+            dict containing transcription results with keys:
             - success: bool
             - text: str (transcribed text)
             - language: str (detected language)
             - confidence: float (confidence score)
-            - words: List[Dict] (word-level timing if available)
+            - words: list[dict] (word-level timing if available)
             - error: str (error message if success is False)
         """
         pass
@@ -113,7 +113,7 @@ class BaseVoiceService(ABC):
 
     @abstractmethod
     def text_to_speech_stream(
-        self, text: str, voice_id: Optional[str] = None, model_id: Optional[str] = None
+        self, text: str, voice_id: str | None = None, model_id: str | None = None
     ) -> None:
         """
         Queue text-to-speech audio for streaming in a separate thread.
@@ -127,14 +127,14 @@ class BaseVoiceService(ABC):
         pass
 
     @abstractmethod
-    def list_voices(self) -> Dict[str, Any]:
+    def list_voices(self) -> dict[str, Any]:
         """
-        List available voices from the service.
+        list available voices from the service.
 
         Returns:
-            Dict containing:
+            dict containing:
             - success: bool
-            - voices: List[Dict] with voice information (voice_id, name, category, labels)
+            - voices: list[dict] with voice information (voice_id, name, category, labels)
             - error: str (if success is False)
         """
         pass
@@ -183,7 +183,7 @@ class BaseVoiceService(ABC):
         """
         pass
 
-    def _split_text_for_tts(self, text: str, max_chunk_length: int = 80) -> List[str]:
+    def _split_text_for_tts(self, text: str, max_chunk_length: int = 80) -> list[str]:
         cleaned_text = self.clean_text_for_speech(text)
         if not cleaned_text.strip():
             return []
@@ -195,7 +195,7 @@ class BaseVoiceService(ABC):
         if not initial_chunks:
             return [cleaned_text]
 
-        chunks: List[str] = []
+        chunks: list[str] = []
         current_chunk = ""
 
         for chunk in initial_chunks:
@@ -228,7 +228,7 @@ class BaseVoiceService(ABC):
 
     def _iter_synthesized_tts_chunks_in_order(
         self,
-        chunks: List[str],
+        chunks: list[str],
         synthesize_func: Callable[[str], Any],
         max_workers: int = 3,
     ):
@@ -264,7 +264,7 @@ class BaseVoiceService(ABC):
         pass
 
     def _process_tts_request(
-        self, text: str, voice_id: Optional[str], model_id: Optional[str]
+        self, text: str, voice_id: str | None, model_id: str | None
     ) -> None:
         """
         Process a single TTS request synchronously in the worker thread.
@@ -307,7 +307,7 @@ class BaseTextCleaner(ABC):
         pass
 
     @abstractmethod
-    def split_into_sentences(self, text: str) -> List[str]:
+    def split_into_sentences(self, text: str) -> list[str]:
         """
         Split text into sentences for streaming.
 
@@ -315,7 +315,7 @@ class BaseTextCleaner(ABC):
             text: Text to split
 
         Returns:
-            List of sentences
+            list of sentences
         """
         pass
 
@@ -328,7 +328,7 @@ class BaseAudioHandler(ABC):
     def __init__(self):
         """Initialize audio handler."""
         self.recording: bool = False
-        self.recording_thread: Optional[threading.Thread] = None
+        self.recording_thread: threading.Thread | None = None
         self.audio_queue: queue.Queue = queue.Queue()
         self.current_sample_rate: int = 44100
 
@@ -343,7 +343,7 @@ class BaseAudioHandler(ABC):
         pass
 
     @abstractmethod
-    def stop_recording(self) -> tuple[Optional[Any], int]:
+    def stop_recording(self) -> tuple[Any | None, int]:
         """
         Stop recording and return the recorded audio.
 

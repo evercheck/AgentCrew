@@ -7,7 +7,7 @@ import subprocess
 import re
 import atexit
 import hashlib
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Any, Tuple
 from datetime import datetime
 from .types import CommandState, CommandProcess
 from .constants import (
@@ -60,18 +60,18 @@ class CommandExecutionService:
         self._is_windows = self.platform == "win32"
 
         # Process tracking
-        self._instances: Dict[str, CommandProcess] = {}
+        self._instances: dict[str, CommandProcess] = {}
         self._instance_lock = threading.Lock()
 
         # Rate limiting (application-wide)
-        self._rate_limiter: List[float] = []
+        self._rate_limiter: list[float] = []
 
         # Register cleanup on shutdown
         atexit.register(self.shutdown)
 
         logger.info(f"CommandExecutionService initialized (platform: {self.platform})")
 
-    def _get_shell_config(self) -> Tuple[str, List[str]]:
+    def _get_shell_config(self) -> Tuple[str, list[str]]:
         """Get platform-specific shell configuration"""
         if self._is_windows:
             # Windows PowerShell with UTF-8 encoding and text output
@@ -139,13 +139,13 @@ class CommandExecutionService:
         return True, ""
 
     def _validate_working_dir(
-        self, working_dir: Optional[str]
-    ) -> Tuple[bool, str, Optional[str]]:
+        self, working_dir: str | None
+    ) -> Tuple[bool, str, str | None]:
         """
         Validate and resolve working directory against security blacklist.
 
         Returns:
-            Tuple[bool, str, Optional[str]]: (is_valid, error_message, resolved_path)
+            Tuple[bool, str, str | None]: (is_valid, error_message, resolved_path)
         """
         if not working_dir:
             return True, "", None
@@ -192,9 +192,7 @@ class CommandExecutionService:
         except Exception as e:
             return False, f"Invalid working directory: {e}", None
 
-    def _validate_env_vars(
-        self, env_vars: Optional[Dict[str, str]]
-    ) -> Tuple[bool, str]:
+    def _validate_env_vars(self, env_vars: dict[str, str] | None) -> Tuple[bool, str]:
         """
         Validate environment variables.
 
@@ -277,9 +275,9 @@ class CommandExecutionService:
         self,
         command: str,
         timeout: int = 5,
-        working_dir: Optional[str] = None,
-        env_vars: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        working_dir: str | None = None,
+        env_vars: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         """
         Execute shell command with timeout and security controls.
 
@@ -290,7 +288,7 @@ class CommandExecutionService:
             env_vars: Additional environment variables
 
         Returns:
-            Dict with status, command_id (if still running), output, exit_code
+            dict with status, command_id (if still running), output, exit_code
         """
 
         start_time = time.time()
@@ -457,7 +455,7 @@ class CommandExecutionService:
 
             return {"status": "error", "error": f"Execution failed: {str(e)}"}
 
-    def get_command_status(self, command_id: str) -> Dict[str, Any]:
+    def get_command_status(self, command_id: str) -> dict[str, Any]:
         """
         Check status of running command.
 
@@ -467,7 +465,7 @@ class CommandExecutionService:
             command_id: Command identifier
 
         Returns:
-            Dict with status, output, exit_code, elapsed_time
+            dict with status, output, exit_code, elapsed_time
         """
         with self._instance_lock:
             cmd_process = self._instances.get(command_id)
@@ -530,7 +528,7 @@ class CommandExecutionService:
                 "state": cmd_process.state.value,
             }
 
-    def send_input(self, command_id: str, input_text: str) -> Dict[str, Any]:
+    def send_input(self, command_id: str, input_text: str) -> dict[str, Any]:
         """
         Send input to running command's stdin.
 
@@ -539,7 +537,7 @@ class CommandExecutionService:
             input_text: Text to send (will append newline if not present)
 
         Returns:
-            Dict with status and message
+            dict with status and message
         """
         if len(input_text) > MAX_INPUT_SIZE:
             return {
@@ -585,7 +583,7 @@ class CommandExecutionService:
             logger.error(f"Failed to send input to command {command_id}: {e}")
             return {"status": "error", "error": f"Failed to send input: {str(e)}"}
 
-    def cleanup_command(self, command_id: str) -> Dict[str, Any]:
+    def cleanup_command(self, command_id: str) -> dict[str, Any]:
         """
         Terminate and cleanup command (user-callable).
 
@@ -593,7 +591,7 @@ class CommandExecutionService:
             command_id: Command identifier
 
         Returns:
-            Dict with status and message
+            dict with status and message
         """
         with self._instance_lock:
             cmd_process = self._instances.get(command_id)
@@ -677,12 +675,12 @@ class CommandExecutionService:
         except Exception as e:
             logger.error(f"Cleanup error for {command_id}: {e}")
 
-    def list_running_commands(self) -> Dict[str, Any]:
+    def list_running_commands(self) -> dict[str, Any]:
         """
-        List all currently running commands.
+        list all currently running commands.
 
         Returns:
-            Dict with status and list of running commands with their details
+            dict with status and list of running commands with their details
         """
         with self._instance_lock:
             running_commands = []
@@ -711,7 +709,7 @@ class CommandExecutionService:
             "commands": running_commands,
         }
 
-    def terminate_command(self, command_id: str) -> Dict[str, Any]:
+    def terminate_command(self, command_id: str) -> dict[str, Any]:
         """
         Terminate a running command by its ID.
 
@@ -721,7 +719,7 @@ class CommandExecutionService:
             command_id: Command identifier
 
         Returns:
-            Dict with status and message
+            dict with status and message
         """
         return self.cleanup_command(command_id)
 

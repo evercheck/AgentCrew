@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
 from abc import ABC, abstractmethod
 
 
@@ -29,10 +29,10 @@ class BaseMemoryService(ABC):
     def store_conversation(
         self,
         user_message: str,
-        assistant_messages: List[str],
+        assistant_messages: list[str],
         agent_name: str = "None",
-        session_id: Optional[str] = None,
-    ) -> List[str]:
+        session_id: str | None = None,
+    ) -> list[str]:
         """
         Store a conversation exchange in memory.
 
@@ -41,7 +41,7 @@ class BaseMemoryService(ABC):
             assistant_messages: The assistant messages for the turn
 
         Returns:
-            List of memory IDs created
+            list of memory IDs created
         """
         pass
 
@@ -57,8 +57,8 @@ class BaseMemoryService(ABC):
     def retrieve_memory(
         self,
         keywords: str,
-        from_date: Optional[int] = None,
-        to_date: Optional[int] = None,
+        from_date: int | None = None,
+        to_date: int | None = None,
         agent_name: str = "None",
     ) -> str:
         """
@@ -77,19 +77,19 @@ class BaseMemoryService(ABC):
     @abstractmethod
     def list_memory_headers(
         self,
-        from_date: Optional[int] = None,
-        to_date: Optional[int] = None,
+        from_date: int | None = None,
+        to_date: int | None = None,
         agent_name: str = "None",
-    ) -> List[str]:
+    ) -> list[str]:
         """
-        List all memory IDs within an optional date range.
+        list all memory IDs within an optional date range.
 
         Args:
             from_date: Optional start date (timestamp) to filter memories
             to_date: Optional end date (timestamp) to filter memories
 
         Returns:
-            List of memory IDs
+            list of memory IDs
         """
         pass
 
@@ -110,10 +110,10 @@ class BaseMemoryService(ABC):
     def forget_topic(
         self,
         topic: str,
-        from_date: Optional[int] = None,
-        to_date: Optional[int] = None,
+        from_date: int | None = None,
+        to_date: int | None = None,
         agent_name: str = "None",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Remove memories related to a specific topic based on keyword search.
 
@@ -121,12 +121,12 @@ class BaseMemoryService(ABC):
             topic: Keywords describing the topic to forget
 
         Returns:
-            Dict with success status and information about the operation
+            dict with success status and information about the operation
         """
         pass
 
     @abstractmethod
-    def forget_ids(self, ids: List[str], agent_name: str = "None") -> Dict[str, Any]:
+    def forget_ids(self, ids: list[str], agent_name: str = "None") -> dict[str, Any]:
         """
         Remove memories using list of id.
 
@@ -134,12 +134,12 @@ class BaseMemoryService(ABC):
             ids: list of IDs to remove
 
         Returns:
-            Dict with success status and information about the operation
+            dict with success status and information about the operation
         """
         pass
 
     @abstractmethod
-    def delete_by_conversation_id(self, conversation_id: str) -> Dict[str, Any]:
+    def delete_by_conversation_id(self, conversation_id: str) -> dict[str, Any]:
         """
         Delete all memories associated with a specific conversation ID.
 
@@ -147,7 +147,7 @@ class BaseMemoryService(ABC):
             conversation_id: The conversation ID (session_id) to delete memories for
 
         Returns:
-            Dict with success status and count of deleted memories
+            dict with success status and count of deleted memories
         """
         pass
 
@@ -156,8 +156,8 @@ class BaseMemoryService(ABC):
         self,
         agent_name: str,
         max_items: int = 100,
-        exclude_session_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        exclude_session_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Return a structured memory corpus for an agent.
 
@@ -167,21 +167,21 @@ class BaseMemoryService(ABC):
             exclude_session_id: Optional session id to exclude from results.
 
         Returns:
-            List of memory records containing id, document, and metadata.
+            list of memory records containing id, document, and metadata.
         """
         pass
 
     @abstractmethod
     def mark_memories_evolved(
         self,
-        memory_ids: List[str],
+        memory_ids: list[str],
         agent_name: str,
     ) -> int:
         """
         Mark memory records as consumed by a prompt evolution.
 
         Args:
-            memory_ids: List of memory IDs to mark.
+            memory_ids: list of memory IDs to mark.
             agent_name: Agent name the memories belong to.
 
         Returns:

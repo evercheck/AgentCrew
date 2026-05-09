@@ -4,7 +4,7 @@ File editing service orchestrating search/replace, syntax checking, and safety v
 Main service for file editing operations in AgentCrew.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any
 import os
 import shutil
 import uuid
@@ -27,7 +27,7 @@ class FileEditingService:
     - Atomic file writes
     """
 
-    def __init__(self, safety_config: Optional[SafetyConfig] = None):
+    def __init__(self, safety_config: SafetyConfig | None = None):
         """
         Initialize file editing service.
 
@@ -43,8 +43,8 @@ class FileEditingService:
         file_path: str,
         text_or_search_replace_blocks: str,
         is_search_replace: bool = False,
-        agent_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        agent_name: str | None = None,
+    ) -> dict[str, Any]:
         """
         Main entry point for file editing.
 
@@ -59,7 +59,7 @@ class FileEditingService:
             agent_name: Optional agent name for permission checks
 
         Returns:
-            Dict with status, errors, and results
+            dict with status, errors, and results
         """
         file_path = self._resolve_path(file_path)
 
@@ -151,7 +151,7 @@ class FileEditingService:
                 "backup_restored": backup_path is not None,
             }
 
-    def _apply_search_replace(self, file_path: str, blocks_text: str) -> Dict[str, Any]:
+    def _apply_search_replace(self, file_path: str, blocks_text: str) -> dict[str, Any]:
         """
         Apply search/replace blocks to file.
 
@@ -160,7 +160,7 @@ class FileEditingService:
             blocks_text: Search/replace blocks text
 
         Returns:
-            Dict with status and new_content
+            dict with status and new_content
         """
         if not os.path.exists(file_path):
             return {
@@ -209,7 +209,7 @@ class FileEditingService:
             "blocks_applied": len(results),
         }
 
-    def _write_full_file(self, file_path: str, content: str) -> Dict[str, Any]:
+    def _write_full_file(self, file_path: str, content: str) -> dict[str, Any]:
         """
         Write complete file content.
 
@@ -218,7 +218,7 @@ class FileEditingService:
             content: Complete file content
 
         Returns:
-            Dict with status and new_content
+            dict with status and new_content
         """
         parent_dir = os.path.dirname(file_path)
         if parent_dir and not os.path.exists(parent_dir):

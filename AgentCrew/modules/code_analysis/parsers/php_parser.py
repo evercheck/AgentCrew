@@ -2,7 +2,7 @@
 PHP language parser for code analysis.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import BaseLanguageParser
 
@@ -16,7 +16,7 @@ class PhpParser(BaseLanguageParser):
 
     def process_node(
         self, node, source_code: bytes, process_children_callback
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         result = self._create_base_result(node)
 
         if node.type in [
@@ -62,8 +62,8 @@ class PhpParser(BaseLanguageParser):
         return result
 
     def _handle_property_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, node, source_code: bytes, result: dict[str, Any]
+    ) -> dict[str, Any]:
         prop_name = None
         prop_type = None
 
@@ -90,8 +90,8 @@ class PhpParser(BaseLanguageParser):
         return result
 
     def _handle_const_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, node, source_code: bytes, result: dict[str, Any]
+    ) -> dict[str, Any]:
         const_name = None
 
         for child in node.children:

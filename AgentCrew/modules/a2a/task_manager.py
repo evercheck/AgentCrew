@@ -37,7 +37,7 @@ from .task_interaction import TaskInteractionHandler
 from .task_execution import TaskExecutionEngine, ToolCallResult
 
 if TYPE_CHECKING:
-    from typing import Any, AsyncIterable, Dict, Optional, Union
+    from typing import Any, AsyncIterable, Union
     from AgentCrew.modules.agents import AgentManager
     from a2a.types import (
         CancelTaskRequest,
@@ -85,12 +85,12 @@ class AgentTaskManager(TaskManager):
 
     def _validate_task_not_terminal(
         self, task: Task, operation: str
-    ) -> Optional[TaskNotCancelableError]:
+    ) -> TaskNotCancelableError | None:
         if self._is_terminal_state(task.status.state):
             return A2AError.task_not_cancelable(task.id, task.status.state.value)
         return None
 
-    def _extract_text_from_message(self, message: Dict[str, Any]) -> str:
+    def _extract_text_from_message(self, message: dict[str, Any]) -> str:
         content = message.get("content", [])
         if isinstance(content, str):
             return content
@@ -419,12 +419,12 @@ class MultiAgentTaskManager:
         self,
         agent_manager: AgentManager,
         store_type: str = "memory",
-        store_options: Optional[Dict[str, Any]] = None,
+        store_options: dict[str, Any] | None = None,
     ):
         from .task_store import create_task_store
 
         self.agent_manager = agent_manager
-        self.agent_task_managers: Dict[str, AgentTaskManager] = {}
+        self.agent_task_managers: dict[str, AgentTaskManager] = {}
 
         for agent_name in agent_manager.agents:
             store = create_task_store(store_type, **(store_options or {}))
@@ -432,7 +432,7 @@ class MultiAgentTaskManager:
                 agent_name, agent_manager, store
             )
 
-    def get_task_manager(self, agent_name: str) -> Optional[AgentTaskManager]:
+    def get_task_manager(self, agent_name: str) -> AgentTaskManager | None:
         return self.agent_task_managers.get(agent_name)
 
     async def initialize(self) -> None:

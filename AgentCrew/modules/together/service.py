@@ -1,7 +1,7 @@
 import json
 import mimetypes
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Tuple
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -15,7 +15,7 @@ from AgentCrew.modules.llm.token_usage import TokenUsage
 class TogetherAIService(BaseLLMService):
     """Together AI implementation aligned with the official together-py client."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         load_dotenv()
         self.api_key = api_key or os.getenv("TOGETHER_API_KEY")
         if not self.api_key:
@@ -62,7 +62,7 @@ class TogetherAIService(BaseLLMService):
             return input_cost + output_cost + cached_cost
         return 0.0
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]):
+    def _convert_internal_format(self, messages: list[dict[str, Any]]):
         converted_messages = []
         for raw_msg in messages:
             msg = dict(raw_msg)
@@ -248,10 +248,10 @@ class TogetherAIService(BaseLLMService):
                 }
         return None
 
-    def process_file_for_message(self, file_path: str) -> Optional[Dict[str, Any]]:
+    def process_file_for_message(self, file_path: str) -> dict[str, Any] | None:
         return self._process_file(file_path)
 
-    def handle_file_command(self, file_path: str) -> Optional[List[Dict[str, Any]]]:
+    def handle_file_command(self, file_path: str) -> list[dict[str, Any]] | None:
         content = self._process_file(file_path)
         if content:
             return [content]
@@ -265,9 +265,9 @@ class TogetherAIService(BaseLLMService):
         self.tool_handlers[tool_name] = handler_function
         logger.info(f"🔧 Registered tool: {tool_name}")
 
-    async def stream_assistant_response(self, messages: List[Dict[str, Any]]) -> Any:
+    async def stream_assistant_response(self, messages: list[dict[str, Any]]) -> Any:
         full_model_id = f"{self._provider_name}/{self.model}"
-        stream_params: Dict[str, Any] = {
+        stream_params: dict[str, Any] = {
             "model": self.model,
             "messages": self._convert_internal_format(messages),
             "stream": True,
@@ -346,8 +346,8 @@ class TogetherAIService(BaseLLMService):
         return await self.client.chat.completions.create(**stream_params)
 
     def process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         chunk_text = None
         input_tokens = 0
         output_tokens = 0

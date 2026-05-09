@@ -2,7 +2,7 @@
 C++ language parser for code analysis.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import BaseLanguageParser
 
@@ -16,7 +16,7 @@ class CppParser(BaseLanguageParser):
 
     def process_node(
         self, node, source_code: bytes, process_children_callback
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         result = self._create_base_result(node)
 
         if node.type in ["class_specifier", "struct_specifier"]:
@@ -65,8 +65,8 @@ class CppParser(BaseLanguageParser):
         return result
 
     def _handle_field_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, node, source_code: bytes, result: dict[str, Any]
+    ) -> dict[str, Any]:
         field_name = None
         field_type = None
 
@@ -91,8 +91,8 @@ class CppParser(BaseLanguageParser):
         return result
 
     def _handle_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, node, source_code: bytes, result: dict[str, Any]
+    ) -> dict[str, Any]:
         var_name = None
         var_type = None
 

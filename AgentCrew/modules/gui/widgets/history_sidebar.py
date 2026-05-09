@@ -19,7 +19,6 @@ from PySide6.QtCore import (
     Signal,
 )
 from PySide6.QtGui import QAction
-from typing import List
 
 from qtpy.QtWidgets import QApplication
 
@@ -235,7 +234,7 @@ class ConversationSidebar(QWidget):
         self.refresh_btn.setStyleSheet(style_provider.get_button_style("secondary"))
         self.new_btn.setStyleSheet(style_provider.get_button_style("primary"))
 
-    def handle_delete_conversation_request(self, conversation_ids: List[str]):
+    def handle_delete_conversation_request(self, conversation_ids: list[str]):
         """Handles the request to delete one or more conversations after confirmation."""
         if not conversation_ids:
             return

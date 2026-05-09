@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 from loguru import logger
 
 # Default constants
@@ -125,7 +124,7 @@ class ChatHistoryManager:
         # Save history to file
         self._save_history()
 
-    def get_previous(self) -> Optional[str]:
+    def get_previous(self) -> str | None:
         """
         Get the previous entry in history.
 
@@ -138,7 +137,7 @@ class ChatHistoryManager:
         self.position -= 1
         return self.history[self.position]
 
-    def get_next(self) -> Optional[str]:
+    def get_next(self) -> str | None:
         """
         Get the next entry in history.
 

@@ -6,7 +6,7 @@ import threading
 import collections
 import time
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
+from typing import Any
 
 import requests
 import PyChromeDevTools
@@ -16,7 +16,7 @@ from loguru import logger
 BUFFER_SIZE = 500
 TAB_CHECK_INTERVAL_SECONDS = 5.0
 
-CDP_LEVEL_MAP: Dict[str, str] = {
+CDP_LEVEL_MAP: dict[str, str] = {
     "verbose": "debug",
     "info": "info",
     "warning": "warn",
@@ -43,8 +43,8 @@ class ConsoleListener:
         self._host = "localhost"
         self._port = debug_port
 
-        self._interface: Optional[PyChromeDevTools.ChromeInterface] = None
-        self._thread: Optional[threading.Thread] = None
+        self._interface: PyChromeDevTools.ChromeInterface | None = None
+        self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
 
         self._buffer: collections.deque = collections.deque(maxlen=BUFFER_SIZE)
@@ -52,7 +52,7 @@ class ConsoleListener:
         self._lifecycle_lock = threading.Lock()
         self._read_cursor = 0
         self._write_counter = 0
-        self._current_tab_index: Optional[int] = None
+        self._current_tab_index: int | None = None
         self._last_tab_check_at = 0.0
 
     def start(self):
@@ -97,9 +97,9 @@ class ConsoleListener:
     def get_logs(
         self,
         limit: int = 50,
-        levels: Optional[List[str]] = None,
+        levels: list[str] | None = None,
         since_last_read: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return buffered console entries.
 
         When since_last_read=True, this method uses a single shared read cursor for the
@@ -127,7 +127,7 @@ class ConsoleListener:
 
         return {"success": True, "count": len(entries), "logs": entries}
 
-    def clear_logs(self) -> Dict[str, Any]:
+    def clear_logs(self) -> dict[str, Any]:
         with self._buffer_lock:
             self._buffer.clear()
             self._write_counter = 0
@@ -254,8 +254,8 @@ class ConsoleListener:
         source: str,
         text: str,
         url: str = "",
-        line_number: Optional[int] = None,
-        timestamp: Optional[float] = None,
+        line_number: int | None = None,
+        timestamp: float | None = None,
     ):
         if timestamp:
             ts = datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc).isoformat()

@@ -30,7 +30,7 @@ class ToolCallResult(Enum):
 
 
 if TYPE_CHECKING:
-    from typing import Any, Dict, List, Optional, Tuple
+    from typing import Any, Tuple
     from AgentCrew.modules.agents import LocalAgent
     from .task_store import TaskStore
     from .task_streaming import TaskStreamingManager
@@ -94,7 +94,7 @@ class TaskExecutionEngine:
         streaming: TaskStreamingManager,
         cancellation: TaskCancellationManager,
         interaction: TaskInteractionHandler,
-        memory_service: Optional[BaseMemoryService] = None,
+        memory_service: BaseMemoryService | None = None,
     ) -> None:
         self.store = store
         self.streaming = streaming
@@ -114,7 +114,7 @@ class TaskExecutionEngine:
             return
 
         try:
-            artifacts: List[Any] = []
+            artifacts: list[Any] = []
             if not await self.store.has_task_history(task.context_id):
                 raise ValueError("Task history is not existed")
 
@@ -180,10 +180,10 @@ class TaskExecutionEngine:
         self,
         agent: LocalAgent,
         task: Task,
-        task_history: List[Dict[str, Any]],
-        artifacts: List[Any],
-        retried_count: List[int],
-        token_usage: Optional[TokenUsage] = None,
+        task_history: list[dict[str, Any]],
+        artifacts: list[Any],
+        retried_count: list[int],
+        token_usage: TokenUsage | None = None,
     ) -> tuple[str, TokenUsage]:
         if token_usage is None:
             token_usage = TokenUsage()
@@ -192,7 +192,7 @@ class TaskExecutionEngine:
             response_message = ""
             thinking_content = ""
             thinking_signature = ""
-            tool_uses: List[Dict[str, Any]] = []
+            tool_uses: list[dict[str, Any]] = []
 
             def process_result(_tool_uses, _token_usage):
                 nonlocal tool_uses, token_usage
@@ -252,7 +252,7 @@ class TaskExecutionEngine:
                     )
                     await asyncio.sleep(0.7)
 
-                thinking_data: Optional[Tuple[str, str]] = (
+                thinking_data: Tuple[str, str] | None = (
                     (thinking_content, thinking_signature) if thinking_content else None
                 )
                 thinking_message = agent.format_message(
@@ -339,9 +339,9 @@ class TaskExecutionEngine:
     async def _handle_streaming_chunk(
         self,
         task: Task,
-        chunk_text: Optional[str],
+        chunk_text: str | None,
         thinking_chunk: Any,
-        artifacts: List[Any],
+        artifacts: list[Any],
     ) -> None:
         if thinking_chunk:
             think_text_chunk, _ = thinking_chunk
@@ -377,10 +377,10 @@ class TaskExecutionEngine:
         self,
         agent: LocalAgent,
         task: Task,
-        tool_uses: List[Dict[str, Any]],
-        task_history: List[Dict[str, Any]],
+        tool_uses: list[dict[str, Any]],
+        task_history: list[dict[str, Any]],
     ) -> ToolCallResult:
-        parallel_buffer: List[Dict[str, Any]] = []
+        parallel_buffer: list[dict[str, Any]] = []
 
         for i, tool_use in enumerate(tool_uses):
             if self.cancellation.is_canceled(task.id):
@@ -417,8 +417,8 @@ class TaskExecutionEngine:
         self,
         agent: LocalAgent,
         task: Task,
-        tool_use: Dict[str, Any],
-        task_history: List[Dict[str, Any]],
+        tool_use: dict[str, Any],
+        task_history: list[dict[str, Any]],
     ) -> ToolCallResult:
         tool_name = tool_use["name"]
         if tool_name == "ask":
@@ -455,8 +455,8 @@ class TaskExecutionEngine:
         self,
         agent: LocalAgent,
         task: Task,
-        tool_uses: List[Dict[str, Any]],
-        task_history: List[Dict[str, Any]],
+        tool_uses: list[dict[str, Any]],
+        task_history: list[dict[str, Any]],
     ) -> None:
         results = await execute_tools_in_parallel(tool_uses, agent.execute_tool_call)
         for r in results:
@@ -475,8 +475,8 @@ class TaskExecutionEngine:
         self,
         agent: LocalAgent,
         task: Task,
-        tool_use: Dict[str, Any],
-        task_history: List[Dict[str, Any]],
+        tool_use: dict[str, Any],
+        task_history: list[dict[str, Any]],
     ) -> ToolCallResult:
         question = tool_use["input"].get("question", "")
         guided_answers = tool_use["input"].get("guided_answers", [])
@@ -507,8 +507,8 @@ class TaskExecutionEngine:
         agent: LocalAgent,
         task: Task,
         current_response: str,
-        artifacts: List[Any],
-        task_history: List[Dict[str, Any]],
+        artifacts: list[Any],
+        task_history: list[dict[str, Any]],
         input_tokens: int = 0,
         output_tokens: int = 0,
     ) -> None:
@@ -562,16 +562,16 @@ class TaskExecutionEngine:
     async def _save_pending_tools(
         self,
         task_id: str,
-        ask_tool_use: Dict[str, Any],
-        remaining_tools: List[Dict[str, Any]],
+        ask_tool_use: dict[str, Any],
+        remaining_tools: list[dict[str, Any]],
     ) -> None:
         await self.store.save_pending_tools(task_id, ask_tool_use, remaining_tools)
 
     async def _append_history_message(
         self,
         context_id: str,
-        message: Dict[str, Any],
-        task_history: List[Dict[str, Any]],
+        message: dict[str, Any],
+        task_history: list[dict[str, Any]],
     ) -> None:
         await self.store.append_task_history_message(context_id, message)
         task_history.append(message)

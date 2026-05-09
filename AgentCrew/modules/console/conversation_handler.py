@@ -4,7 +4,7 @@ Manages conversation loading, listing, and display functionality.
 """
 
 from __future__ import annotations
-from typing import List, Dict, Any, Optional
+from typing import Any
 from rich.text import Text
 
 from .constants import RICH_STYLE_YELLOW, RICH_STYLE_RED
@@ -91,7 +91,7 @@ class ConversationHandler:
                 Text(f"Error loading conversation: {str(e)}", style=RICH_STYLE_RED)
             )
 
-    def update_cached_conversations(self, conversations: List[Dict[str, Any]]):
+    def update_cached_conversations(self, conversations: list[dict[str, Any]]):
         """Update the cached conversations list."""
         self._cached_conversations = conversations
 
@@ -101,7 +101,7 @@ class ConversationHandler:
 
     def get_conversation_history(
         self, conversation_id: str
-    ) -> Optional[List[Dict[str, Any]]]:
+    ) -> list[dict[str, Any]] | None:
         """Get conversation history for preview in browser."""
         if self._message_handler.persistent_service:
             return self._message_handler.persistent_service.get_conversation_history(
@@ -109,11 +109,11 @@ class ConversationHandler:
             )
         return None
 
-    def delete_conversations(self, conversation_ids: List[str]) -> bool:
+    def delete_conversations(self, conversation_ids: list[str]) -> bool:
         """Delete conversations by their IDs.
 
         Args:
-            conversation_ids: List of conversation IDs to delete
+            conversation_ids: list of conversation IDs to delete
 
         Returns:
             True if all deletions were successful

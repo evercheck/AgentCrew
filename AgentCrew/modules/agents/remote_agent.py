@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import httpx
@@ -22,12 +22,12 @@ from a2a.types import (
 )
 
 if TYPE_CHECKING:
-    from typing import Callable, Any, List, Optional, Tuple, Union
+    from typing import Callable, Any, Tuple, Union
 
 
 class RemoteAgent(BaseAgent):
     def __init__(
-        self, name: str, agent_url: str, headers: Optional[Dict[str, str]] = None
+        self, name: str, agent_url: str, headers: dict[str, str] | None = None
     ):
         self.card_resolver = A2ACardResolver(agent_url)
         self.agent_card = self.card_resolver.get_agent_card()
@@ -56,8 +56,8 @@ class RemoteAgent(BaseAgent):
         self.is_active = False
         return True
 
-    def append_message(self, messages: Union[Dict, List[Dict]]):
-        if isinstance(messages, Dict):
+    def append_message(self, messages: Union[dict, list[dict]]):
+        if isinstance(messages, dict):
             self.history.append(messages)
         else:
             self.history.extend(messages)
@@ -83,8 +83,8 @@ class RemoteAgent(BaseAgent):
         return True
 
     def format_message(
-        self, message_type: MessageType, message_data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, message_type: MessageType, message_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         if message_type == MessageType.Assistant:
             return {
                 "role": "assistant",
@@ -101,7 +101,7 @@ class RemoteAgent(BaseAgent):
         elif message_type == MessageType.FileContent:
             return None
 
-    async def execute_tool_call(self, tool_name: str, tool_input: Dict) -> Any:
+    async def execute_tool_call(self, tool_name: str, tool_input: dict) -> Any:
         return None
 
     def configure_think(self, think_setting):
@@ -114,8 +114,8 @@ class RemoteAgent(BaseAgent):
 
     async def process_messages(
         self,
-        messages: Optional[List[Dict[str, Any]]] = None,
-        callback: Optional[Callable] = None,
+        messages: list[dict[str, Any]] | None = None,
+        callback: Callable | None = None,
     ):
         if not self.client or not self.agent_card:
             raise ValidationError(

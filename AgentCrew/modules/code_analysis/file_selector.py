@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import fnmatch
 import json
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from loguru import logger
 
@@ -13,24 +15,24 @@ MAX_FILES_TO_ANALYZE = 150
 class FileSelector:
     """Selects relevant files for analysis using LLM-based exclusion patterns."""
 
-    def __init__(self, llm_service: Optional["BaseLLMService"] = None):
+    def __init__(self, llm_service: BaseLLMService | None = None):
         self._llm_service = llm_service
 
     async def select_files_with_llm(
         self,
-        files: List[str],
+        files: list[str],
         max_files: int = MAX_FILES_TO_ANALYZE,
-        feature_scope: Optional[str] = None,
-    ) -> List[str]:
+        feature_scope: str | None = None,
+    ) -> list[str]:
         """Use LLM to intelligently select which files to analyze from a large repository.
 
         Args:
-            files: List of relative file paths to select from
+            files: list of relative file paths to select from
             max_files: Maximum number of files to select
             feature_scope: Optional feature scope to prioritize relevant files
 
         Returns:
-            List of selected file paths that should be analyzed
+            list of selected file paths that should be analyzed
         """
         if not self._llm_service:
             return files[:max_files]

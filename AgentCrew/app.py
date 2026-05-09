@@ -4,7 +4,7 @@ import json
 import asyncio
 import functools
 import nest_asyncio
-from typing import Optional, Dict, Any, List
+from typing import Any
 
 import click
 from loguru import logger
@@ -68,7 +68,7 @@ class AgentCrewApplication:
         self.setup.load_api_keys_from_config()
 
     @property
-    def services(self) -> Optional[Dict[str, Any]]:
+    def services(self) -> dict[str, Any] | None:
         return self.setup.services
 
     @property
@@ -77,12 +77,12 @@ class AgentCrewApplication:
 
     def run_console(
         self,
-        provider: Optional[str] = None,
-        agent_config: Optional[str] = None,
-        mcp_config: Optional[str] = None,
-        memory_llm: Optional[str] = None,
+        provider: str | None = None,
+        agent_config: str | None = None,
+        mcp_config: str | None = None,
+        memory_llm: str | None = None,
         with_voice: bool = False,
-        model_id: Optional[str] = None,
+        model_id: str | None = None,
     ) -> None:
         from AgentCrew.modules.console import ConsoleUI
         from AgentCrew.modules.chat import MessageHandler
@@ -127,12 +127,12 @@ class AgentCrewApplication:
 
     def run_gui(
         self,
-        provider: Optional[str] = None,
-        agent_config: Optional[str] = None,
-        mcp_config: Optional[str] = None,
-        memory_llm: Optional[str] = None,
+        provider: str | None = None,
+        agent_config: str | None = None,
+        mcp_config: str | None = None,
+        memory_llm: str | None = None,
         with_voice: bool = False,
-        model_id: Optional[str] = None,
+        model_id: str | None = None,
     ) -> None:
         from PySide6.QtCore import QCoreApplication
         from PySide6.QtCore import Qt
@@ -201,16 +201,16 @@ class AgentCrewApplication:
         self,
         host: str = "0.0.0.0",
         port: int = 41241,
-        base_url: Optional[str] = None,
-        provider: Optional[str] = None,
-        model_id: Optional[str] = None,
-        agent_config: Optional[str] = None,
-        api_key: Optional[str] = None,
-        mcp_config: Optional[str] = None,
-        memory_llm: Optional[str] = None,
-        memory_path: Optional[str] = None,
+        base_url: str | None = None,
+        provider: str | None = None,
+        model_id: str | None = None,
+        agent_config: str | None = None,
+        api_key: str | None = None,
+        mcp_config: str | None = None,
+        memory_llm: str | None = None,
+        memory_path: str | None = None,
         store_type: str = "memory",
-        store_options: Optional[dict] = None,
+        store_options: dict | None = None,
     ) -> None:
         from AgentCrew.modules.a2a.server import A2AServer
         from AgentCrew.modules.mcpclient import MCPSessionManager
@@ -297,8 +297,8 @@ class AgentCrewApplication:
         return cleaned
 
     def _validate_response_against_schema(
-        self, response: str, schema_dict: Dict[str, Any]
-    ) -> tuple[bool, Optional[str]]:
+        self, response: str, schema_dict: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         from jsonschema import validate, ValidationError
 
         try:
@@ -330,13 +330,13 @@ class AgentCrewApplication:
         self,
         agent: str,
         task: str,
-        files: Optional[List[str]] = None,
-        provider: Optional[str] = None,
-        model_id: Optional[str] = None,
-        agent_config: Optional[str] = None,
-        mcp_config: Optional[str] = None,
-        memory_llm: Optional[str] = None,
-        output_schema: Optional[str] = None,
+        files: list[str] | None = None,
+        provider: str | None = None,
+        model_id: str | None = None,
+        agent_config: str | None = None,
+        mcp_config: str | None = None,
+        memory_llm: str | None = None,
+        output_schema: str | None = None,
     ) -> str:
         from AgentCrew.modules.agents.agent_runner import run_agent_loop
         from AgentCrew.modules.agents.base import MessageType
@@ -411,13 +411,13 @@ class AgentCrewApplication:
 
                 self.agent_manager.select_agent(current_agent.name)
 
-                history: List[Dict[str, Any]] = []
+                history: list[dict[str, Any]] = []
 
                 if files:
                     from AgentCrew.modules.utils.file_handler import FileHandler
 
                     file_handler = FileHandler()
-                    all_file_contents: List[Dict[str, Any]] = []
+                    all_file_contents: list[dict[str, Any]] = []
                     for file_path in files:
                         file_path = os.path.expanduser(file_path.strip())
                         file_content = file_handler.process_file(file_path)

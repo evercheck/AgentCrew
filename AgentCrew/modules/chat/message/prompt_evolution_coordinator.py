@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from AgentCrew.modules.agents import AgentManager
 from AgentCrew.modules.agents.prompt_evolution_service import PromptEvolutionService
@@ -20,7 +20,7 @@ class PromptEvolutionCoordinator:
         self._memory_service = memory_service
         self._persistence_service = persistence_service
         self._session = PromptEvolutionSession()
-        self._service: Optional[PromptEvolutionService] = None
+        self._service: PromptEvolutionService | None = None
 
     def get_pending_proposal(self):
         return self._session.get()
@@ -81,7 +81,7 @@ class PromptEvolutionCoordinator:
         return True
 
     async def submit_review(
-        self, action: str, approved_summary: Optional[str] = None
+        self, action: str, approved_summary: str | None = None
     ) -> bool:
         if action == "accept":
             return await self.approve()

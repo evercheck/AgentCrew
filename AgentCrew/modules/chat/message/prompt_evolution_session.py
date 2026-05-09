@@ -1,15 +1,15 @@
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class PromptEvolutionSession:
     def __init__(self):
-        self._proposal: Optional[Dict[str, Any]] = None
+        self._proposal: dict[str, Any] | None = None
 
-    def start(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
+    def start(self, proposal: dict[str, Any]) -> dict[str, Any]:
         self._proposal = proposal
         return proposal
 
-    def get(self) -> Optional[Dict[str, Any]]:
+    def get(self) -> dict[str, Any] | None:
         return self._proposal
 
     def has_pending(self) -> bool:
@@ -36,7 +36,7 @@ class PromptEvolutionSession:
         proposal["user_editable_summary"] = normalized_summary
         return normalized_summary
 
-    def _require_pending(self, error_message: str) -> Dict[str, Any]:
+    def _require_pending(self, error_message: str) -> dict[str, Any]:
         if not self._proposal:
             raise ValueError(error_message)
         return self._proposal

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Sequence, Union
 
 from a2a.types import (
     Task,
@@ -38,7 +38,7 @@ class FileTaskStore(TaskStore):
     def _safe_filename(self, name: str) -> str:
         return name.replace("/", "_").replace("\\", "_").replace("..", "_")
 
-    async def get_task(self, task_id: str) -> Optional[Task]:
+    async def get_task(self, task_id: str) -> Task | None:
         async with self.lock:
             path = self._task_path(self._safe_filename(task_id))
             if not path.exists():
@@ -61,7 +61,7 @@ class FileTaskStore(TaskStore):
         async with self.lock:
             return self._task_path(self._safe_filename(task_id)).exists()
 
-    async def get_task_history(self, context_id: str) -> List[Dict[str, Any]]:
+    async def get_task_history(self, context_id: str) -> list[dict[str, Any]]:
         async with self.lock:
             path = self._history_path(self._safe_filename(context_id))
             if not path.exists():
@@ -69,14 +69,14 @@ class FileTaskStore(TaskStore):
             return json.loads(path.read_text())
 
     async def save_task_history(
-        self, context_id: str, history: List[Dict[str, Any]]
+        self, context_id: str, history: list[dict[str, Any]]
     ) -> None:
         async with self.lock:
             path = self._history_path(self._safe_filename(context_id))
             path.write_text(json.dumps(history, default=str))
 
     async def append_task_history_message(
-        self, context_id: str, message: Dict[str, Any]
+        self, context_id: str, message: dict[str, Any]
     ) -> None:
         async with self.lock:
             path = self._history_path(self._safe_filename(context_id))
@@ -92,7 +92,7 @@ class FileTaskStore(TaskStore):
 
     async def get_task_events(
         self, task_id: str
-    ) -> List[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]:
+    ) -> list[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]:
         async with self.lock:
             path = self._events_path(self._safe_filename(task_id))
             if not path.exists():
@@ -163,7 +163,7 @@ class FileTaskStore(TaskStore):
             if path.exists():
                 path.unlink()
 
-    async def list_task_ids(self) -> List[str]:
+    async def list_task_ids(self) -> list[str]:
         async with self.lock:
             tasks_dir = self.base_dir / "tasks"
             if not tasks_dir.exists():

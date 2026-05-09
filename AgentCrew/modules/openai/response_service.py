@@ -1,7 +1,7 @@
 import os
 import json
 import mimetypes
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Tuple
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from AgentCrew.modules.llm.base import BaseLLMService, read_binary_file, read_text_file
@@ -80,7 +80,7 @@ class OpenAIResponseService(BaseLLMService):
             return input_cost + output_cost + cached_cost
         return 0.0
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]):
+    def _convert_internal_format(self, messages: list[dict[str, Any]]):
         """
         Convert Chat Completions messages format to Response API input format.
         """
@@ -88,7 +88,7 @@ class OpenAIResponseService(BaseLLMService):
         for i, msg in enumerate(messages):
             msg.pop("agent", None)
             role = msg.get("role", "user")
-            if isinstance(msg.get("content", ""), List):
+            if isinstance(msg.get("content", ""), list):
                 for part in msg["content"]:
                     if part.get("type") == "text":
                         part["type"] = (
@@ -303,7 +303,7 @@ class OpenAIResponseService(BaseLLMService):
         return await self.client.responses.create(**stream_params)
 
     @staticmethod
-    def _get_or_create_tool_use(tool_uses: List[Dict], output_index) -> Dict:
+    def _get_or_create_tool_use(tool_uses: list[dict], output_index) -> dict:
         tool_use = next(
             (t for t in tool_uses if t.get("_output_index") == output_index), None
         )
@@ -321,8 +321,8 @@ class OpenAIResponseService(BaseLLMService):
         return tool_use
 
     def process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         """
         Process a single chunk from Response API streaming.
         Response API uses structured event objects with semantic types.
@@ -512,8 +512,8 @@ class OpenAIResponseService(BaseLLMService):
         )
 
     # def format_tool_result(
-    #     self, tool_use: Dict, tool_result: Any, is_error: bool = False
-    # ) -> Dict[str, Any]:
+    #     self, tool_use: dict, tool_result: Any, is_error: bool = False
+    # ) -> dict[str, Any]:
     #     """Format a tool result for Response API."""
     #     # Response API tool result format
     #     message = {
@@ -528,8 +528,8 @@ class OpenAIResponseService(BaseLLMService):
     #     return message
 
     # def format_assistant_message(
-    #     self, assistant_response: str, tool_uses: Optional[List[Dict]] = None
-    # ) -> Dict[str, Any]:
+    #     self, assistant_response: str, tool_uses: list[dict] | None = None
+    # ) -> dict[str, Any]:
     #     """Format the assistant's response for Response API."""
     #     if tool_uses and any(tu.get("id") for tu in tool_uses):
     #         return {
@@ -554,7 +554,7 @@ class OpenAIResponseService(BaseLLMService):
     #             "content": assistant_response,
     #         }
 
-    # def format_thinking_message(self, thinking_data) -> Optional[Dict[str, Any]]:
+    # def format_thinking_message(self, thinking_data) -> dict[str, Any] | None:
     #     """
     #     Format thinking content for Response API.
     #     Response API has native reasoning support.
@@ -610,7 +610,7 @@ class OpenAIResponseService(BaseLLMService):
 
     # Response API specific methods
 
-    async def get_response(self, response_id: str) -> Dict[str, Any]:
+    async def get_response(self, response_id: str) -> dict[str, Any]:
         """Retrieve a stored response by ID."""
         try:
             response = await self.client.responses.retrieve(response_id)
@@ -643,7 +643,7 @@ class OpenAIResponseService(BaseLLMService):
             logger.error(f"Failed to delete response {response_id}: {str(e)}")
             return False
 
-    def get_conversation_state(self) -> Dict[str, Any]:
+    def get_conversation_state(self) -> dict[str, Any]:
         """Get current conversation state information."""
         return {
             "conversation_state": self.conversation_state.copy(),

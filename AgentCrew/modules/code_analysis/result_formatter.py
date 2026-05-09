@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Set
+from typing import Any, Set
 
 from .text_map_formatter import TextMapFormatter
 from .file_tree_formatter import FileTreeFormatter
@@ -22,7 +22,7 @@ class ResultFormatter:
         self._max_files_to_analyze = max_files_to_analyze
 
     @staticmethod
-    def _count_nodes(structure: Dict[str, Any], node_types: Set[str]) -> int:
+    def _count_nodes(structure: dict[str, Any], node_types: Set[str]) -> int:
         """Recursively count nodes of specific types in the tree structure."""
         count = 0
 
@@ -36,19 +36,19 @@ class ResultFormatter:
 
     def format_analysis_results(
         self,
-        analysis_results: List[Dict[str, Any]],
-        analyzed_files: List[str],
-        errors: List[Dict[str, str]],
-        non_analyzed_files: List[str] = [],
+        analysis_results: list[dict[str, Any]],
+        analyzed_files: list[str],
+        errors: list[dict[str, str]],
+        non_analyzed_files: list[str] = [],
         total_supported_files: int = 0,
     ) -> str:
         """Format the analysis results into a clear text format.
 
         Args:
-            analysis_results: List of analysis results for each file
-            analyzed_files: List of files that were analyzed
-            errors: List of errors encountered during analysis
-            non_analyzed_files: List of files that were skipped due to file limit
+            analysis_results: list of analysis results for each file
+            analyzed_files: list of files that were analyzed
+            errors: list of errors encountered during analysis
+            non_analyzed_files: list of files that were skipped due to file limit
             total_supported_files: Total number of supported files in the repository
         """
 

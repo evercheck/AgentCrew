@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, Any
+from typing import Any
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import (
@@ -126,7 +126,7 @@ class JsonEditor(QWidget):
             self.error_label.show()
             self.validation_error.emit(error_msg)
 
-    def set_json(self, json_data: Dict[str, Any]):
+    def set_json(self, json_data: dict[str, Any]):
         """Set the JSON content of the editor."""
         try:
             json_text = json.dumps(json_data, indent=2, ensure_ascii=False)
@@ -135,7 +135,7 @@ class JsonEditor(QWidget):
             self.error_label.setText(f"Error setting JSON: {str(e)}")
             self.error_label.show()
 
-    def get_json(self) -> Dict[str, Any]:
+    def get_json(self) -> dict[str, Any]:
         """Get the current JSON content as a dictionary."""
         try:
             json_text = self.text_edit.toPlainText().strip()

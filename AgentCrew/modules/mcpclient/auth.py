@@ -6,7 +6,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from threading import Thread, Lock
 from urllib.parse import parse_qs, urlparse
-from typing import Optional, Dict
 from pydantic import AnyUrl
 from mcp.client.auth import OAuthClientProvider, TokenStorage
 from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
@@ -151,8 +150,8 @@ class InlineTokenStorage(TokenStorage):
     def __init__(
         self,
         base_storage: TokenStorage,
-        tokens_override: Optional[OAuthToken] = None,
-        client_info_override: Optional[OAuthClientInformationFull] = None,
+        tokens_override: OAuthToken | None = None,
+        client_info_override: OAuthClientInformationFull | None = None,
     ):
         self.base_storage = base_storage
         self._runtime_tokens = tokens_override
@@ -188,18 +187,16 @@ class OAuthCallbackServer:
     def __init__(self, host: str = "localhost", port: int = 3000):
         self.host = host
         self.port = port
-        self.result: Dict[str, Optional[str]] = {}
+        self.result: dict[str, str | None] = {}
         self.result_lock = Lock()
-        self.server: Optional[HTTPServer] = None
-        self.server_thread: Optional[Thread] = None
+        self.server: HTTPServer | None = None
+        self.server_thread: Thread | None = None
 
     def get_callback_url(self) -> str:
         """Get the callback URL for this server."""
         return f"http://{self.host}:{self.port}/callback"
 
-    def set_result(
-        self, code: Optional[str], state: Optional[str], error: Optional[str]
-    ):
+    def set_result(self, code: str | None, state: str | None, error: str | None):
         """
         Thread-safe method to set the callback result.
 
@@ -214,7 +211,7 @@ class OAuthCallbackServer:
                 f"OAuth callback result set: error={error}, has_code={code is not None}"
             )
 
-    def get_result(self) -> Dict[str, Optional[str]]:
+    def get_result(self) -> dict[str, str | None]:
         """
         Thread-safe method to get the callback result.
 
@@ -389,7 +386,7 @@ class OAuthCallbackServer:
 
 
 class OAuthClientResolver:
-    def __init__(self, port: Optional[int] = 14142):
+    def __init__(self, port: int | None = 14142):
         self.port = port if port else 14142
 
     async def handle_redirect(self, auth_url: str) -> None:

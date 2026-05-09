@@ -7,7 +7,7 @@ scroll content, and extract page information using Chrome DevTools Protocol.
 
 import time
 import uuid
-from typing import Dict, Any, Optional, List, Set
+from typing import Any, Set
 from html_to_markdown import convert, ConversionOptions, PreprocessingOptions
 import urllib.parse
 
@@ -41,10 +41,10 @@ class BrowserAutomationService:
 
         self.debug_port = debug_port
         self.chrome_manager = ChromeManager(debug_port=debug_port)
-        self.chrome_interface: Optional[PyChromeDevTools.ChromeInterface] = None
+        self.chrome_interface: PyChromeDevTools.ChromeInterface | None = None
         self._is_initialized = False
-        self.uuid_to_xpath_mapping: Dict[str, str] = {}
-        self.xpath_to_uuid_mapping: Dict[str, str] = {}
+        self.uuid_to_xpath_mapping: dict[str, str] = {}
+        self.xpath_to_uuid_mapping: dict[str, str] = {}
         self._last_page_content: str = ""
         self._console_listener = ConsoleListener(debug_port=debug_port)
 
@@ -80,8 +80,8 @@ class BrowserAutomationService:
         self.xpath_to_uuid_mapping.clear()
 
     def _set_active_content_xpaths(self, active_xpaths: Set[str]) -> None:
-        active_uuid_to_xpath: Dict[str, str] = {}
-        active_xpath_to_uuid: Dict[str, str] = {}
+        active_uuid_to_xpath: dict[str, str] = {}
+        active_xpath_to_uuid: dict[str, str] = {}
 
         for xpath in active_xpaths:
             element_uuid = self._get_or_create_uuid_for_xpath(xpath)
@@ -147,7 +147,7 @@ class BrowserAutomationService:
             self._reset_browser_state(cleanup_chrome=False)
             raise
 
-    def navigate(self, url: str, profile: str = "Default") -> Dict[str, Any]:
+    def navigate(self, url: str, profile: str = "Default") -> dict[str, Any]:
         """
         Navigate to a URL.
 
@@ -156,7 +156,7 @@ class BrowserAutomationService:
             profile: Chrome user profile directory name (default: "Default")
 
         Returns:
-            Dict containing navigation result
+            dict containing navigation result
         """
         try:
             self._ensure_chrome_running(profile)
@@ -199,12 +199,12 @@ class BrowserAutomationService:
                 "profile": profile,
             }
 
-    def refresh(self) -> Dict[str, Any]:
+    def refresh(self) -> dict[str, Any]:
         """
         Refresh the current page.
 
         Returns:
-            Dict containing refresh result
+            dict containing refresh result
         """
         try:
             self._ensure_chrome_running()
@@ -231,7 +231,7 @@ class BrowserAutomationService:
                 "error": f"Refresh error: {str(e)}",
             }
 
-    def click_element(self, element_uuid: str) -> Dict[str, Any]:
+    def click_element(self, element_uuid: str) -> dict[str, Any]:
         """
         Click an element using UUID via Chrome DevTools Protocol.
 
@@ -242,7 +242,7 @@ class BrowserAutomationService:
             element_uuid: UUID of the element to click (from browser_get_content)
 
         Returns:
-            Dict containing click result
+            dict containing click result
         """
         xpath = self.uuid_to_xpath_mapping.get(element_uuid)
         if not xpath:
@@ -316,7 +316,7 @@ class BrowserAutomationService:
                 "xpath": xpath,
             }
 
-    def scroll_to_element(self, element_uuid: str) -> Dict[str, Any]:
+    def scroll_to_element(self, element_uuid: str) -> dict[str, Any]:
         """
         Scroll to bring a specific element into view.
 
@@ -324,7 +324,7 @@ class BrowserAutomationService:
             element_uuid: UUID of the element to scroll to
 
         Returns:
-            Dict containing scroll result
+            dict containing scroll result
         """
         try:
             self._ensure_chrome_running()
@@ -359,12 +359,12 @@ class BrowserAutomationService:
                 "uuid": element_uuid,
             }
 
-    def get_page_content(self) -> Dict[str, Any]:
+    def get_page_content(self) -> dict[str, Any]:
         """
         Extract page content and clickable elements as markdown.
 
         Returns:
-            Dict containing page content and clickable elements
+            dict containing page content and clickable elements
         """
         try:
             self._ensure_chrome_running()
@@ -475,7 +475,7 @@ class BrowserAutomationService:
             logger.error(f"Content extraction error: {e}")
             return {"success": False, "error": f"Content extraction error: {str(e)}"}
 
-    def execute_script(self, script: str, await_promise: bool = True) -> Dict[str, Any]:
+    def execute_script(self, script: str, await_promise: bool = True) -> dict[str, Any]:
         try:
             self._ensure_chrome_running()
             if self.chrome_interface is None:
@@ -550,14 +550,14 @@ class BrowserAutomationService:
     def get_console_logs(
         self,
         limit: int = 50,
-        levels: Optional[List[str]] = None,
+        levels: list[str] | None = None,
         since_last_read: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return self._console_listener.get_logs(
             limit=limit, levels=levels, since_last_read=since_last_read
         )
 
-    def clear_console_logs(self) -> Dict[str, Any]:
+    def clear_console_logs(self) -> dict[str, Any]:
         return self._console_listener.clear_logs()
 
     def cleanup(self):
@@ -567,7 +567,7 @@ class BrowserAutomationService:
         except Exception as e:
             logger.error(f"Cleanup error: {e}")
 
-    def input_data(self, element_uuid: str, value: str) -> Dict[str, Any]:
+    def input_data(self, element_uuid: str, value: str) -> dict[str, Any]:
         """
         Input data into a form field using UUID by simulating keyboard typing.
 
@@ -576,7 +576,7 @@ class BrowserAutomationService:
             value: Value to input into the field
 
         Returns:
-            Dict containing input result
+            dict containing input result
         """
         # Resolve UUID to XPath
         xpath = self.uuid_to_xpath_mapping.get(element_uuid)
@@ -635,7 +635,7 @@ class BrowserAutomationService:
                 "typing_method": "keyboard_simulation",
             }
 
-    def dispatch_key_event(self, key: str, modifiers: List[str] = []) -> Dict[str, Any]:
+    def dispatch_key_event(self, key: str, modifiers: list[str] = []) -> dict[str, Any]:
         """
         Dispatch key events using CDP input.dispatchKeyEvent.
 
@@ -644,7 +644,7 @@ class BrowserAutomationService:
             modifiers: Optional modifiers like 'ctrl', 'alt', 'shift'
 
         Returns:
-            Dict containing dispatch result
+            dict containing dispatch result
         """
         try:
             self._ensure_chrome_running()
@@ -665,7 +665,7 @@ class BrowserAutomationService:
                 "modifiers": modifiers,
             }
 
-    def get_elements_by_text(self, text: str) -> Dict[str, Any]:
+    def get_elements_by_text(self, text: str) -> dict[str, Any]:
         """Find elements containing specified text using XPath."""
         try:
             self._ensure_chrome_running()
@@ -693,23 +693,23 @@ class BrowserAutomationService:
     def capture_screenshot(
         self,
         format: str = "png",
-        quality: Optional[int] = None,
-        clip: Optional[Dict[str, Any]] = None,
+        quality: int | None = None,
+        clip: dict[str, Any] | None = None,
         from_surface: bool = True,
         capture_beyond_viewport: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Capture a screenshot of the current page with colored boxes and UUID labels drawn over identified elements.
 
         Args:
             format: Image format ("png", "jpeg", or "webp"). Defaults to "png"
             quality: Compression quality from 0-100 (jpeg only). Optional
-            clip: Optional region to capture. Dict with x, y, width, height keys
+            clip: Optional region to capture. dict with x, y, width, height keys
             from_surface: Capture from surface rather than view. Defaults to True
             capture_beyond_viewport: Capture beyond viewport. Defaults to False
 
         Returns:
-            Dict containing the screenshot as base64 image data in the specified format
+            dict containing the screenshot as base64 image data in the specified format
         """
         try:
             self._ensure_chrome_running()

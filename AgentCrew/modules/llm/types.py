@@ -1,15 +1,15 @@
 from pydantic import BaseModel
-from typing import List, Literal, Optional
+from typing import Literal
 
 
 class SampleParam(BaseModel):
-    temperature: Optional[float] = None
-    top_p: Optional[float] = None
-    min_p: Optional[float] = None
-    top_k: Optional[int] = None
-    frequency_penalty: Optional[float] = None
-    presence_penalty: Optional[float] = None
-    repetition_penalty: Optional[float] = None
+    temperature: float | None = None
+    top_p: float | None = None
+    min_p: float | None = None
+    top_k: int | None = None
+    frequency_penalty: float | None = None
+    presence_penalty: float | None = None
+    repetition_penalty: float | None = None
 
 
 class Model(BaseModel):
@@ -19,7 +19,7 @@ class Model(BaseModel):
     provider: str
     name: str
     description: str
-    capabilities: List[
+    capabilities: list[
         Literal[
             "tool_use",
             "stream",
@@ -29,15 +29,13 @@ class Model(BaseModel):
         ]
     ]
     default: bool = False
-    default_reasoning: Optional[Literal["none", "minimal", "low", "medium", "high"]] = (
-        None
-    )
-    force_sample_params: Optional[SampleParam] = None
+    default_reasoning: Literal["none", "minimal", "low", "medium", "high"] | None = None
+    force_sample_params: SampleParam | None = None
     max_context_token: int = 72_000
     input_token_price_1m: float = 0.0
     output_token_price_1m: float = 0.0
     cached_token_price_1m: float = 0.0
-    service_name: Optional[str] = None
+    service_name: str | None = None
 
     def resolved_service_name(self) -> str:
         """Return the service name to use for this model, falling back to provider."""

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 
 from AgentCrew.modules.agents import AgentManager
 
@@ -7,7 +7,7 @@ def _should_defer_post_action(post_action: str) -> bool:
     return "transfer" in post_action.casefold()
 
 
-def get_transfer_tool_definition() -> Dict[str, Any]:
+def get_transfer_tool_definition() -> dict[str, Any]:
     """
     Get the definition for the transfer tool.
 
@@ -22,7 +22,7 @@ def get_transfer_tool_definition() -> Dict[str, Any]:
     tool_arguments = {
         "target_agent": {
             "type": "string",
-            "description": "The unique identifier or name of the specialized agent to transfer the task to. Refer to the official <Available_Agents_List> tags for available specialist agents and their capabilities.",
+            "description": "The unique identifier or name of the specialized agent to transfer the task to. Refer to the official <Transferable_Agents> tags for available specialist agents and their capabilities.",
         },
         "task_description": {
             "type": "string",

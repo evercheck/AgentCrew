@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, List
+from typing import Any
 from dotenv import load_dotenv
 from tavily import TavilyClient
 
@@ -21,22 +21,22 @@ class TavilySearchService:
         query: str,
         search_depth: str = "basic",
         topic: str = "general",
-        include_domains: List[str] | None = None,
-        exclude_domains: List[str] | None = None,
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
         max_results: int = 5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform a web search using Tavily API.
 
         Args:
             query: The search query
             search_depth: 'basic' or 'advanced' search depth
-            include_domains: List of domains to include in search
-            exclude_domains: List of domains to exclude from search
+            include_domains: list of domains to include in search
+            exclude_domains: list of domains to exclude from search
             max_results: Maximum number of results to return
 
         Returns:
-            Dict containing search results
+            dict containing search results
         """
         try:
             params = {
@@ -58,7 +58,7 @@ class TavilySearchService:
             print(f"❌ Search error: {str(e)}")
             return {"error": str(e)}
 
-    def extract(self, url: str) -> Dict[str, Any]:
+    def extract(self, url: str) -> dict[str, Any]:
         """
         Extract content from a specific URL using Tavily API.
 
@@ -66,7 +66,7 @@ class TavilySearchService:
             url: The URL to extract content from
 
         Returns:
-            Dict containing the extracted content
+            dict containing the extracted content
         """
         try:
             return self.client.extract(url)
@@ -74,7 +74,7 @@ class TavilySearchService:
             print(f"❌ Extract error: {str(e)}")
             return {"error": str(e)}
 
-    def format_search_results(self, results: Dict[str, Any]) -> str:
+    def format_search_results(self, results: dict[str, Any]) -> str:
         """Format search results into a readable string."""
         if "error" in results:
             return f"Search error: {results['error']}"
@@ -95,7 +95,7 @@ class TavilySearchService:
 
         return formatted_text
 
-    def format_extract_results(self, results: Dict[str, Any]) -> str:
+    def format_extract_results(self, results: dict[str, Any]) -> str:
         """Format extract results into a readable string."""
 
         if "failed_results" in results and results["failed_results"]:

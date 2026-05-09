@@ -4,12 +4,12 @@ Command Execution Tools
 Tool definitions and handlers for secure shell command execution.
 """
 
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 from .service import CommandExecutionService
 import os
 
 
-def get_run_command_tool_definition() -> Dict[str, Any]:
+def get_run_command_tool_definition() -> dict[str, Any]:
     """Get tool definition for running shell commands."""
     import sys
 
@@ -62,7 +62,7 @@ def get_run_command_tool_definition() -> Dict[str, Any]:
     }
 
 
-def get_check_command_status_tool_definition() -> Dict[str, Any]:
+def get_check_command_status_tool_definition() -> dict[str, Any]:
     """Get tool definition for checking command status."""
 
     desc = "Check status and output of running command. Returns output, status (running/completed), elapsed time, exit code if completed. Use for monitoring long-running commands."
@@ -88,10 +88,10 @@ def get_check_command_status_tool_definition() -> Dict[str, Any]:
     }
 
 
-def get_list_running_commands_tool_definition() -> Dict[str, Any]:
+def get_list_running_commands_tool_definition() -> dict[str, Any]:
     """Get tool definition for listing running commands."""
 
-    desc = "List all running commands with IDs, commands, states, elapsed times, working dirs. Use to monitor active processes, find command IDs for status/termination."
+    desc = "list all running commands with IDs, commands, states, elapsed times, working dirs. Use to monitor active processes, find command IDs for status/termination."
 
     return {
         "type": "function",
@@ -103,7 +103,7 @@ def get_list_running_commands_tool_definition() -> Dict[str, Any]:
     }
 
 
-def get_terminate_command_tool_definition() -> Dict[str, Any]:
+def get_terminate_command_tool_definition() -> dict[str, Any]:
     """Get tool definition for terminating commands."""
     import sys
 
@@ -133,7 +133,7 @@ def get_terminate_command_tool_definition() -> Dict[str, Any]:
     }
 
 
-def get_send_command_input_tool_definition() -> Dict[str, Any]:
+def get_send_command_input_tool_definition() -> dict[str, Any]:
     """Get tool definition for sending input to commands."""
 
     desc = "Send input to interactive command's stdin. Auto-terminates with newline. Use for commands awaiting input (Python input(), prompts, confirmations). Max 1024 chars."
@@ -166,7 +166,7 @@ def get_send_command_input_tool_definition() -> Dict[str, Any]:
 def get_run_command_tool_handler(command_service: CommandExecutionService) -> Callable:
     """Get handler for run_command tool."""
 
-    async def handle_run_command(**params) -> str | Dict[str, Any]:
+    async def handle_run_command(**params) -> str | dict[str, Any]:
         command = params.get("command")
         timeout = params.get("timeout", 5)
         working_dir = params.get("working_dir", "./")
@@ -209,7 +209,7 @@ def get_check_command_status_tool_handler(
 ) -> Callable:
     """Get handler for check_command_status tool."""
 
-    async def handle_check_command_status(**params) -> str | Dict[str, Any]:
+    async def handle_check_command_status(**params) -> str | dict[str, Any]:
         command_id = params.get("command_id")
         if not command_id:
             raise ValueError("Missing required parameter: command_id")
@@ -252,7 +252,7 @@ def get_list_running_commands_tool_handler(
 ) -> Callable:
     """Get handler for list_running_commands tool."""
 
-    async def handle_list_running_commands(**params) -> str | Dict[str, Any]:
+    async def handle_list_running_commands(**params) -> str | dict[str, Any]:
         result = command_service.list_running_commands()
 
         if result["status"] == "error":
@@ -282,7 +282,7 @@ def get_terminate_command_tool_handler(
 ) -> Callable:
     """Get handler for terminate_command tool."""
 
-    async def handle_terminate_command(**params) -> str | Dict[str, Any]:
+    async def handle_terminate_command(**params) -> str | dict[str, Any]:
         command_id = params.get("command_id")
         if not command_id:
             raise ValueError("Missing required parameter: command_id")
@@ -302,7 +302,7 @@ def get_send_command_input_tool_handler(
 ) -> Callable:
     """Get handler for send_command_input tool."""
 
-    async def handle_send_command_input(**params) -> str | Dict[str, Any]:
+    async def handle_send_command_input(**params) -> str | dict[str, Any]:
         command_id = params.get("command_id")
         input_text = params.get("input_text")
 

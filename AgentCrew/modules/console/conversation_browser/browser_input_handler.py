@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Callable, List
+from typing import TYPE_CHECKING, Callable
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.key_binding import KeyBindings
@@ -20,15 +20,15 @@ class ConversationBrowserInputHandler:
     def __init__(
         self,
         ui: ConversationBrowserUI,
-        on_select: Optional[Callable[[str], None]] = None,
-        on_cancel: Optional[Callable[[], None]] = None,
-        on_delete: Optional[Callable[[List[str]], bool]] = None,
+        on_select: Callable[[str], None] | None = None,
+        on_cancel: Callable[[], None] | None = None,
+        on_delete: Callable[[list[str]], bool] | None = None,
     ):
         self._ui = ui
         self._running = False
         self._g_pressed = False
         self._d_pressed = False
-        self._selected_id: Optional[str] = None
+        self._selected_id: str | None = None
         self._on_select = on_select
         self._on_cancel = on_cancel
         self._on_delete = on_delete
@@ -241,7 +241,7 @@ class ConversationBrowserInputHandler:
             self._ui.remove_conversations(indices_to_delete)
             self._ui.render()
 
-    def run(self) -> Optional[str]:
+    def run(self) -> str | None:
         """Run the input handler loop.
 
         Returns:

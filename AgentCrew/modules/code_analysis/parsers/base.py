@@ -3,7 +3,7 @@ Base class for language-specific parsers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class BaseLanguageParser(ABC):
@@ -23,7 +23,7 @@ class BaseLanguageParser(ABC):
     @abstractmethod
     def process_node(
         self, node, source_code: bytes, process_children_callback
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Process a tree-sitter node and extract relevant information.
 
@@ -37,7 +37,7 @@ class BaseLanguageParser(ABC):
         """
         pass
 
-    def _create_base_result(self, node) -> Dict[str, Any]:
+    def _create_base_result(self, node) -> dict[str, Any]:
         """Create the base result dictionary with common fields."""
         return {
             "type": node.type,
@@ -47,7 +47,7 @@ class BaseLanguageParser(ABC):
 
     def _process_children_default(
         self, node, source_code: bytes, process_children_callback
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Default implementation for processing children nodes."""
         children = []
         for child in node.children:
@@ -56,7 +56,7 @@ class BaseLanguageParser(ABC):
                 children.append(child_result)
         return children
 
-    def _is_significant_node(self, result: Dict[str, Any]) -> bool:
+    def _is_significant_node(self, result: dict[str, Any]) -> bool:
         """Check if a node result is significant and should be included."""
         significant_types = {
             "class_definition",

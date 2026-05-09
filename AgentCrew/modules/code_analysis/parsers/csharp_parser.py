@@ -2,7 +2,7 @@
 C# language parser for code analysis.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import BaseLanguageParser
 
@@ -16,7 +16,7 @@ class CSharpParser(BaseLanguageParser):
 
     def process_node(
         self, node, source_code: bytes, process_children_callback
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         result = self._create_base_result(node)
 
         if node.type == "class_declaration":
@@ -43,7 +43,7 @@ class CSharpParser(BaseLanguageParser):
         return result
 
     def _handle_class_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
+        self, node, source_code: bytes, result: dict[str, Any]
     ) -> None:
         for child in node.children:
             if child.type == "identifier":
@@ -55,7 +55,7 @@ class CSharpParser(BaseLanguageParser):
                     )
 
     def _handle_method_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
+        self, node, source_code: bytes, result: dict[str, Any]
     ) -> None:
         method_name = None
         parameters = []
@@ -92,7 +92,7 @@ class CSharpParser(BaseLanguageParser):
             result["modifiers"] = access_modifiers
 
     def _handle_property_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
+        self, node, source_code: bytes, result: dict[str, Any]
     ) -> None:
         property_name = None
         property_type = None
@@ -124,7 +124,7 @@ class CSharpParser(BaseLanguageParser):
                 result["modifiers"] = modifiers
 
     def _handle_field_declaration(
-        self, node, source_code: bytes, result: Dict[str, Any]
+        self, node, source_code: bytes, result: dict[str, Any]
     ) -> None:
         field_name = None
         field_type = None

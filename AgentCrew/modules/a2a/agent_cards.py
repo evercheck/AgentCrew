@@ -2,7 +2,6 @@
 Functions for generating A2A agent cards from SwissKnife agents.
 """
 
-from typing import List
 from AgentCrew.modules.agents import LocalAgent
 from a2a.types import (
     AgentCard,
@@ -61,7 +60,7 @@ def create_agent_card(agent: LocalAgent, base_url: str) -> AgentCard:
         An A2A agent card
     """
     # Map tools to skills
-    skills: List[AgentSkill] = []
+    skills: list[AgentSkill] = []
     try:
         for tool_name, (tool_def, _, _) in agent.tool_definitions.items():
             if callable(tool_def):

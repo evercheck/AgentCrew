@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, List, Dict, Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Tuple
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -30,21 +30,21 @@ class VisualModeUI:
 
     def __init__(self, console: Console):
         self.console = console
-        self._messages: List[Dict[str, Any]] = []
-        self._lines: List[Tuple[str, str, int]] = []
-        self._line_styles: List[Any] = []
+        self._messages: list[dict[str, Any]] = []
+        self._lines: list[Tuple[str, str, int]] = []
+        self._line_styles: list[Any] = []
         self._cursor_line = 0
         self._cursor_col = 0
         self._scroll_offset = 0
         self._horizontal_scroll = 0
-        self._selection_start: Optional[Tuple[int, int]] = None
-        self._selection_end: Optional[Tuple[int, int]] = None
+        self._selection_start: Tuple[int, int] | None = None
+        self._selection_end: Tuple[int, int] | None = None
         self._visual_mode = False
-        self._live: Optional[Live] = None
-        self._layout: Optional[Layout] = None
+        self._live: Live | None = None
+        self._layout: Layout | None = None
         self._search_mode = False
         self._search_query = ""
-        self._search_matches: List[Tuple[int, int]] = []
+        self._search_matches: list[Tuple[int, int]] = []
         self._current_match_idx = -1
         self._cached_search_set: set = set()
 
@@ -66,7 +66,7 @@ class VisualModeUI:
             return len(self._lines[self._cursor_line][0])
         return 0
 
-    def set_messages(self, messages: List[Dict[str, Any]]):
+    def set_messages(self, messages: list[dict[str, Any]]):
         self._messages = messages
         self._build_lines()
         self._cursor_line = max(0, self.total_lines - 1)
@@ -82,7 +82,7 @@ class VisualModeUI:
         self._current_match_idx = -1
         self._cached_search_set = set()
 
-    def _extract_content(self, message: Dict[str, Any]) -> str:
+    def _extract_content(self, message: dict[str, Any]) -> str:
         content = message.get("content", "")
         if isinstance(content, str):
             return content

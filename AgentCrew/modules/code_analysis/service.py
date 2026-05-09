@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import os
 import fnmatch
 import subprocess
 import base64
-from typing import Any, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Any, Tuple, Union, TYPE_CHECKING
 
 from .tree_sitter_runtime import TreeSitterRuntime, EXTENSION_TO_LANGUAGE
 from .parsers import get_parser_for_language, BaseLanguageParser, LANGUAGE_PARSER_MAP
@@ -31,7 +33,7 @@ class CodeAnalysisService:
 
     CUSTOM_PARSER_LANGUAGES = set(LANGUAGE_PARSER_MAP.keys())
 
-    def __init__(self, llm_service: Optional["BaseLLMService"] = None):
+    def __init__(self, llm_service: BaseLLMService | None = None):
         """Initialize the code analysis service with tree-sitter.
 
         Args:
@@ -63,7 +65,7 @@ class CodeAnalysisService:
                 self.llm_service.model = "deepseek-v4-flash"
 
         self._runtime = TreeSitterRuntime.get_instance()
-        self._language_parser_cache: Dict[str, BaseLanguageParser] = {}
+        self._language_parser_cache: dict[str, BaseLanguageParser] = {}
 
         self.class_types = {
             "class_definition",
@@ -126,7 +128,7 @@ class CodeAnalysisService:
             self._language_parser_cache[language] = get_parser_for_language(language)
         return self._language_parser_cache[language]
 
-    def _analyze_file(self, file_path: str) -> Optional[Dict[str, Any]]:
+    def _analyze_file(self, file_path: str) -> dict[str, Any] | None:
         """Analyze a single file using tree-sitter."""
         try:
             with open(file_path, "rb") as f:
@@ -153,7 +155,7 @@ class CodeAnalysisService:
 
             language_parser = self._get_language_parser(language)
 
-            def process_node(node) -> Optional[Dict[str, Any]]:
+            def process_node(node) -> dict[str, Any] | None:
                 if not node:
                     return None
                 return language_parser.process_node(node, source_code, process_node)
@@ -163,7 +165,7 @@ class CodeAnalysisService:
         except Exception as e:
             return {"error": f"Error analyzing file: {str(e)}"}
 
-    def _count_nodes(self, structure: Dict[str, Any], node_types: set[str]) -> int:
+    def _count_nodes(self, structure: dict[str, Any], node_types: set[str]) -> int:
         """Recursively count nodes of specific types in the tree structure."""
         count = 0
 
@@ -177,10 +179,10 @@ class CodeAnalysisService:
 
     async def _select_files_with_llm(
         self,
-        files: List[str],
+        files: list[str],
         max_files: int = MAX_FILES_TO_ANALYZE,
-        feature_scope: Optional[str] = None,
-    ) -> List[str]:
+        feature_scope: str | None = None,
+    ) -> list[str]:
         """Use LLM to intelligently select files for analysis. Delegates to FileSelector."""
         return await self._file_selector.select_files_with_llm(
             files, max_files, feature_scope=feature_scope
@@ -190,7 +192,7 @@ class CodeAnalysisService:
         self,
         analysis_result: str,
         repo_path: str,
-        feature_scope: Optional[str] = None,
+        feature_scope: str | None = None,
     ) -> str:
         """Extract project notes, rules, and conventions from the analysis result.
 
@@ -202,9 +204,9 @@ class CodeAnalysisService:
     async def analyze_code_structure(
         self,
         path: str,
-        exclude_patterns: Optional[List[str]] = None,
-        feature_scope: Optional[str] = None,
-    ) -> Dict[str, Any] | str:
+        exclude_patterns: list[str] | None = None,
+        feature_scope: str | None = None,
+    ) -> dict[str, Any] | str:
         """Build a tree-sitter based structural map of source code files in a git repository.
 
         Args:
@@ -302,7 +304,7 @@ class CodeAnalysisService:
         except Exception as e:
             return {"error": f"Error analyzing directory: {str(e)}"}
 
-    def _generate_text_map(self, analysis_results: List[Dict[str, Any]]) -> str:
+    def _generate_text_map(self, analysis_results: list[dict[str, Any]]) -> str:
         """Generate a hierarchical text representation of the code structure analysis."""
         return self._text_map_formatter.generate_text_map(analysis_results)
 
@@ -311,7 +313,7 @@ class CodeAnalysisService:
         file_path,
         start_line=None,
         end_line=None,
-    ) -> Union[Tuple[str, str], Tuple[str, Dict[str, Any]]]:
+    ) -> Union[Tuple[str, str], Tuple[str, dict[str, Any]]]:
         """Return the content of a file, optionally reading only a specific line range.
 
         For document files (PDF, DOCX, XLSX, PPTX), uses Docling to convert
@@ -383,20 +385,20 @@ class CodeAnalysisService:
 
         return file_path, decoded_content
 
-    def _build_file_tree(self, file_paths: List[str]) -> Dict[str, Any]:
+    def _build_file_tree(self, file_paths: list[str]) -> dict[str, Any]:
         """Build a hierarchical tree structure from flat file paths."""
         return self._file_tree_formatter.build_file_tree(file_paths)
 
-    def _format_file_tree(self, tree: Dict[str, Any], indent: str = "") -> List[str]:
+    def _format_file_tree(self, tree: dict[str, Any], indent: str = "") -> list[str]:
         """Format a file tree dictionary into indented lines."""
         return self._file_tree_formatter.format_file_tree(tree, indent)
 
     def _format_analysis_results(
         self,
-        analysis_results: List[Dict[str, Any]],
-        analyzed_files: List[str],
-        errors: List[Dict[str, str]],
-        non_analyzed_files: List[str] = [],
+        analysis_results: list[dict[str, Any]],
+        analyzed_files: list[str],
+        errors: list[dict[str, str]],
+        non_analyzed_files: list[str] = [],
         total_supported_files: int = 0,
     ) -> str:
         """Format the analysis results into a clear text format."""

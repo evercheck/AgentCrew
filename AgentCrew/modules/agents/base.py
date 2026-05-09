@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from enum import Enum
 
 if TYPE_CHECKING:
-    from typing import AsyncGenerator, Tuple, Dict, List, Optional, Any, Callable, Union
+    from typing import AsyncGenerator, Tuple, Any, Callable, Union
 
 
 class MessageType(Enum):
@@ -23,7 +23,7 @@ class BaseAgent(ABC):
         self.description = description
         self.history = []
         self.is_active = False
-        self.shared_context_pool: Dict[str, List[int]] = {}
+        self.shared_context_pool: dict[str, list[int]] = {}
         self.llm = None
 
     @abstractmethod
@@ -47,13 +47,13 @@ class BaseAgent(ABC):
         pass
 
     @abstractmethod
-    def append_message(self, messages: Union[Dict, List[Dict]]):
+    def append_message(self, messages: Union[dict, list[dict]]):
         """Append a message or list of messages to the agent's history."""
         pass
 
     @property
     @abstractmethod
-    def clean_history(self) -> List:
+    def clean_history(self) -> list:
         pass
 
     @abstractmethod
@@ -70,12 +70,12 @@ class BaseAgent(ABC):
 
     @abstractmethod
     def format_message(
-        self, message_type: MessageType, message_data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, message_type: MessageType, message_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def execute_tool_call(self, tool_name: str, tool_input: Dict) -> Any:
+    async def execute_tool_call(self, tool_name: str, tool_input: dict) -> Any:
         pass
 
     @abstractmethod
@@ -91,8 +91,8 @@ class BaseAgent(ABC):
     @abstractmethod
     async def process_messages(
         self,
-        messages: Optional[List[Dict[str, Any]]] = None,
-        callback: Optional[Callable] = None,
+        messages: list[dict[str, Any]] | None = None,
+        callback: Callable | None = None,
     ) -> AsyncGenerator:
         """
         Process messages using this agent.

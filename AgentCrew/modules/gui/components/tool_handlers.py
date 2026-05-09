@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 from PySide6.QtWidgets import (
     QMessageBox,
     QTextEdit,
@@ -24,7 +24,7 @@ class ToolEventHandler:
         if isinstance(chat_window, ChatWindow):
             self.chat_window = chat_window
 
-    def show_denial_reason_dialog(self, tool_name: str) -> Optional[str]:
+    def show_denial_reason_dialog(self, tool_name: str) -> str | None:
         """
         Show a dialog to collect the reason for denying a tool execution.
 
@@ -97,7 +97,7 @@ class ToolEventHandler:
         elif event == "tool_denied":
             self.handle_tool_denied(data)
 
-    def handle_tool_use(self, tool_use: Dict):
+    def handle_tool_use(self, tool_use: dict):
         """Display information about a tool being used."""
         # Create tool widget
         tool_widget = ToolWidget(tool_use["name"], tool_use)
@@ -111,7 +111,7 @@ class ToolEventHandler:
         # Display status message
         self.chat_window.display_status_message(f"Using tool: {tool_use['name']}")
 
-    def handle_tool_result(self, data: Dict):
+    def handle_tool_result(self, data: dict):
         """Display the result of a tool execution."""
         tool_use = data["tool_use"]
         tool_result = data["tool_result"]
@@ -133,7 +133,7 @@ class ToolEventHandler:
 
         # Reset the current response bubble so the next agent message starts in a new bubble
 
-    def handle_tool_error(self, data: Dict):
+    def handle_tool_error(self, data: dict):
         """Display an error that occurred during tool execution."""
         tool_use = data["tool_use"]
         error = data["error"]

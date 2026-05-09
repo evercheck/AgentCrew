@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any
 from rich.console import Group
 from AgentCrew.modules.chat.agent_evaluation import parse_agent_evaluation
 from rich.box import HORIZONTALS, SIMPLE, SQUARE
@@ -172,11 +172,11 @@ class DisplayHandlers:
         """Format messages for debug display with truncated content.
 
         Args:
-            messages: List of message dictionaries
+            messages: list of message dictionaries
             max_content_length: Maximum length for message content
 
         Returns:
-            List of formatted message dictionaries
+            list of formatted message dictionaries
         """
         formatted = []
 
@@ -323,7 +323,7 @@ class DisplayHandlers:
 
         return text[: max_length - 3] + "..."
 
-    def display_models(self, models_by_provider: Dict):
+    def display_models(self, models_by_provider: dict):
         """Display available models grouped by provider."""
         self.console.print(Text("Available models:", style=RICH_STYLE_YELLOW))
         for provider, models in models_by_provider.items():
@@ -338,7 +338,7 @@ class DisplayHandlers:
                     f"    Capabilities: {', '.join(model['capabilities'])}"
                 )
 
-    def display_agents(self, agents_info: Dict):
+    def display_agents(self, agents_info: dict):
         """Display available agents."""
         self.console.print(
             Text(f"Current agent: {agents_info['current']}", style=RICH_STYLE_YELLOW)
@@ -353,14 +353,14 @@ class DisplayHandlers:
 
     def display_conversations(
         self,
-        conversations: List[Dict[str, Any]],
+        conversations: list[dict[str, Any]],
         get_history_callback=None,
         delete_callback=None,
     ):
         """Display available conversations using interactive browser.
 
         Args:
-            conversations: List of conversation metadata
+            conversations: list of conversation metadata
             get_history_callback: Optional callback to fetch full conversation history
             delete_callback: Optional callback to delete conversations by IDs
 
@@ -383,7 +383,7 @@ class DisplayHandlers:
         browser.set_conversations(conversations)
         return browser.show()
 
-    def display_consolidation_result(self, result: Dict[str, Any]):
+    def display_consolidation_result(self, result: dict[str, Any]):
         """Display information about a consolidation operation."""
         self.console.print(
             Text("\n🔄 Conversation Consolidated:", style=RICH_STYLE_YELLOW)
@@ -396,7 +396,7 @@ class DisplayHandlers:
             f"  • ~{result['original_token_count'] - result['consolidated_token_count']} tokens saved"
         )
 
-    def display_evolution_summary(self, proposal: Dict[str, Any]):
+    def display_evolution_summary(self, proposal: dict[str, Any]):
         """Display a prompt evolution review summary."""
         summary = proposal.get("analysis_summary", {})
         table = Table(show_header=False, box=HORIZONTALS, expand=True)
@@ -450,7 +450,7 @@ class DisplayHandlers:
         )
 
     def display_prompt_evolution_result(
-        self, result: Dict[str, Any], max_width: int = 60
+        self, result: dict[str, Any], max_width: int = 60
     ):
         self.console.print(
             DiffDisplay.create_summary_diff_panel(
@@ -461,7 +461,7 @@ class DisplayHandlers:
             )
         )
 
-    def display_loaded_conversation(self, messages: List, default_agent_name: str):
+    def display_loaded_conversation(self, messages: list, default_agent_name: str):
         """Display all messages from a loaded conversation."""
         last_consolidated_idx = 0
         for i, msg in reversed(list(enumerate(messages))):

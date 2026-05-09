@@ -1,5 +1,4 @@
 import os
-from typing import Dict, List, Optional
 from .types import Model
 from loguru import logger
 from AgentCrew.modules.config.global_config import GlobalConfig
@@ -7,7 +6,7 @@ from AgentCrew.modules.config.global_config import GlobalConfig
 # Mapping of provider/service names to their required API key environment variables.
 # Models whose provider (or resolved service_name) maps to a key that is not set
 # in the environment will be skipped during registration.
-PROVIDER_API_KEY_MAP: Dict[str, str] = {
+PROVIDER_API_KEY_MAP: dict[str, str] = {
     "claude": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
     "openai_response": "OPENAI_API_KEY",
@@ -41,8 +40,8 @@ class ModelRegistry:
                 "ModelRegistry is a singleton. Use get_instance() instead."
             )
 
-        self.models: Dict[str, Model] = {}
-        self.current_model: Optional[Model] = None
+        self.models: dict[str, Model] = {}
+        self.current_model: Model | None = None
         self._initialize_models()
 
     @classmethod
@@ -148,7 +147,7 @@ class ModelRegistry:
         """
         self.models[f"{model.provider}/{model.id}"] = model
 
-    def get_model(self, model_id: str) -> Optional[Model]:
+    def get_model(self, model_id: str) -> Model | None:
         """
         Get a model by ID.
 
@@ -160,7 +159,7 @@ class ModelRegistry:
         """
         return self.models.get(model_id)
 
-    def get_models_by_provider(self, provider: str) -> List[Model]:
+    def get_models_by_provider(self, provider: str) -> list[Model]:
         """
         Get all models for a specific provider.
 
@@ -168,7 +167,7 @@ class ModelRegistry:
             provider: The provider name
 
         Returns:
-            List of models for the provider
+            list of models for the provider
         """
         return [model for model in self.models.values() if model.provider == provider]
 
@@ -189,7 +188,7 @@ class ModelRegistry:
         logger.warning("Model with ID '%s' not found in registry.", model_id)
         return False
 
-    def get_current_model(self) -> Optional[Model]:
+    def get_current_model(self) -> Model | None:
         """
         Get the current model.
 
@@ -198,7 +197,7 @@ class ModelRegistry:
         """
         return self.current_model
 
-    def get_providers(self) -> List[str]:
+    def get_providers(self) -> list[str]:
         """
         Get all unique provider names from the registered models.
 

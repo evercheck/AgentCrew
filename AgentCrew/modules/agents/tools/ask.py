@@ -3,10 +3,10 @@ Ask tool for eliciting more details from users.
 This tool allows agents to request additional information from users with guided answer options.
 """
 
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 
 
-def get_ask_tool_definition() -> Dict[str, Any]:
+def get_ask_tool_definition() -> dict[str, Any]:
     """
     Get the definition for the ask tool.
 
@@ -119,7 +119,7 @@ def get_ask_tool_handler() -> Callable:
 
         Args:
             question: The question to ask the user
-            guided_answers: List of suggested answers
+            guided_answers: list of suggested answers
 
         Returns:
             A string describing the question (actual response comes from user)

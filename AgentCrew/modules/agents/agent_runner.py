@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable
 
 from AgentCrew.modules.agents.local_agent import LocalAgent
 from AgentCrew.modules.agents.base import MessageType
@@ -11,14 +11,14 @@ from AgentCrew.modules.tools.parallel_executor import (
 
 async def run_agent_loop(
     agent: LocalAgent,
-    history: List[Dict[str, Any]],
+    history: list[dict[str, Any]],
     *,
-    tool_filter: Optional[Callable[[Dict[str, Any]], bool]] = None,
+    tool_filter: Callable[[dict[str, Any]], bool] | None = None,
 ) -> str:
     current_response = ""
     thinking_content = ""
     thinking_signature = ""
-    tool_uses: List[Dict[str, Any]] = []
+    tool_uses: list[dict[str, Any]] = []
     token_usage = TokenUsage()
 
     def process_result(_tool_uses, _token_usage):
@@ -65,7 +65,7 @@ async def run_agent_loop(
     if assistant_message:
         history.append(assistant_message)
 
-    parallel_buffer: List[Dict[str, Any]] = []
+    parallel_buffer: list[dict[str, Any]] = []
 
     for tool_use in filtered:
         if is_sequential_tool(tool_use["name"]):

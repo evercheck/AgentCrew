@@ -4,13 +4,13 @@ import asyncio
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Dict
+    pass
 
 
 class TaskCancellationManager:
     def __init__(self) -> None:
-        self.cancel_events: Dict[str, asyncio.Event] = {}
-        self.background_tasks: Dict[str, asyncio.Task] = {}
+        self.cancel_events: dict[str, asyncio.Event] = {}
+        self.background_tasks: dict[str, asyncio.Task] = {}
 
     def register(self, task_id: str, bg_task: asyncio.Task) -> None:
         cancel_event = asyncio.Event()

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from AgentCrew.modules.code_analysis.tree_sitter_runtime import TreeSitterRuntime
 
 if TYPE_CHECKING:
-    from typing import List, Optional, Literal
+    from typing import Literal
 
 
 @dataclass
@@ -16,7 +16,7 @@ class SyntaxError:
     line: int
     column: int
     message: str
-    node_type: Optional[str]
+    node_type: str | None
     severity: Literal["error", "warning"]
 
 
@@ -25,7 +25,7 @@ class SyntaxCheckResult:
     """Result of syntax checking."""
 
     is_valid: bool
-    errors: List[SyntaxError]
+    errors: list[SyntaxError]
     language: str
     parse_tree_available: bool
 
@@ -82,7 +82,7 @@ class TreeSitterChecker:
             parse_tree_available=True,
         )
 
-    def _extract_errors(self, tree, content: str) -> List[SyntaxError]:
+    def _extract_errors(self, tree, content: str) -> list[SyntaxError]:
         """
         Extract syntax errors from tree-sitter parse tree.
 
@@ -133,7 +133,7 @@ class TreeSitterChecker:
 
         return errors
 
-    def get_supported_languages(self) -> List[str]:
+    def get_supported_languages(self) -> list[str]:
         """Return list of languages available in the pack manifest."""
         return self._runtime.get_manifest_languages()
 

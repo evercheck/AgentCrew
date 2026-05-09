@@ -1,9 +1,9 @@
 """Shared formatting utilities for fork conversation display."""
 
-from typing import Dict, Any, List
+from typing import Any
 
 
-def format_fork_title(title: str, metadata: Dict[str, Any]) -> str:
+def format_fork_title(title: str, metadata: dict[str, Any]) -> str:
     """Build a display title with fork indentation, prefix, and children count.
 
     Args:
@@ -16,7 +16,7 @@ def format_fork_title(title: str, metadata: Dict[str, Any]) -> str:
     """
     indent_level: int = metadata.get("indent_level", 0)
     is_fork: bool = metadata.get("is_fork", False)
-    fork_children: List[Dict[str, Any]] = metadata.get("fork_children", [])
+    fork_children: list[dict[str, Any]] = metadata.get("fork_children", [])
 
     indent = "  " * indent_level
     prefix = "\u21b3 " if is_fork else ""

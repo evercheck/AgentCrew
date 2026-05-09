@@ -1,10 +1,10 @@
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 
 
 SPEAK_MAX_LENGTH = 280
 
 
-def get_speak_tool_definition() -> Dict[str, Any]:
+def get_speak_tool_definition() -> dict[str, Any]:
     tool_description = (
         "Speak to the user using voice. "
         "When voice is available, use this as the primary way to communicate with the user. "

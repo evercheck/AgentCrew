@@ -5,7 +5,6 @@ Provides path restrictions, permission checks, and safety validations.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 from pathlib import Path
 import fnmatch
 import tempfile
@@ -15,8 +14,8 @@ import tempfile
 class SafetyConfig:
     """Configuration for file editing safety."""
 
-    allowed_paths: List[str] = field(default_factory=lambda: ["**/*"])
-    denied_paths: List[str] = field(default_factory=list)
+    allowed_paths: list[str] = field(default_factory=lambda: ["**/*"])
+    denied_paths: list[str] = field(default_factory=list)
     max_file_size_mb: int = 10
     create_backups: bool = True
     backup_directory: str = tempfile.mkdtemp("agentcrew_backups")
@@ -27,8 +26,8 @@ class ValidationResult:
     """Result of safety validation."""
 
     allowed: bool
-    error_message: Optional[str] = None
-    suggestion: Optional[str] = None
+    error_message: str | None = None
+    suggestion: str | None = None
 
 
 class SafetyValidator:
@@ -52,7 +51,7 @@ class SafetyValidator:
         self.config = config
 
     def validate_write_permission(
-        self, file_path: str, agent_name: Optional[str] = None
+        self, file_path: str, agent_name: str | None = None
     ) -> ValidationResult:
         """
         Check if agent can write to this path.
@@ -94,13 +93,13 @@ class SafetyValidator:
 
         return ValidationResult(allowed=True)
 
-    def _matches_any_pattern(self, file_path: str, patterns: List[str]) -> bool:
+    def _matches_any_pattern(self, file_path: str, patterns: list[str]) -> bool:
         """
         Check if file path matches any glob pattern.
 
         Args:
             file_path: Absolute file path to check
-            patterns: List of glob patterns
+            patterns: list of glob patterns
 
         Returns:
             True if file matches any pattern

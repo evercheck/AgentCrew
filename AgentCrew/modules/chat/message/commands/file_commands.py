@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import shlex
-from typing import Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from AgentCrew.modules.chat.message.commands.base import CommandResult
 from AgentCrew.modules.utils.file_handler import FileHandler
@@ -20,7 +20,7 @@ class FileCommands:
     def handle_file(self, user_input: str) -> CommandResult:
         """Handle file command with support for multiple files."""
         file_paths_str: str = user_input[6:].strip()
-        file_paths: List[str] = [
+        file_paths: list[str] = [
             os.path.expanduser(path.strip())
             for path in shlex.split(file_paths_str)
             if path.strip()
@@ -30,9 +30,9 @@ class FileCommands:
             self.message_handler._notify("error", "No file paths provided")
             return CommandResult(handled=True, clear_flag=True)
 
-        processed_files: List[str] = []
-        failed_files: List[str] = []
-        all_file_contents: List[Dict[str, str]] = []
+        processed_files: list[str] = []
+        failed_files: list[str] = []
+        all_file_contents: list[dict[str, str]] = []
 
         for file_path in file_paths:
             if self.message_handler.file_handler is None:

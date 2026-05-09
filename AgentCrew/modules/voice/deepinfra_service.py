@@ -2,7 +2,7 @@ import os
 import tempfile
 import threading
 import time
-from typing import Dict, Any, Optional, Callable
+from typing import Any, Callable
 import queue
 
 import numpy as np
@@ -35,7 +35,7 @@ DEEPINFRA_FALLBACK_VOICES = [
 class DeepInfraVoiceService(BaseVoiceService):
     """DeepInfra voice service using OpenAI-compatible STT and TTS."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         super().__init__()
 
         self.api_key = api_key or os.getenv("DEEPINFRA_API_KEY")
@@ -60,8 +60,8 @@ class DeepInfraVoiceService(BaseVoiceService):
         self._start_tts_thread()
 
     def start_voice_recording(
-        self, sample_rate: int = 44100, voice_completed_cb: Optional[Callable] = None
-    ) -> Dict[str, Any]:
+        self, sample_rate: int = 44100, voice_completed_cb: Callable | None = None
+    ) -> dict[str, Any]:
         try:
             self.audio_handler.start_recording(sample_rate, voice_completed_cb)
             return {"success": True, "message": "Recording started."}
@@ -69,7 +69,7 @@ class DeepInfraVoiceService(BaseVoiceService):
             logger.error(f"Failed to start recording: {str(e)}")
             return {"success": False, "error": f"Failed to start recording: {str(e)}"}
 
-    def stop_voice_recording(self) -> Dict[str, Any]:
+    def stop_voice_recording(self) -> dict[str, Any]:
         try:
             audio_data, sample_rate = self.audio_handler.stop_recording()
 
@@ -91,7 +91,7 @@ class DeepInfraVoiceService(BaseVoiceService):
     def is_recording(self) -> bool:
         return self.audio_handler.is_recording()
 
-    async def speech_to_text(self, audio_data: Any, sample_rate: int) -> Dict[str, Any]:
+    async def speech_to_text(self, audio_data: Any, sample_rate: int) -> dict[str, Any]:
         tmp_file_path = None
         try:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
@@ -160,10 +160,10 @@ class DeepInfraVoiceService(BaseVoiceService):
     def _build_tts_request_kwargs(
         self,
         text: str,
-        voice_id: Optional[str],
-        model_id: Optional[str],
-        response_format: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        voice_id: str | None,
+        model_id: str | None,
+        response_format: str | None = None,
+    ) -> dict[str, Any]:
         if not text.strip():
             raise ValueError("No speakable text after cleaning")
 
@@ -177,9 +177,9 @@ class DeepInfraVoiceService(BaseVoiceService):
     def _create_tts_stream(
         self,
         text: str,
-        voice_id: Optional[str],
-        model_id: Optional[str],
-        response_format: Optional[str] = None,
+        voice_id: str | None,
+        model_id: str | None,
+        response_format: str | None = None,
     ):
         request_kwargs = self._build_tts_request_kwargs(
             text=text,
@@ -190,7 +190,7 @@ class DeepInfraVoiceService(BaseVoiceService):
         return self.client.audio.speech.with_streaming_response.create(**request_kwargs)
 
     def _synthesize_tts_chunk_to_pcm_bytes(
-        self, text: str, voice_id: Optional[str], model_id: Optional[str]
+        self, text: str, voice_id: str | None, model_id: str | None
     ) -> bytes:
         request_kwargs = self._build_tts_request_kwargs(
             text=text,
@@ -240,7 +240,7 @@ class DeepInfraVoiceService(BaseVoiceService):
         sd.wait()
 
     def _process_tts_request(
-        self, text: str, voice_id: Optional[str], model_id: Optional[str]
+        self, text: str, voice_id: str | None, model_id: str | None
     ):
         try:
             chunks = self._split_text_for_tts(text)
@@ -280,7 +280,7 @@ class DeepInfraVoiceService(BaseVoiceService):
             logger.error(f"Text-to-speech processing failed: {str(e)}")
 
     def text_to_speech_stream(
-        self, text: str, voice_id: Optional[str] = None, model_id: Optional[str] = None
+        self, text: str, voice_id: str | None = None, model_id: str | None = None
     ):
         try:
             if not text or not text.strip():
@@ -300,7 +300,7 @@ class DeepInfraVoiceService(BaseVoiceService):
         except Exception as e:
             logger.error(f"Failed to queue TTS request: {str(e)}")
 
-    def list_voices(self) -> Dict[str, Any]:
+    def list_voices(self) -> dict[str, Any]:
         return {"success": True, "voices": DEEPINFRA_FALLBACK_VOICES}
 
     def set_voice(self, voice_id: str):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Dict, Any, Optional, Callable, Tuple
+from typing import Any, Callable, Tuple
 from datetime import datetime
 
 from AgentCrew.modules.chat.fork_utils import format_fork_title
@@ -35,20 +35,18 @@ class ConversationBrowserUI:
     def __init__(
         self,
         console: Console,
-        get_conversation_history: Optional[
-            Callable[[str], List[Dict[str, Any]]]
-        ] = None,
+        get_conversation_history: Callable[[str], list[dict[str, Any]]] | None = None,
     ):
         self.console = console
-        self.conversations: List[Dict[str, Any]] = []
-        self._all_conversations: List[Dict[str, Any]] = []
+        self.conversations: list[dict[str, Any]] = []
+        self._all_conversations: list[dict[str, Any]] = []
         self.selected_index = 0
         self.scroll_offset = 0
         self._get_conversation_history = get_conversation_history
-        self._preview_cache: Dict[str, Tuple[List[Dict[str, Any]], int]] = {}
+        self._preview_cache: dict[str, Tuple[list[dict[str, Any]], int]] = {}
         self.selected_items: set[int] = set()
-        self._live: Optional[Live] = None
-        self._layout: Optional[Layout] = None
+        self._live: Live | None = None
+        self._layout: Layout | None = None
         self._search_query: str = ""
         self._search_mode: bool = False
 
@@ -56,7 +54,7 @@ class ConversationBrowserUI:
     def max_list_items(self) -> int:
         return self.console.height - 9
 
-    def set_conversations(self, conversations: List[Dict[str, Any]]):
+    def set_conversations(self, conversations: list[dict[str, Any]]):
         """Set the conversations list to browse."""
         self._all_conversations = conversations
         self.conversations = conversations
@@ -120,7 +118,7 @@ class ConversationBrowserUI:
         self.scroll_offset = 0
         self.selected_items.clear()
 
-    def toggle_selection(self, index: Optional[int] = None) -> bool:
+    def toggle_selection(self, index: int | None = None) -> bool:
         """Toggle selection state of an item. Returns True if state changed."""
         idx = index if index is not None else self.selected_index
         if idx < 0 or idx >= len(self.conversations):
@@ -135,7 +133,7 @@ class ConversationBrowserUI:
         """Clear all selected items."""
         self.selected_items.clear()
 
-    def get_selected_conversation_ids(self) -> List[str]:
+    def get_selected_conversation_ids(self) -> list[str]:
         """Get IDs of all selected conversations."""
         ids = []
         for idx in sorted(self.selected_items):
@@ -145,7 +143,7 @@ class ConversationBrowserUI:
                     ids.append(convo_id)
         return ids
 
-    def remove_conversations(self, indices: List[int]):
+    def remove_conversations(self, indices: list[int]):
         """Remove conversations at specified indices and update UI state."""
         for idx in sorted(indices, reverse=True):
             if 0 <= idx < len(self.conversations):
@@ -210,7 +208,7 @@ class ConversationBrowserUI:
             padding=(0, 1),
         )
 
-    def _create_list_panel(self, panel_height: Optional[int] = None) -> Panel:
+    def _create_list_panel(self, panel_height: int | None = None) -> Panel:
         """Create the left panel with conversation list."""
         if not self.conversations:
             empty_content = Group(
@@ -327,7 +325,7 @@ class ConversationBrowserUI:
 
     def _get_conversation_preview_messages(
         self, convo_id: str
-    ) -> tuple[List[Dict[str, Any]], int]:
+    ) -> tuple[list[dict[str, Any]], int]:
         """Get the most recent user-assistant exchanges for preview.
 
         Returns:
@@ -399,7 +397,7 @@ class ConversationBrowserUI:
             logger.warning(f"Error fetching conversation preview: {e}")
             return [], 0
 
-    def _create_preview_panel(self, panel_height: Optional[int] = None) -> Panel:
+    def _create_preview_panel(self, panel_height: int | None = None) -> Panel:
         """Create the right panel with conversation preview."""
         if not self.conversations or self.selected_index >= len(self.conversations):
             empty_content = Group(
@@ -662,7 +660,7 @@ class ConversationBrowserUI:
 
         return self.selected_index != old_index
 
-    def get_selected_conversation_id(self) -> Optional[str]:
+    def get_selected_conversation_id(self) -> str | None:
         """Get the ID of the currently selected conversation."""
         if 0 <= self.selected_index < len(self.conversations):
             return self.conversations[self.selected_index].get("id")

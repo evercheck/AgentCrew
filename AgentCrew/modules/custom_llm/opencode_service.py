@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Tuple
 
 from AgentCrew.modules.custom_llm.service import CustomLLMService
 from AgentCrew.modules.llm.model_registry import ModelRegistry
@@ -7,8 +7,8 @@ from AgentCrew.modules.llm.token_usage import TokenUsage
 
 class OpenCodeService(CustomLLMService):
     def _normalize_tool_calls(
-        self, tool_calls: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, tool_calls: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         normalized_tool_calls = []
         for raw_tool_call in tool_calls:
             normalized_tool_call = self._normalize_tool_call_for_request(raw_tool_call)
@@ -40,7 +40,7 @@ class OpenCodeService(CustomLLMService):
 
     def _extract_assistant_content_and_reasoning(
         self, content: Any
-    ) -> Tuple[str, Optional[str], bool]:
+    ) -> Tuple[str, str | None, bool]:
         if not isinstance(content, list):
             return self._stringify_content(content), None, False
 
@@ -81,7 +81,7 @@ class OpenCodeService(CustomLLMService):
             bool(reasoning_parts) and not has_non_reasoning_content,
         )
 
-    def _convert_internal_format(self, messages: List[Dict[str, Any]]):
+    def _convert_internal_format(self, messages: list[dict[str, Any]]):
         converted_messages = []
         pending_reasoning_content = None
 
@@ -138,8 +138,8 @@ class OpenCodeService(CustomLLMService):
         return converted_messages
 
     def process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         if "stream" in ModelRegistry.get_model_capabilities(
             f"{self._provider_name}/{self.model}"
         ):
@@ -148,7 +148,7 @@ class OpenCodeService(CustomLLMService):
 
     def _process_non_stream_chunk(
         self, chunk, assistant_response, tool_uses
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         input_tokens = self.current_input_tokens
         self.current_input_tokens = 0
         output_tokens = self.current_output_tokens
@@ -192,8 +192,8 @@ class OpenCodeService(CustomLLMService):
         )
 
     def _process_stream_chunk(
-        self, chunk, assistant_response: str, tool_uses: List[Dict]
-    ) -> Tuple[str, List[Dict], TokenUsage, Optional[str], Optional[tuple]]:
+        self, chunk, assistant_response: str, tool_uses: list[dict]
+    ) -> Tuple[str, list[dict], TokenUsage, str | None, tuple | None]:
         chunk_text = ""
         input_tokens = 0
         output_tokens = 0

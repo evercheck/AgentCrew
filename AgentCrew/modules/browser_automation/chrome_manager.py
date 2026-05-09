@@ -13,7 +13,6 @@ import threading
 import time
 import platform
 from pathlib import Path
-from typing import Optional
 
 from loguru import logger
 
@@ -33,8 +32,8 @@ class ChromeManager:
             user_data_dir: Directory for Chrome user data storage
         """
         self.debug_port = debug_port
-        self.chrome_process: Optional[subprocess.Popen] = None
-        self.chrome_thread: Optional[threading.Thread] = None
+        self.chrome_process: subprocess.Popen | None = None
+        self.chrome_thread: threading.Thread | None = None
         self._user_data_dir = os.getenv(
             "AGENTCREW_BROWSER_PROFILE_PATH",
             os.path.join(

@@ -14,20 +14,20 @@ from a2a.types import (
 )
 
 if TYPE_CHECKING:
-    from typing import Dict, Union
+    from typing import Union
     from .task_store import TaskStore
 
 
 class TaskStreamingManager:
     def __init__(self, store: TaskStore) -> None:
         self.store = store
-        self.streaming_tasks: Dict[str, asyncio.Queue] = {}
+        self.streaming_tasks: dict[str, asyncio.Queue] = {}
         self.streaming_enabled_tasks: set[str] = set()
-        self.pending_events: Dict[
+        self.pending_events: dict[
             str, list[Union[TaskStatusUpdateEvent, TaskArtifactUpdateEvent]]
         ] = defaultdict(list)
-        self.flush_tasks: Dict[str, asyncio.Task] = {}
-        self.flush_locks: Dict[str, asyncio.Lock] = {}
+        self.flush_tasks: dict[str, asyncio.Task] = {}
+        self.flush_locks: dict[str, asyncio.Lock] = {}
         self.flush_interval_seconds = 0.75
         self.max_buffered_events_per_task = 25
 

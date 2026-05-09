@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict
+from typing import Any
 
 _AGENT_EVALUATION_RE = re.compile(
     r"(?:```(?:json)?\s*)?<agent_evaluation>(.*?)</agent_evaluation>\s*(?:```)?",
@@ -19,7 +19,7 @@ def _clean_partial_planning_suffix(text: str) -> str:
     return _PARTIAL_CLOSE_RE.sub("", text).rstrip()
 
 
-def parse_agent_evaluation(text: str) -> Dict[str, Any]:
+def parse_agent_evaluation(text: str) -> dict[str, Any]:
     text = text or ""
     open_tag = "<agent_evaluation>"
     close_tag = "</agent_evaluation>"

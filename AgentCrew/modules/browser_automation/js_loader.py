@@ -6,7 +6,7 @@ for use with Chrome DevTools Protocol.
 """
 
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 import time
 from loguru import logger
 
@@ -15,7 +15,7 @@ class JavaScriptExecutor:
     """Handles JavaScript code execution and result parsing for browser automation."""
 
     @staticmethod
-    def execute_and_parse_result(chrome_interface: Any, js_code: str) -> Dict[str, Any]:
+    def execute_and_parse_result(chrome_interface: Any, js_code: str) -> dict[str, Any]:
         """
         Execute JavaScript code and parse the result.
 
@@ -109,7 +109,7 @@ class JavaScriptExecutor:
             return "Unknown"
 
     @staticmethod
-    def focus_and_clear_element(chrome_interface: Any, xpath: str) -> Dict[str, Any]:
+    def focus_and_clear_element(chrome_interface: Any, xpath: str) -> dict[str, Any]:
         """
         Focus an element and clear its content.
 
@@ -125,8 +125,8 @@ class JavaScriptExecutor:
 
     @staticmethod
     def draw_element_boxes(
-        chrome_interface: Any, uuid_xpath_dict: Dict[str, str]
-    ) -> Dict[str, Any]:
+        chrome_interface: Any, uuid_xpath_dict: dict[str, str]
+    ) -> dict[str, Any]:
         """
         Draw colored rectangle boxes with UUID labels over elements.
 
@@ -134,7 +134,7 @@ class JavaScriptExecutor:
             uuid_xpath_dict: Dictionary mapping UUIDs to XPath selectors
 
         Returns:
-            Dict containing the result of the drawing operation
+            dict containing the result of the drawing operation
         """
         try:
             js_code = js_loader.get_draw_element_boxes_js(uuid_xpath_dict)
@@ -155,12 +155,12 @@ class JavaScriptExecutor:
             return {"success": False, "error": f"Draw element boxes error: {str(e)}"}
 
     @staticmethod
-    def remove_element_boxes(chrome_interface: Any) -> Dict[str, Any]:
+    def remove_element_boxes(chrome_interface: Any) -> dict[str, Any]:
         """
         Remove the overlay container with element boxes.
 
         Returns:
-            Dict containing the result of the removal operation
+            dict containing the result of the removal operation
         """
         try:
             js_code = js_loader.get_remove_element_boxes_js()
@@ -183,7 +183,7 @@ class JavaScriptExecutor:
     @staticmethod
     def trigger_input_events(
         chrome_interface: Any, xpath: str, value: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger input and change events on an element.
 
@@ -199,7 +199,7 @@ class JavaScriptExecutor:
         return JavaScriptExecutor.execute_and_parse_result(chrome_interface, js_code)
 
     @staticmethod
-    def simulate_typing(chrome_interface: Any, text: str) -> Dict[str, Any]:
+    def simulate_typing(chrome_interface: Any, text: str) -> dict[str, Any]:
         """
         Simulate keyboard typing character by character.
 
@@ -255,7 +255,7 @@ class JavaScriptExecutor:
             return {"success": False, "error": f"Typing simulation failed: {str(e)}"}
 
     @staticmethod
-    def _get_key_definition(key: str) -> Optional[Dict[str, Any]]:
+    def _get_key_definition(key: str) -> dict[str, Any] | None:
         """
         Get key definition for a given key.
         Handles both predefined special keys and dynamic alphanumeric keys.
@@ -353,8 +353,8 @@ class JavaScriptExecutor:
 
     @staticmethod
     def dispatch_key_event(
-        chrome_interface: Any, key: str, modifiers: Optional[list] = None
-    ) -> Dict[str, Any]:
+        chrome_interface: Any, key: str, modifiers: list | None = None
+    ) -> dict[str, Any]:
         """
         Dispatch key events using CDP with full key definition support.
 
@@ -481,7 +481,7 @@ class JavaScriptExecutor:
             }
 
     @staticmethod
-    def filter_hidden_elements(chrome_interface: Any) -> Dict[str, Any]:
+    def filter_hidden_elements(chrome_interface: Any) -> dict[str, Any]:
         """
         Filter hidden elements from HTML using computed styles.
         Does not modify the actual page, returns filtered HTML string.
@@ -501,7 +501,7 @@ class JavaScriptLoader:
 
     def __init__(self):
         self.js_dir = Path(__file__).parent / "js"
-        self._js_cache: Dict[str, str] = {}
+        self._js_cache: dict[str, str] = {}
 
     def load_js_file(self, filename: str) -> str:
         """
@@ -597,7 +597,7 @@ class JavaScriptLoader:
         """
         return js_code + "\n" + wrapper
 
-    def get_draw_element_boxes_js(self, uuid_xpath_dict: Dict[str, str]) -> str:
+    def get_draw_element_boxes_js(self, uuid_xpath_dict: dict[str, str]) -> str:
         import json
 
         js_code = self.load_js_file("draw_element_boxes.js")

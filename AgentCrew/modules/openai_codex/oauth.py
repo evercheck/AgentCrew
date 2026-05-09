@@ -8,7 +8,7 @@ import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Event, Thread
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
@@ -48,7 +48,7 @@ def _current_time_rfc3339() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _normalize_refresh_time(value: Any) -> Optional[str]:
+def _normalize_refresh_time(value: Any) -> str | None:
     if isinstance(value, (int, float)) and value > 0:
         return (
             datetime.fromtimestamp(value / 1000, tz=timezone.utc)
@@ -69,7 +69,7 @@ def _normalize_refresh_time(value: Any) -> Optional[str]:
     return None
 
 
-def _decode_base64url_json(value: str) -> Optional[Dict[str, Any]]:
+def _decode_base64url_json(value: str) -> dict[str, Any] | None:
     try:
         padded = value + "=" * (-len(value) % 4)
         decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
@@ -81,7 +81,7 @@ def _decode_base64url_json(value: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _derive_expires_from_access_token(access_token: str) -> Optional[int]:
+def _derive_expires_from_access_token(access_token: str) -> int | None:
     if not isinstance(access_token, str):
         return None
 
@@ -100,7 +100,7 @@ def _derive_expires_from_access_token(access_token: str) -> Optional[int]:
     return None
 
 
-def _extract_account_id(data: Dict[str, Any]) -> Optional[str]:
+def _extract_account_id(data: dict[str, Any]) -> str | None:
     account_id = data.get("account_id")
     if isinstance(account_id, str) and account_id:
         return account_id
@@ -115,8 +115,8 @@ def _extract_account_id(data: Dict[str, Any]) -> Optional[str]:
 
 
 class _OAuthCallbackHandler(BaseHTTPRequestHandler):
-    auth_code: Optional[str] = None
-    error: Optional[str] = None
+    auth_code: str | None = None
+    error: str | None = None
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -166,18 +166,18 @@ class _ShutdownHTTPServer(HTTPServer):
 
 
 class OpenAICodexOAuth:
-    def __init__(self, token_path: Optional[str] = None):
+    def __init__(self, token_path: str | None = None):
         self.token_path = token_path or DEFAULT_TOKEN_PATH
-        self._tokens: Optional[Dict[str, Any]] = None
+        self._tokens: dict[str, Any] | None = None
         self._load_tokens()
 
     def _normalize_tokens(
         self,
-        raw_tokens: Dict[str, Any],
+        raw_tokens: dict[str, Any],
         *,
-        auth_mode: Optional[Any] = None,
-        last_refresh: Optional[Any] = None,
-    ) -> Optional[Dict[str, Any]]:
+        auth_mode: Any | None = None,
+        last_refresh: Any | None = None,
+    ) -> dict[str, Any] | None:
         access_token = raw_tokens.get("access") or raw_tokens.get("access_token")
         refresh_token = (
             raw_tokens.get("refresh") or raw_tokens.get("refresh_token") or ""
@@ -268,7 +268,7 @@ class OpenAICodexOAuth:
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
 
-        existing: Dict[str, Any] = {}
+        existing: dict[str, Any] = {}
         if os.path.exists(self.token_path):
             try:
                 with open(self.token_path, "r", encoding="utf-8") as f:
@@ -328,12 +328,12 @@ class OpenAICodexOAuth:
         return bool(self._tokens.get("access"))
 
     @property
-    def access_token(self) -> Optional[str]:
+    def access_token(self) -> str | None:
         if self._tokens:
             return self._tokens.get("access")
         return None
 
-    def get_valid_access_token(self) -> Optional[str]:
+    def get_valid_access_token(self) -> str | None:
         if self.has_valid_tokens:
             return self.access_token
         if self._tokens and self._tokens.get("refresh"):
@@ -341,7 +341,7 @@ class OpenAICodexOAuth:
                 return self.access_token
         return None
 
-    def _update_tokens_from_response(self, data: Dict[str, Any]):
+    def _update_tokens_from_response(self, data: dict[str, Any]):
         expires_in = data.get("expires_in", 3600)
         self._tokens = {
             "type": "oauth",

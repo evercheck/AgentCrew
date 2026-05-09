@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from loguru import logger
 
@@ -19,7 +19,7 @@ class GlobalConfig:
             path = "./config.json"
         return os.path.expanduser(path)
 
-    def read(self) -> Dict[str, Any]:
+    def read(self) -> dict[str, Any]:
         """Reads data from the global config.json file."""
         config_path = self._path
         default_config = {
@@ -61,7 +61,7 @@ class GlobalConfig:
             )
             return default_config
 
-    def write(self, config_data: Dict[str, Any]) -> None:
+    def write(self, config_data: dict[str, Any]) -> None:
         """Writes data to the global config.json file."""
         from AgentCrew.modules.agents import AgentManager
 
@@ -94,7 +94,7 @@ class GlobalConfig:
                 f"Error writing global configuration to {config_path}: {str(e)}"
             )
 
-    def get_last_used_settings(self) -> Dict[str, Any]:
+    def get_last_used_settings(self) -> dict[str, Any]:
         """Get the last used model and agent settings from the global config."""
         global_config = self.read()
         return global_config.get("last_used", {})
@@ -124,19 +124,19 @@ class GlobalConfig:
         except Exception as e:
             logger.warning(f"Warning: Failed to save last used agent to config: {e}")
 
-    def get_last_used_model(self) -> Optional[str]:
+    def get_last_used_model(self) -> str | None:
         """Get the last used model from global config."""
         return self.get_last_used_settings().get("model")
 
-    def get_last_used_provider(self) -> Optional[str]:
+    def get_last_used_provider(self) -> str | None:
         """Get the last used provider from global config."""
         return self.get_last_used_settings().get("provider")
 
-    def get_last_used_agent(self) -> Optional[str]:
+    def get_last_used_agent(self) -> str | None:
         """Get the last used agent name from global config."""
         return self.get_last_used_settings().get("agent")
 
-    def get_auto_approval_tools(self) -> List[str]:
+    def get_auto_approval_tools(self) -> list[str]:
         """Get the list of auto-approved tools from global config."""
         global_config = self.read()
         return global_config.get("auto_approval_tools", [])
@@ -160,7 +160,7 @@ class GlobalConfig:
                 f"Warning: Failed to {action} tool {tool_name} from auto-approval list: {e}"
             )
 
-    def read_custom_llm_providers_config(self) -> List[Dict[str, Any]]:
+    def read_custom_llm_providers_config(self) -> list[dict[str, Any]]:
         """Read the custom LLM providers configuration from the global config file."""
         global_config = self.read()
         providers = global_config.get("custom_llm_providers", [])
@@ -170,7 +170,7 @@ class GlobalConfig:
         return providers
 
     def write_custom_llm_providers_config(
-        self, providers_data: List[Dict[str, Any]]
+        self, providers_data: list[dict[str, Any]]
     ) -> None:
         """Write the custom LLM providers configuration to the global config file."""
         global_config = self.read()
