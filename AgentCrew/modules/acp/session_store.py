@@ -20,6 +20,8 @@ class AcpStoredSession:
     agent_name: str
     history: list[dict[str, Any]] = field(default_factory=list)
     title: str | None = None
+    model_id: str | None = None
+    thought_level: str | None = None
     created_at: str = field(default_factory=lambda: _utc_now())
     updated_at: str = field(default_factory=lambda: _utc_now())
 
@@ -32,6 +34,8 @@ class AcpStoredSession:
             agent_name=str(data.get("agent_name", "")),
             history=list(data.get("history") or []),
             title=data.get("title"),
+            model_id=data.get("model_id"),
+            thought_level=data.get("thought_level"),
             created_at=str(data.get("created_at") or now),
             updated_at=str(data.get("updated_at") or now),
         )
@@ -63,6 +67,8 @@ class AcpSessionStore:
         agent_name: str,
         history: list[dict[str, Any]],
         title: str | None = None,
+        model_id: str | None = None,
+        thought_level: str | None = None,
     ) -> AcpStoredSession:
         async with self.lock:
             existing = await self._read_session_unlocked(session_id)
@@ -73,6 +79,8 @@ class AcpSessionStore:
                 agent_name=agent_name,
                 history=[dict(message) for message in history],
                 title=title,
+                model_id=model_id,
+                thought_level=thought_level,
                 created_at=existing.created_at if existing else now,
                 updated_at=now,
             )
@@ -115,6 +123,8 @@ class AcpSessionStore:
         cwd: str | None = None,
         agent_name: str | None = None,
         title: str | None = None,
+        model_id: str | None = None,
+        thought_level: str | None = None,
     ) -> AcpStoredSession | None:
         async with self.lock:
             source = await self._read_session_unlocked(source_session_id)
@@ -127,6 +137,8 @@ class AcpSessionStore:
                 agent_name=agent_name or source.agent_name,
                 history=[dict(message) for message in source.history],
                 title=title or source.title,
+                model_id=model_id or source.model_id,
+                thought_level=thought_level or source.thought_level,
                 created_at=now,
                 updated_at=now,
             )

@@ -206,18 +206,25 @@ async def _local_write_file(file_path: str, blocks: list[dict[str, str]]) -> str
     return f"Error writing file: {result.get('error', 'Unknown error')}"
 
 
-def register(context: Any = None, agent: Any = None):
+def register(
+    context: Any = None,
+    agent: Any = None,
+    enable_read: bool = True,
+    enable_write: bool = True,
+):
     from AgentCrew.modules.tools.registration import register_tool
 
-    register_tool(
-        get_acp_read_file_tool_definition,
-        get_acp_read_file_tool_handler,
-        context,
-        agent,
-    )
-    register_tool(
-        get_acp_write_file_tool_definition,
-        get_acp_write_file_tool_handler,
-        context,
-        agent,
-    )
+    if enable_read:
+        register_tool(
+            get_acp_read_file_tool_definition,
+            get_acp_read_file_tool_handler,
+            context,
+            agent,
+        )
+    if enable_write:
+        register_tool(
+            get_acp_write_file_tool_definition,
+            get_acp_write_file_tool_handler,
+            context,
+            agent,
+        )

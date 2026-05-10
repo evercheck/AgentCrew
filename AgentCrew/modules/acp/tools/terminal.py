@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import shlex
 import uuid
@@ -105,44 +106,71 @@ def get_acp_run_command_tool_handler() -> Callable:
                     cmd_name = parts[0]
                     cmd_args = parts[1:] if len(parts) > 1 else []
 
-                response = await ctx.conn.create_terminal(
-                    command=cmd_name,
-                    session_id=ctx.session_id,
-                    args=cmd_args if cmd_args else None,
-                    cwd=working_dir,
-                    env=_build_env_list(env_vars) if env_vars else None,
-                )
-                terminal_id = response.terminal_id
+                try:
+                    response = await ctx.conn.create_terminal(
+                        command=cmd_name,
+                        session_id=ctx.session_id,
+                        args=cmd_args if cmd_args else None,
+                        cwd=working_dir,
+                        env=_build_env_list(env_vars) if env_vars else None,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        f"ACP terminal create failed for '{command}', falling back to local: {exc}"
+                    )
+                    return await _local_run_command(
+                        command, timeout, working_dir, env_vars
+                    )
 
+                terminal_id = response.terminal_id
                 cmd_id = f"cmd_{uuid.uuid4().hex[:12]}"
                 ctx.active_terminals[cmd_id] = terminal_id
+                timed_out = False
+                output_text = ""
+                exit_code = None
 
-                wait_response = await ctx.conn.wait_for_terminal_exit(
-                    session_id=ctx.session_id,
-                    terminal_id=terminal_id,
-                )
+                try:
+                    wait_response = await asyncio.wait_for(
+                        ctx.conn.wait_for_terminal_exit(
+                            session_id=ctx.session_id,
+                            terminal_id=terminal_id,
+                        ),
+                        timeout=timeout,
+                    )
+                    exit_code = getattr(wait_response, "exit_code", None)
+                    output_text = await _terminal_output_text(ctx, terminal_id)
+                except asyncio.TimeoutError:
+                    timed_out = True
+                    await _kill_terminal(ctx, terminal_id)
+                    output_text = await _terminal_output_text(ctx, terminal_id)
+                except asyncio.CancelledError:
+                    await _kill_terminal(ctx, terminal_id)
+                    raise
+                except Exception as exc:
+                    logger.warning(f"ACP terminal wait/output failed: {exc}")
+                    output_text = await _terminal_output_text(ctx, terminal_id)
+                    return (
+                        f"Command failed while waiting for ACP terminal.\n"
+                        f"Command ID: {cmd_id}\n"
+                        f"Error: {exc}\n"
+                        f"stdout/stderr:\n{output_text}"
+                    )
+                finally:
+                    await _release_terminal(ctx, terminal_id)
+                    ctx.active_terminals.pop(cmd_id, None)
 
-                output_response = await ctx.conn.terminal_output(
-                    session_id=ctx.session_id,
-                    terminal_id=terminal_id,
-                )
+                if timed_out:
+                    return (
+                        f"Command timed out after {timeout} seconds and was terminated.\n"
+                        f"Command ID: {cmd_id}\n"
+                        f"stdout/stderr:\n{output_text}"
+                    )
 
-                await ctx.conn.release_terminal(
-                    session_id=ctx.session_id,
-                    terminal_id=terminal_id,
-                )
-                ctx.active_terminals.pop(cmd_id, None)
-
-                exit_code = (
-                    wait_response.exit_code
-                    if wait_response.exit_code is not None
-                    else 0
-                )
-                out = output_response.output
+                exit_code = exit_code if exit_code is not None else 0
                 return (
                     f"Command completed (exit code: {exit_code})\n"
                     f"Command ID: {cmd_id}\n"
-                    f"stdout/stderr:\n{out}"
+                    f"stdout/stderr:\n{output_text}"
                 )
             except Exception as exc:
                 logger.warning(
@@ -242,14 +270,8 @@ def get_acp_terminate_command_tool_handler() -> Callable:
             terminal_id = ctx.active_terminals.pop(command_id, None)
             if terminal_id:
                 try:
-                    await ctx.conn.kill_terminal(
-                        session_id=ctx.session_id,
-                        terminal_id=terminal_id,
-                    )
-                    await ctx.conn.release_terminal(
-                        session_id=ctx.session_id,
-                        terminal_id=terminal_id,
-                    )
+                    await _kill_terminal(ctx, terminal_id)
+                    await _release_terminal(ctx, terminal_id)
                     return f"Command {command_id} terminated successfully. All resources cleaned up."
                 except Exception as exc:
                     logger.warning(f"ACP terminal kill failed: {exc}")
@@ -257,6 +279,38 @@ def get_acp_terminate_command_tool_handler() -> Callable:
         return await _local_terminate_command(command_id)
 
     return handle_acp_terminate_command
+
+
+async def _terminal_output_text(ctx, terminal_id: str) -> str:
+    try:
+        response = await ctx.conn.terminal_output(
+            session_id=ctx.session_id,
+            terminal_id=terminal_id,
+        )
+        return getattr(response, "output", "") or ""
+    except Exception as exc:
+        logger.warning(f"ACP terminal output failed: {exc}")
+        return f"[Failed to read terminal output: {exc}]"
+
+
+async def _kill_terminal(ctx, terminal_id: str) -> None:
+    try:
+        await ctx.conn.kill_terminal(
+            session_id=ctx.session_id,
+            terminal_id=terminal_id,
+        )
+    except Exception as exc:
+        logger.warning(f"ACP terminal kill failed: {exc}")
+
+
+async def _release_terminal(ctx, terminal_id: str) -> None:
+    try:
+        await ctx.conn.release_terminal(
+            session_id=ctx.session_id,
+            terminal_id=terminal_id,
+        )
+    except Exception as exc:
+        logger.warning(f"ACP terminal release failed: {exc}")
 
 
 def _validate_command_safety(

@@ -295,7 +295,7 @@ class AgentCrewApplication:
 
             os.environ["AGENTCREW_DISABLE_GUI"] = "true"
 
-            self.setup.setup_agents(services, agent_config)
+            self.setup.setup_agents(services, agent_config, provider, model_id)
             self.setup.restore_last_agent()
 
             if self.agent_manager is None:

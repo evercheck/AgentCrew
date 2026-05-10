@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from acp import text_block
 from acp.schema import PermissionOption, ToolCallUpdate
 from loguru import logger
 
 from AgentCrew.modules.acp.tools.context import classify_tool_kind
+
+if TYPE_CHECKING:
+    from acp import Client
 
 
 SENSITIVE_TOOL_NAMES: set[str] = {
@@ -27,7 +30,7 @@ SENSITIVE_TOOL_NAMES: set[str] = {
 
 @dataclass
 class AcpPermissionBroker:
-    conn: Any
+    conn: Client | None
     session_id: str
     yolo_mode: bool = False
     always_allowed: set[str] = field(default_factory=set)
@@ -91,6 +94,8 @@ class AcpPermissionBroker:
                 name="Deny",
             ),
         ]
+        if not self.conn:
+            raise ValueError("Client is not connected")
 
         response = await self.conn.request_permission(
             options=options,

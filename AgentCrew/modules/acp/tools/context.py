@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import contextvars
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from acp import Client
 
 ToolKind = Literal["read", "edit", "execute", "search", "fetch", "other"]
 
 
 @dataclass
 class AcpSessionContext:
-    conn: Any
+    conn: Client | None
     session_id: str
     client_capabilities: Any = None
     active_terminals: dict[str, str] = field(default_factory=dict)
