@@ -78,6 +78,10 @@ class OpenAIService(BaseLLMService):
         for msg in messages:
             msg.pop("agent", None)
             msg.pop("tool_name", None)
+            if msg.get("role") == "consolidated":
+                msg["role"] = "user"
+                msg.pop("metadata", None)
+
             if "tool_calls" in msg and msg.get("tool_calls", []):
                 for tool_call in msg["tool_calls"]:
                     tool_call["function"] = {}

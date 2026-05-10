@@ -67,6 +67,9 @@ class TogetherAIService(BaseLLMService):
         for raw_msg in messages:
             msg = dict(raw_msg)
             msg.pop("agent", None)
+            if msg.get("role") == "consolidated":
+                msg["role"] = "user"
+                msg.pop("metadata", None)
             if "tool_calls" in msg and msg.get("tool_calls", []):
                 converted_tool_calls = []
                 for raw_tool_call in msg["tool_calls"]:

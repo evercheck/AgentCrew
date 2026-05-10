@@ -26,7 +26,7 @@ class OpenAICodexService(OpenAIResponseService):
             base_url=CODEX_BASE_URL,
         )
         self._provider_name = "openai_codex"
-        self.model = "gpt-5-codex"
+        self.model = "gpt-5.4"
         logger.info("Initialized OpenAI Codex Service (ChatGPT subscription)")
 
     def _ensure_valid_token(self):

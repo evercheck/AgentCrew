@@ -103,6 +103,10 @@ class GithubCopilotService(CustomLLMService):
         thinking_block = None
         for i, msg in enumerate(messages):
             msg.pop("agent", None)
+
+            if msg.get("role") == "consolidated":
+                msg["role"] = "user"
+                msg.pop("metadata", None)
             if msg.get("role") == "assistant":
                 if thinking_block:
                     msg["reasoning_text"] = thinking_block.get("thinking", "")

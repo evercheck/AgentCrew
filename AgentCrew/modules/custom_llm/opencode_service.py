@@ -90,7 +90,10 @@ class OpenCodeService(CustomLLMService):
             msg.pop("agent", None)
             role = msg.get("role", "")
 
-            if role == "assistant":
+            if role == "consolidated":
+                msg["role"] = "user"
+                msg.pop("metadata", None)
+            elif role == "assistant":
                 content_text, extracted_reasoning, thinking_only = (
                     self._extract_assistant_content_and_reasoning(
                         msg.get("content", "")

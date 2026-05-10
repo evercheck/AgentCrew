@@ -264,7 +264,10 @@ class CustomLLMService(OpenAIService):
                     if normalized_tool_call:
                         normalized_tool_calls.append(normalized_tool_call)
                 msg["tool_calls"] = normalized_tool_calls
-            if msg.get("role") == "tool":
+            if msg.get("role") == "consolidated":
+                msg["role"] = "user"
+                msg.pop("metadata", None)
+            elif msg.get("role") == "tool":
                 msg.pop("tool_name", None)
                 msg.pop("is_rejected", None)
                 if isinstance(msg.get("content", ""), list):

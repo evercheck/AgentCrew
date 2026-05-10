@@ -117,9 +117,12 @@ class GoogleAINativeService(BaseLLMService):
         if budget_tokens == "0" or budget_tokens == "none":
             self.thinking_enabled = False
             self.reasoning_effort = types.ThinkingLevel.THINKING_LEVEL_UNSPECIFIED
-        elif budget_tokens not in ["minimal", "low", "medium", "high"]:
+            logger.info("Thinking mode disabled.")
+            return True
+        if budget_tokens not in ["minimal", "low", "medium", "high"]:
             raise ValueError("budget_tokens must be minimal, low, medium or high")
 
+        self.thinking_enabled = True
         self.reasoning_effort = types.ThinkingLevel(budget_tokens.upper())
         logger.info(f"Thinking mode enabled with budget of {budget_tokens} tokens.")
         return True
@@ -452,7 +455,7 @@ class GoogleAINativeService(BaseLLMService):
         for msg in messages:
             role = msg.get("role", "")
             content = msg.get("content", "")
-            if role == "user":
+            if role == "user" or role == "consolidated":
                 google_content = Content(role="user", parts=[])
                 if isinstance(content, list):
                     for c in content:
