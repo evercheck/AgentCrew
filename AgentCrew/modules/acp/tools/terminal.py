@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import uuid
 from typing import Any, Callable
 
@@ -74,9 +75,35 @@ def get_acp_run_command_tool_handler() -> Callable:
                 if not _validate_command_safety(command, working_dir, env_vars):
                     return "Error: command blocked by security policy"
 
-                cmd_parts = command.split(maxsplit=1)
-                cmd_name = cmd_parts[0]
-                cmd_args = cmd_parts[1:] if len(cmd_parts) > 1 else []
+                shell_operators = {
+                    "&&",
+                    "||",
+                    ";",
+                    "|",
+                    ">",
+                    ">>",
+                    "<",
+                    "<<",
+                    "&",
+                    "$(",
+                    "`",
+                }
+                needs_shell = any(op in command for op in shell_operators)
+
+                if needs_shell:
+                    import sys
+
+                    shell_cmd = "cmd.exe" if sys.platform == "win32" else "/bin/sh"
+                    shell_args = ["/c" if sys.platform == "win32" else "-c", command]
+                    cmd_name = shell_cmd
+                    cmd_args = shell_args
+                else:
+                    try:
+                        parts = shlex.split(command)
+                    except ValueError:
+                        parts = command.split()
+                    cmd_name = parts[0]
+                    cmd_args = parts[1:] if len(parts) > 1 else []
 
                 response = await ctx.conn.create_terminal(
                     command=cmd_name,
@@ -151,7 +178,7 @@ def get_acp_check_command_status_tool_definition() -> dict[str, Any]:
 
 
 def get_acp_check_command_status_tool_handler() -> Callable:
-    async def handle_acp_check_command_status(**params) -> dict[str, Any] | str:
+    async def handle_acp_check_command_status(**params) -> str:
         command_id = params.get("command_id", "")
 
         if not command_id:
@@ -166,9 +193,12 @@ def get_acp_check_command_status_tool_handler() -> Callable:
                         session_id=ctx.session_id,
                         terminal_id=terminal_id,
                     )
-                    status = "completed" if response.exit_status else "running"
-                    out = response.output
-                    return f"Status: {status}\nOutput:\n{out}"
+                    if response.exit_status is not None:
+                        out = response.output or ""
+                        return f"Command completed.\nExit Code: {response.exit_status}\nOutput:\n{out}"
+                    else:
+                        out = response.output or ""
+                        return f"Command still running.\nOutput so far:\n{out}\nCheck again later."
                 except Exception as exc:
                     logger.warning(f"ACP terminal_output failed: {exc}")
 
@@ -201,7 +231,7 @@ def get_acp_terminate_command_tool_definition() -> dict[str, Any]:
 
 
 def get_acp_terminate_command_tool_handler() -> Callable:
-    async def handle_acp_terminate_command(**params) -> str | dict[str, Any]:
+    async def handle_acp_terminate_command(**params) -> str:
         command_id = params.get("command_id", "")
 
         if not command_id:
@@ -220,7 +250,7 @@ def get_acp_terminate_command_tool_handler() -> Callable:
                         session_id=ctx.session_id,
                         terminal_id=terminal_id,
                     )
-                    return f"Command {command_id} terminated."
+                    return f"Command {command_id} terminated successfully. All resources cleaned up."
                 except Exception as exc:
                     logger.warning(f"ACP terminal kill failed: {exc}")
 
@@ -298,18 +328,50 @@ async def _local_run_command(
     return "\n".join(parts)
 
 
-async def _local_check_command_status(command_id: str) -> dict[str, Any]:
+async def _local_check_command_status(command_id: str) -> str:
     from AgentCrew.modules.command_execution.service import CommandExecutionService
 
     service = CommandExecutionService.get_instance()
-    return service.get_command_status(command_id)
+    result = service.get_command_status(command_id)
+
+    if result["status"] == "completed":
+        response = f"Command completed.\nExit Code: {result['exit_code']}\nDuration: {result['duration_seconds']}s\n\n"
+        if result.get("output"):
+            response += f"Output:\n{result['output']}"
+        if result.get("error"):
+            response += f"\n\nStderr:\n{result['error']}"
+        return response
+    elif result["status"] == "running":
+        response = f"Command still running.\nElapsed: {result['elapsed_seconds']}s\nState: {result.get('state', 'running')}\n\n"
+        if result.get("output"):
+            response += f"Output so far:\n{result['output']}\n\n"
+        if result.get("error"):
+            response += f"Stderr so far:\n{result['error']}\n\n"
+        response += "Check again later."
+        return response
+    elif result["status"] == "timeout":
+        response = f"Command exceeded max lifetime and was terminated.\nElapsed: {result['elapsed_seconds']}s\n\n"
+        if result.get("output"):
+            response += f"Output before timeout:\n{result['output']}"
+        if result.get("error"):
+            response += f"\n\nStderr:\n{result['error']}"
+        return response
+    else:
+        return f"Error: {result.get('error', 'Unknown error')}"
 
 
-async def _local_terminate_command(command_id: str) -> dict[str, Any]:
+async def _local_terminate_command(command_id: str) -> str:
     from AgentCrew.modules.command_execution.service import CommandExecutionService
 
     service = CommandExecutionService.get_instance()
-    return service.terminate_command(command_id)
+    result = service.terminate_command(command_id)
+
+    if result["status"] == "success":
+        return (
+            f"Command {command_id} terminated successfully. All resources cleaned up."
+        )
+    else:
+        return f"Failed: {result.get('error', 'Unknown error')}"
 
 
 def register(context: Any = None, agent: Any = None):

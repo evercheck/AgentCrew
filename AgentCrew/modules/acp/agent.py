@@ -5,11 +5,15 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from acp import Agent
-from acp.schema import ToolKind
 from loguru import logger
 
 from AgentCrew.modules.acp.mcp import normalize_acp_mcp_servers
 from AgentCrew.modules.acp.session_store import AcpSessionStore
+from AgentCrew.modules.acp.tools.context import (
+    AcpSessionContext,
+    _current_acp_session,
+    classify_tool_kind,
+)
 from AgentCrew.modules.acp.tools.permission_broker import AcpPermissionBroker
 from AgentCrew.modules.agents import AgentManager, LocalAgent
 from AgentCrew.modules.agents.base import MessageType
@@ -317,7 +321,12 @@ class AgentCrewAcpAgent(Agent):
         for message in history:
             role = message.get("role", "")
             content = message.get("content", "")
-            if not isinstance(content, str):
+            if isinstance(content, list):
+                content = " ".join(
+                    block.get("text", "") if isinstance(block, dict) else str(block)
+                    for block in content
+                )
+            elif not isinstance(content, str):
                 content = str(content)
 
             if role == "user":
@@ -506,12 +515,12 @@ class AgentCrewAcpAgent(Agent):
 
         user_text = self._prompt_to_text(prompt)
         if user_text.strip():
-            state.history.append({"role": "user", "content": user_text})
+            state.history.append(
+                {"role": "user", "content": [{"type": "text", "text": user_text}]}
+            )
             if not state.title:
                 state.title = user_text[:80].split("\n")[0].strip()
                 await self._send_session_info_update(session_id, state)
-
-        from AgentCrew.modules.acp.tools.context import AcpSessionContext, _current_acp_session
 
         ctx = AcpSessionContext(
             conn=self._conn,
@@ -566,7 +575,9 @@ class AgentCrewAcpAgent(Agent):
         fs = getattr(caps, "fs", None)
         if fs is None:
             return False
-        return bool(getattr(fs, "readTextFile", False) or getattr(fs, "writeTextFile", False))
+        return bool(
+            getattr(fs, "readTextFile", False) or getattr(fs, "writeTextFile", False)
+        )
 
     @property
     def _client_has_terminal(self) -> bool:
@@ -583,7 +594,9 @@ class AgentCrewAcpAgent(Agent):
             return
 
         if self._client_has_filesystem:
-            from AgentCrew.modules.acp.tools.filesystem import register as register_acp_fs
+            from AgentCrew.modules.acp.tools.filesystem import (
+                register as register_acp_fs,
+            )
 
             replaced_filesystem = ["get_file", "write_or_edit_file"]
             for name in replaced_filesystem:
@@ -592,9 +605,15 @@ class AgentCrewAcpAgent(Agent):
             register_acp_fs(agent=agent)
 
         if self._client_has_terminal:
-            from AgentCrew.modules.acp.tools.terminal import register as register_acp_terminal
+            from AgentCrew.modules.acp.tools.terminal import (
+                register as register_acp_terminal,
+            )
 
-            replaced_terminal = ["run_command", "check_command_status", "terminate_command"]
+            replaced_terminal = [
+                "run_command",
+                "check_command_status",
+                "terminate_command",
+            ]
             for name in replaced_terminal:
                 if name in agent.tool_definitions:
                     state._acp_backup_tool_defs[name] = agent.tool_definitions.pop(name)
@@ -615,7 +634,9 @@ class AgentCrewAcpAgent(Agent):
         if self._client_has_filesystem:
             acp_tool_names.update(["acp_read_file", "acp_write_file"])
         if self._client_has_terminal:
-            acp_tool_names.update(["acp_run_command", "acp_check_command_status", "acp_terminate_command"])
+            acp_tool_names.update(
+                ["acp_run_command", "acp_check_command_status", "acp_terminate_command"]
+            )
 
         for name in acp_tool_names:
             agent.tool_definitions.pop(name, None)
@@ -732,12 +753,18 @@ class AgentCrewAcpAgent(Agent):
                 await flush_parallel()
                 await self._send_tool_started(session_id, tool_use)
                 if state.permission_broker:
-                    permission_outcome = await state.permission_broker.request_permission(tool_use)
+                    permission_outcome = (
+                        await state.permission_broker.request_permission(tool_use)
+                    )
                     if permission_outcome == "reject":
                         await self._append_tool_result(
-                            session_id, state, agent, tool_use,
-                            f"Tool execution rejected by user.",
-                            is_error=True, is_rejected=True,
+                            session_id,
+                            state,
+                            agent,
+                            tool_use,
+                            "Tool execution rejected by user.",
+                            is_error=True,
+                            is_rejected=True,
                         )
                         continue
                 try:
@@ -755,13 +782,18 @@ class AgentCrewAcpAgent(Agent):
             else:
                 permission_result = "allow_once"
                 if state.permission_broker:
-                    await self._send_tool_started(session_id, tool_use)
-                    permission_result = await state.permission_broker.request_permission(tool_use)
+                    permission_result = (
+                        await state.permission_broker.request_permission(tool_use)
+                    )
                 if permission_result == "reject":
                     await self._append_tool_result(
-                        session_id, state, agent, tool_use,
-                        f"Tool execution rejected by user.",
-                        is_error=True, is_rejected=True,
+                        session_id,
+                        state,
+                        agent,
+                        tool_use,
+                        "Tool execution rejected by user.",
+                        is_error=True,
+                        is_rejected=True,
                     )
                 else:
                     parallel_buffer.append(tool_use)
@@ -780,7 +812,12 @@ class AgentCrewAcpAgent(Agent):
     ):
         result_message = agent.format_message(
             MessageType.ToolResult,
-            {"tool_use": tool_use, "tool_result": tool_result, "is_error": is_error, "is_rejected": is_rejected},
+            {
+                "tool_use": tool_use,
+                "tool_result": tool_result,
+                "is_error": is_error,
+                "is_rejected": is_rejected,
+            },
         )
         if result_message:
             state.history.append(result_message)
@@ -838,7 +875,7 @@ class AgentCrewAcpAgent(Agent):
                 start_tool_call(
                     tool_use["id"],
                     self._tool_title(tool_use),
-                    kind=self._tool_kind(tool_use.get("name", "")),
+                    kind=classify_tool_kind(tool_use.get("name", "")),
                     status="in_progress",
                     raw_input=tool_use.get("input", {}),
                 ),
@@ -870,6 +907,8 @@ class AgentCrewAcpAgent(Agent):
         agent = self.agent_manager.get_local_agent(agent_name)
         if agent is None:
             raise ValueError(f"Local agent '{agent_name}' not found")
+        if not agent.is_active:
+            agent.activate()
         return agent
 
     def _resolve_agent_name(self, agent_name: str | None) -> str:
@@ -880,6 +919,7 @@ class AgentCrewAcpAgent(Agent):
             return current_agent.name
         for name, agent in self.agent_manager.agents.items():
             if isinstance(agent, LocalAgent):
+                self.agent_manager.select_agent(name)
                 return name
         raise ValueError("No local agents are available for ACP")
 
@@ -968,19 +1008,6 @@ class AgentCrewAcpAgent(Agent):
 
     def _tool_title(self, tool_use: dict[str, Any]) -> str:
         return f"{tool_use.get('name', 'tool')}"
-
-    def _tool_kind(self, tool_name: str) -> ToolKind:
-        if "read" in tool_name or "get_file" in tool_name:
-            return "read"
-        if "write" in tool_name or "edit" in tool_name:
-            return "edit"
-        if "search" in tool_name or "grep" in tool_name or "find" in tool_name:
-            return "search"
-        if "command" in tool_name or "run" in tool_name:
-            return "execute"
-        if "web" in tool_name or "fetch" in tool_name:
-            return "fetch"
-        return "other"
 
     def _model(self, name: str, **kwargs):
         from acp import schema

@@ -4,8 +4,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from acp import text_block
-from acp.schema import PermissionOption, ToolCallUpdate, ToolKind
+from acp.schema import PermissionOption, ToolCallUpdate
 from loguru import logger
+
+from AgentCrew.modules.acp.tools.context import classify_tool_kind
 
 
 SENSITIVE_TOOL_NAMES: set[str] = {
@@ -61,7 +63,7 @@ class AcpPermissionBroker:
         tool_input = tool_use.get("input", {})
 
         title = self._build_title(tool_name, tool_input)
-        kind = self._tool_kind(tool_name)
+        kind = classify_tool_kind(tool_name)
         content = [text_block(str(tool_input))] if tool_input else None
 
         tool_call_update = ToolCallUpdate(
@@ -123,22 +125,3 @@ class AcpPermissionBroker:
         if detail:
             return f"{tool_name}: {detail}"
         return tool_name
-
-    @staticmethod
-    def _tool_kind(tool_name: str) -> ToolKind:
-        if (
-            "read" in tool_name
-            or "get_file" in tool_name
-            or "grep" in tool_name
-            or "find" in tool_name
-        ):
-            return "read"
-        if "write" in tool_name or "edit" in tool_name:
-            return "edit"
-        if "search" in tool_name or "analyze" in tool_name:
-            return "search"
-        if "command" in tool_name or "run" in tool_name:
-            return "execute"
-        if "browser" in tool_name or "fetch" in tool_name or "web" in tool_name:
-            return "fetch"
-        return "other"

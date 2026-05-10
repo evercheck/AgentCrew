@@ -154,7 +154,9 @@ def a2a_server(
 
 
 @cli.command("acp")
-@click.option("--agent", type=str, default=None, help="Name of the local agent to expose")
+@click.option(
+    "--agent", type=str, default=None, help="Name of the local agent to expose"
+)
 @common_options
 @click.option("--model-id", default=None, help="Model ID from provider")
 def acp_agent(

@@ -69,3 +69,4 @@ persistents/
 config.json
 generate
 chrome_user_data/
+.agentcrew

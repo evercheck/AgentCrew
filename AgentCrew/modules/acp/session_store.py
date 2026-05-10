@@ -136,9 +136,7 @@ class AcpSessionStore:
             )
             return forked
 
-    async def _read_session_unlocked(
-        self, session_id: str
-    ) -> AcpStoredSession | None:
+    async def _read_session_unlocked(self, session_id: str) -> AcpStoredSession | None:
         path = self._session_path(session_id)
         if not path.exists():
             return None

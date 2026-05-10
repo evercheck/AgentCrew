@@ -56,15 +56,15 @@ def get_acp_read_file_tool_handler() -> Callable:
                     path=file_path,
                     session_id=ctx.session_id,
                     line=start_line,
-                    limit=end_line - start_line + 1 if (start_line and end_line) else None,
+                    limit=end_line - start_line + 1
+                    if (start_line and end_line)
+                    else None,
                 )
-                content = response.content
-                if start_line is not None and end_line is not None:
-                    lines = content.split("\n")
-                    content = "\n".join(lines[start_line - 1 : end_line])
-                return f"`{file_path}`:\n{content}"
+                return f"`{file_path}`:\n{response.content}"
             except Exception as exc:
-                logger.warning(f"ACP read_file failed for '{file_path}', falling back to local: {exc}")
+                logger.warning(
+                    f"ACP read_file failed for '{file_path}', falling back to local: {exc}"
+                )
 
         return await _local_read_file(file_path, start_line, end_line)
 
@@ -78,7 +78,7 @@ def get_acp_write_file_tool_definition() -> dict[str, Any]:
             "name": "acp_write_file",
             "description": (
                 "Write/edit files on the client's filesystem via ACP. "
-                "Format: Array of {\"search\": \"...\", \"replace\": \"...\"} objects. "
+                'Format: Array of {"search": "...", "replace": "..."} objects. '
                 "Empty search + replace with content = full file write (delegated to ACP client). "
                 "Non-empty search + replace = search/replace operation (processed locally). "
                 "Non-empty search + empty replace = delete matched content. "
@@ -110,7 +110,7 @@ def get_acp_write_file_tool_definition() -> dict[str, Any]:
                             "required": ["search", "replace"],
                         },
                         "description": (
-                            'Array of search/replace blocks. '
+                            "Array of search/replace blocks. "
                             'For full file write: [{"search": "", "replace": "full content"}]. '
                             'For edits: [{"search": "exact match", "replace": "replacement"}]'
                         ),
@@ -146,20 +146,26 @@ def get_acp_write_file_tool_handler() -> Callable:
                     )
                     return f"File written successfully via ACP: {file_path}"
                 except Exception as exc:
-                    logger.warning(f"ACP write_file failed for '{file_path}', falling back to local: {exc}")
+                    logger.warning(
+                        f"ACP write_file failed for '{file_path}', falling back to local: {exc}"
+                    )
 
         return await _local_write_file(file_path, blocks)
 
     return handle_acp_write_file
 
 
-async def _local_read_file(file_path: str, start_line: int | None, end_line: int | None) -> str:
+async def _local_read_file(
+    file_path: str, start_line: int | None, end_line: int | None
+) -> str:
     from AgentCrew.modules.code_analysis.service import CodeAnalysisService
 
     if not os.path.isabs(file_path):
         file_path = os.path.abspath(os.path.expanduser(file_path))
     service = CodeAnalysisService()
-    path, content = service.get_file_content(file_path, start_line=start_line, end_line=end_line)
+    path, content = service.get_file_content(
+        file_path, start_line=start_line, end_line=end_line
+    )
     if isinstance(content, dict):
         return f"Image file: {path}"
     return f"`{path}`: {content}"
@@ -167,7 +173,10 @@ async def _local_read_file(file_path: str, start_line: int | None, end_line: int
 
 async def _local_write_file(file_path: str, blocks: list[dict[str, str]]) -> str:
     from AgentCrew.modules.file_editing.service import FileEditingService
-    from AgentCrew.modules.file_editing.tool import convert_blocks_to_string, is_full_content_mode
+    from AgentCrew.modules.file_editing.tool import (
+        convert_blocks_to_string,
+        is_full_content_mode,
+    )
 
     if not os.path.isabs(file_path):
         file_path = os.path.abspath(os.path.expanduser(file_path))

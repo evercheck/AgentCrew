@@ -37,6 +37,7 @@ dependencies = [
   "pywin32; sys_platform == 'win32'",
   "pyobjc; sys_platform == 'darwin'",
   "a2a-sdk==0.3.26",
+  "agent-client-protocol==0.10.0",
   "xmltodict==1.0.4",
   "jsonref==1.1.0",
   "pychromedevtools==1.0.4",
