@@ -30,7 +30,7 @@ class GithubCopilotService(CustomLLMService):
                 "Editor-Version": "Neovim/0.9.0",
             },
         )
-        self.model = "gpt-4.1"
+        self.model = "claude-sonnet-4.6"
         self.current_input_tokens = 0
         self.current_output_tokens = 0
         self._is_thinking = False
