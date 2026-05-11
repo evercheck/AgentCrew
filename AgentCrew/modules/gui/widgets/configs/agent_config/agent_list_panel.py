@@ -97,11 +97,17 @@ class AgentListPanel(QWidget):
         """Confirm and remove selected agents."""
         self.remove_requested.emit()
 
-    def load_agents(self, agents_config: dict):
-        """Populate the list from a config dict."""
+    def load_agents(self, agents_config):
+        """Populate the list from an AgentsFileConfig or legacy dict."""
         self.agents_list.clear()
 
-        local_agents = agents_config.get("agents", [])
+        if hasattr(agents_config, "agents"):
+            local_agents = [a.to_dict() for a in agents_config.agents]
+            remote_agents = [r.to_dict() for r in agents_config.remote_agents]
+        else:
+            local_agents = agents_config.get("agents", [])
+            remote_agents = agents_config.get("remote_agents", [])
+
         for agent_conf in local_agents:
             item_data = agent_conf.copy()
             item_data["agent_type"] = "local"
@@ -109,7 +115,6 @@ class AgentListPanel(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, item_data)
             self.agents_list.addItem(item)
 
-        remote_agents = agents_config.get("remote_agents", [])
         for agent_conf in remote_agents:
             item_data = agent_conf.copy()
             item_data["agent_type"] = "remote"

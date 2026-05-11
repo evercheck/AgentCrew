@@ -1,9 +1,111 @@
 import json
 import os
+from dataclasses import dataclass, field
 from typing import Any
 
 from loguru import logger
 from tomli_w import dump as toml_dump
+
+
+@dataclass
+class LocalAgentConfig:
+    """Type-safe representation of a local agent entry in agents.toml."""
+
+    name: str
+    description: str
+    system_prompt: str = ""
+    tools: list[str] = field(default_factory=list)
+    enabled: bool = True
+    temperature: float | None = None
+    voice_enabled: str = "disabled"
+    voice_id: str | None = None
+    model_id: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LocalAgentConfig":
+        return cls(
+            name=data["name"],
+            description=data.get("description", ""),
+            system_prompt=data.get("system_prompt", ""),
+            tools=data.get("tools", []),
+            enabled=data.get("enabled", True),
+            temperature=data.get("temperature"),
+            voice_enabled=data.get("voice_enabled", "disabled"),
+            voice_id=data.get("voice_id"),
+            model_id=data.get("model_id"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "name": self.name,
+            "description": self.description,
+            "system_prompt": self.system_prompt,
+            "tools": self.tools,
+            "enabled": self.enabled,
+        }
+        if self.temperature is not None:
+            result["temperature"] = self.temperature
+        if self.voice_enabled != "disabled":
+            result["voice_enabled"] = self.voice_enabled
+        if self.voice_id is not None:
+            result["voice_id"] = self.voice_id
+        if self.model_id is not None:
+            result["model_id"] = self.model_id
+        return result
+
+
+@dataclass
+class RemoteAgentConfig:
+    """Type-safe representation of a remote agent entry in agents.toml."""
+
+    name: str
+    description: str
+    base_url: str
+    enabled: bool = True
+    headers: dict[str, str] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "RemoteAgentConfig":
+        return cls(
+            name=data["name"],
+            description=data.get("description", ""),
+            base_url=data.get("base_url", ""),
+            enabled=data.get("enabled", True),
+            headers=data.get("headers", {}),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "base_url": self.base_url,
+            "enabled": self.enabled,
+            "headers": self.headers,
+        }
+
+
+@dataclass
+class AgentsFileConfig:
+    """Type-safe representation of the full agents.toml file."""
+
+    agents: list[LocalAgentConfig] = field(default_factory=list)
+    remote_agents: list[RemoteAgentConfig] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AgentsFileConfig":
+        agents = [LocalAgentConfig.from_dict(a) for a in data.get("agents", [])]
+        remote_agents = [
+            RemoteAgentConfig.from_dict(r) for r in data.get("remote_agents", [])
+        ]
+        return cls(agents=agents, remote_agents=remote_agents)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.agents:
+            result["agents"] = [a.to_dict() for a in self.agents]
+        if self.remote_agents:
+            result["remote_agents"] = [r.to_dict() for r in self.remote_agents]
+        return result
 
 
 class AgentsConfig:
@@ -13,23 +115,24 @@ class AgentsConfig:
     def _path(self) -> str:
         return os.getenv("SW_AGENTS_CONFIG", os.path.expanduser("./agents.toml"))
 
-    def read(self) -> dict[str, Any]:
-        """Return the full agents config dict, or {"agents": []} on error."""
+    def read(self) -> AgentsFileConfig:
+        """Return the full agents config, or empty AgentsFileConfig on error."""
         try:
             from AgentCrew.modules.config.config_management import ConfigManagement
 
             config = ConfigManagement(self._path)
-            return config.get_config()
+            return AgentsFileConfig.from_dict(config.get_config())
         except Exception:
-            return {"agents": []}
+            return AgentsFileConfig()
 
-    def write(self, config_data: dict[str, Any]) -> None:
+    def write(self, config_data: AgentsFileConfig) -> None:
         """Persist config_data to agents.toml and hot-reload live agents."""
         from AgentCrew.modules.config.config_management import ConfigManagement
 
+        raw = config_data.to_dict()
         try:
             config = ConfigManagement(self._path)
-            config.update_config(config_data, merge=False)
+            config.update_config(raw, merge=False)
             config.save_config()
             self.reload()
         except FileNotFoundError:
@@ -37,7 +140,7 @@ class AgentsConfig:
             if dir_path:
                 os.makedirs(dir_path, exist_ok=True)
             with open(self._path, "wb") as f:
-                toml_dump(config_data, f, multiline_strings=True)
+                toml_dump(raw, f, multiline_strings=True)
             self.reload()
 
     def reload(self) -> None:
@@ -135,14 +238,14 @@ class AgentsConfig:
 
     def update_agent_system_prompt(self, agent_name: str, new_prompt: str) -> bool:
         config_data = self.read()
-        agents = config_data.get("agents", [])
+        agents = config_data.agents
         if not isinstance(agents, list):
             return False
 
         updated = False
         for agent in agents:
-            if agent.get("name") == agent_name:
-                agent["system_prompt"] = new_prompt
+            if agent.name == agent_name:
+                agent.system_prompt = new_prompt
                 updated = True
                 break
 
@@ -167,24 +270,28 @@ class AgentsConfig:
 
         try:
             agents_config = self.read()
-            local_agents = agents_config.get("agents", [])
-            remote_agents = agents_config.get("remote_agents", [])
+            local_agents = agents_config.agents
+            remote_agents = agents_config.remote_agents
 
             selected_local_agents = []
             selected_remote_agents = []
             found_names = set()
 
             for agent in local_agents:
-                if agent.get("name") in agent_names:
-                    export_data = {k: v for k, v in agent.items() if k != "agent_type"}
+                if agent.name in agent_names:
+                    export_data = {
+                        k: v for k, v in agent.to_dict().items() if k != "agent_type"
+                    }
                     selected_local_agents.append(export_data)
-                    found_names.add(agent.get("name"))
+                    found_names.add(agent.name)
 
             for agent in remote_agents:
-                if agent.get("name") in agent_names:
-                    export_data = {k: v for k, v in agent.items() if k != "agent_type"}
+                if agent.name in agent_names:
+                    export_data = {
+                        k: v for k, v in agent.to_dict().items() if k != "agent_type"
+                    }
                     selected_remote_agents.append(export_data)
-                    found_names.add(agent.get("name"))
+                    found_names.add(agent.name)
 
             missing_names = set(agent_names) - found_names
             result["missing_agents"] = list(missing_names)
@@ -290,15 +397,11 @@ class AgentsConfig:
                 return result
 
             current_config = self.read()
-            current_local_agents = current_config.get("agents", [])
-            current_remote_agents = current_config.get("remote_agents", [])
+            current_local_agents = current_config.agents
+            current_remote_agents = current_config.remote_agents
 
-            local_agent_map = {
-                agent.get("name"): agent for agent in current_local_agents
-            }
-            remote_agent_map = {
-                agent.get("name"): agent for agent in current_remote_agents
-            }
+            local_agent_map = {agent.name: agent for agent in current_local_agents}
+            remote_agent_map = {agent.name: agent for agent in current_remote_agents}
 
             existing_names = set(local_agent_map.keys()) | set(remote_agent_map.keys())
 
@@ -365,7 +468,7 @@ class AgentsConfig:
             if remote_agent_map:
                 final_config["remote_agents"] = list(remote_agent_map.values())
 
-            self.write(final_config)
+            self.write(AgentsFileConfig.from_dict(final_config))
 
             result["success"] = True
             logger.info(

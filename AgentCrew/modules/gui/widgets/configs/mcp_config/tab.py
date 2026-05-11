@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 
 from AgentCrew.modules.config import ConfigManagement
-from AgentCrew.modules.config.mcp_config import MCPConfig
+from AgentCrew.modules.config.mcp_config import MCPConfig, MCPServerEntry
 from AgentCrew.modules.gui.themes import StyleProvider
 from AgentCrew.modules.gui.widgets.loading_overlay import LoadingOverlay
 from ..save_worker import SaveWorker
@@ -289,7 +289,11 @@ class MCPsConfigTab(QWidget):
         self.save_worker.start()
 
     def _perform_mcp_save(self, mcps_config):
-        MCPConfig().write(mcps_config)
+        typed_config = {
+            k: MCPServerEntry.from_dict(k, v) if isinstance(v, dict) else v
+            for k, v in mcps_config.items()
+        }
+        MCPConfig().write(typed_config)
 
     def _on_save_complete(self):
         self.loading_overlay.hide_loading()

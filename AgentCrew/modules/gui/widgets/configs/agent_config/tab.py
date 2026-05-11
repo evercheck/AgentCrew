@@ -12,7 +12,7 @@ import os
 from PySide6.QtCore import Qt, Signal
 
 from AgentCrew.modules.config import ConfigManagement
-from AgentCrew.modules.config.agents_config import AgentsConfig
+from AgentCrew.modules.config.agents_config import AgentsConfig, AgentsFileConfig, LocalAgentConfig, RemoteAgentConfig
 from AgentCrew.modules.agents import AgentManager
 from AgentCrew.modules.memory.context_persistent import ContextPersistenceService
 
@@ -353,8 +353,10 @@ class AgentsConfigTab(QWidget):
             elif agent_type_for_sorting == "remote":
                 remote_agents_list.append(config_data)
 
-        self.agents_config["agents"] = local_agents_list
-        self.agents_config["remote_agents"] = remote_agents_list
+        self.agents_config = AgentsFileConfig(
+            agents=[LocalAgentConfig.from_dict(d) for d in local_agents_list],
+            remote_agents=[RemoteAgentConfig.from_dict(d) for d in remote_agents_list],
+        )
 
         self.save_worker = SaveWorker(self._perform_agent_save, self.agents_config)
         self.save_worker.finished.connect(self._on_save_complete)

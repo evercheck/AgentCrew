@@ -1,9 +1,14 @@
+from __future__ import annotations
 import os
 import json
 import warnings
 import tomllib as toml
 from tomli_w import dump as toml_dump
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .agents_config import AgentsFileConfig
+    from .mcp_config import MCPServerEntry
 
 
 class ConfigManagement:
@@ -239,7 +244,7 @@ class ConfigManagement:
         """
         return self.config_data.get(section, {})
 
-    def read_agents_config(self) -> dict[str, Any]:
+    def read_agents_config(self) -> AgentsFileConfig:
         warnings.warn(
             "Use AgentsConfig().read() directly.", DeprecationWarning, stacklevel=2
         )
@@ -247,7 +252,7 @@ class ConfigManagement:
 
         return AgentsConfig().read()
 
-    def write_agents_config(self, config_data: dict[str, Any]) -> None:
+    def write_agents_config(self, config_data: AgentsFileConfig) -> None:
         warnings.warn(
             "Use AgentsConfig().write() directly.", DeprecationWarning, stacklevel=2
         )
@@ -263,7 +268,7 @@ class ConfigManagement:
 
         AgentsConfig().reload()
 
-    def read_mcp_config(self) -> dict[str, Any]:
+    def read_mcp_config(self) -> dict[str, MCPServerEntry]:
         warnings.warn(
             "Use MCPConfig().read() directly.", DeprecationWarning, stacklevel=2
         )
@@ -271,7 +276,7 @@ class ConfigManagement:
 
         return MCPConfig().read()
 
-    def write_mcp_config(self, config_data: dict[str, Any]) -> None:
+    def write_mcp_config(self, config_data: dict[str, MCPServerEntry]) -> None:
         warnings.warn(
             "Use MCPConfig().write() directly.", DeprecationWarning, stacklevel=2
         )
