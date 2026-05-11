@@ -25,7 +25,9 @@ class AcpToolManager:
     @property
     def client_can_write_text_file(self) -> bool:
         fs = self.client_filesystem_capabilities
-        return self._capability_flag(fs, "write_text_file", "writeTextFile", "write_file", "writeFile")
+        return self._capability_flag(
+            fs, "write_text_file", "writeTextFile", "write_file", "writeFile"
+        )
 
     @property
     def client_filesystem_capabilities(self) -> Any | None:

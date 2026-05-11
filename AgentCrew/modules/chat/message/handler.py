@@ -517,7 +517,6 @@ class MessageHandler(Observable):
 
                 return await self.get_assistant_response()
 
-            print(assistant_response)
             # prevent stream drop
             if assistant_response.strip() == "":
                 return await self.get_assistant_response()

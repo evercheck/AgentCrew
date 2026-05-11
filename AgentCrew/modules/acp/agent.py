@@ -398,6 +398,14 @@ class AgentCrewAcpAgent(Agent):
             raise RequestError.resource_not_found(f"session:{session_id}")
 
         user_text = prompt_to_text(prompt)
+        if user_text.strip() and state.pending_ask_tool is not None:
+            handled = await self._turn_executor.resume_pending_ask(
+                session_id,
+                state,
+                user_text,
+            )
+            if handled:
+                user_text = ""
         if user_text.strip():
             state.history.append(
                 {"role": "user", "content": [{"type": "text", "text": user_text}]}

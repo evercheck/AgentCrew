@@ -34,6 +34,7 @@ class AcpSessionState:
     thought_level: str | None = None
     tool_state: AcpToolState = field(default_factory=AcpToolState)
     permission_broker: AcpPermissionBroker | None = None
+    pending_ask_tool: dict[str, Any] | None = None
 
     # TODO: Remove backward-compat properties in next major version
     @property

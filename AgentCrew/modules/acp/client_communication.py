@@ -39,6 +39,22 @@ class ClientCommunication:
                 ),
             )
 
+    async def send_ask_request(
+        self,
+        session_id: str,
+        question: str,
+        guided_answers: list[str],
+    ):
+        lines = [f"Question: {question}"]
+        if guided_answers:
+            lines.extend(["", "Guided answers:"])
+            lines.extend(
+                f"{index}. {answer}"
+                for index, answer in enumerate(guided_answers, start=1)
+            )
+        lines.extend(["", "Reply with one option or your own answer."])
+        await self.send_agent_message(session_id, "\n".join(lines))
+
     async def send_current_mode_update(self, session_id: str, state: Any):
         from acp.schema import CurrentModeUpdate
 

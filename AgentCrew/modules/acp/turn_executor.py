@@ -89,7 +89,7 @@ class TurnExecutor:
 
         if tool_uses:
             await self.execute_tools(session_id, state, agent, tool_uses)
-            if not state.cancelled:
+            if not state.cancelled and state.pending_ask_tool is None:
                 await self.run_turn(session_id, state, conn)
 
     async def execute_tools(
@@ -100,13 +100,21 @@ class TurnExecutor:
         tool_uses: list[dict[str, Any]],
     ):
         parallel_buffer: list[dict[str, Any]] = []
+        started_tool_ids: set[str] = set()
+
+        async def send_tool_started_once(tool_use: dict[str, Any]):
+            tool_id = tool_use.get("id", "")
+            if tool_id in started_tool_ids:
+                return
+            started_tool_ids.add(tool_id)
+            await self._client_comm.send_tool_started(session_id, tool_use)
 
         async def flush_parallel():
             nonlocal parallel_buffer
             if not parallel_buffer:
                 return
             for tool_use in parallel_buffer:
-                await self._client_comm.send_tool_started(session_id, tool_use)
+                await send_tool_started_once(tool_use)
             results = await execute_tools_in_parallel(
                 parallel_buffer, agent.execute_tool_call
             )
@@ -126,7 +134,10 @@ class TurnExecutor:
                 return
             if is_sequential_tool(tool_use["name"]):
                 await flush_parallel()
-                await self._client_comm.send_tool_started(session_id, tool_use)
+                await send_tool_started_once(tool_use)
+                if tool_use.get("name") == "ask":
+                    await self.handle_ask_tool(session_id, state, agent, tool_use)
+                    return
                 if state.permission_broker:
                     permission_outcome = (
                         await state.permission_broker.request_permission(tool_use)
@@ -157,6 +168,7 @@ class TurnExecutor:
             else:
                 permission_result = "allow_once"
                 if state.permission_broker:
+                    await send_tool_started_once(tool_use)
                     permission_result = (
                         await state.permission_broker.request_permission(tool_use)
                     )
@@ -174,6 +186,72 @@ class TurnExecutor:
                     parallel_buffer.append(tool_use)
 
         await flush_parallel()
+
+    async def handle_ask_tool(
+        self,
+        session_id: str,
+        state: AcpSessionState,
+        agent: LocalAgent,
+        tool_use: dict[str, Any],
+    ):
+        tool_input = tool_use.get("input", {})
+        question = str(tool_input.get("question", "")).strip()
+        guided_answers = tool_input.get("guided_answers", [])
+        if not question:
+            await self.append_tool_result(
+                session_id,
+                state,
+                agent,
+                tool_use,
+                "Ask tool requires a non-empty question.",
+                is_error=True,
+            )
+            return
+        if not isinstance(guided_answers, list):
+            await self.append_tool_result(
+                session_id,
+                state,
+                agent,
+                tool_use,
+                "Ask tool guided_answers must be a list.",
+                is_error=True,
+            )
+            return
+        normalized_answers = [str(answer) for answer in guided_answers]
+        await self._client_comm.send_ask_request(
+            session_id,
+            question,
+            normalized_answers,
+        )
+        state.pending_ask_tool = {
+            "tool_use": tool_use,
+            "question": question,
+            "guided_answers": normalized_answers,
+        }
+
+    async def resume_pending_ask(
+        self,
+        session_id: str,
+        state: AcpSessionState,
+        answer: str,
+    ) -> bool:
+        pending_ask = state.pending_ask_tool
+        if pending_ask is None:
+            return False
+        tool_use = pending_ask.get("tool_use")
+        if not isinstance(tool_use, dict):
+            state.pending_ask_tool = None
+            return False
+        agent = self._get_agent(state.agent_name)
+        await self.append_tool_result(
+            session_id,
+            state,
+            agent,
+            tool_use,
+            f"User answered: {answer}",
+        )
+        state.pending_ask_tool = None
+        return True
 
     async def append_tool_result(
         self,

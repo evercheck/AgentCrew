@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
-from acp import text_block
+from acp import text_block, tool_content
 from acp.schema import PermissionOption, ToolCallUpdate
 from loguru import logger
 
@@ -67,14 +67,14 @@ class AcpPermissionBroker:
 
         title = self._build_title(tool_name, tool_input)
         kind = classify_tool_kind(tool_name)
-        content = [text_block(str(tool_input))] if tool_input else None
+        content = [tool_content(text_block(str(tool_input)))] if tool_input else None
 
         tool_call_update = ToolCallUpdate(
             tool_call_id=tool_id,
             title=title,
             kind=kind,
             status="pending",
-            content=content,  # type: ignore
+            content=content,
         )
 
         options = [
