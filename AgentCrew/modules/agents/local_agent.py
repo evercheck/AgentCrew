@@ -248,10 +248,10 @@ class LocalAgent(BaseAgent):
         return self.history
 
     def get_provider(self) -> str:
-        return self.llm.provider_name
+        return self.llm.provider_name if self.llm else ""
 
     def is_streaming(self) -> bool:
-        return self.llm.is_stream
+        return self.llm.is_stream if self.llm else False
 
     def _format_tool_result(
         self,
@@ -373,21 +373,30 @@ class LocalAgent(BaseAgent):
                 message_data.get("is_rejected", False),
             )
         elif message_type == MessageType.FileContent:
-            return self.llm.process_file_for_message(message_data.get("file_uri", ""))
+            return (
+                self.llm.process_file_for_message(message_data.get("file_uri", ""))
+                if self.llm
+                else message_data
+            )
 
     def configure_think(self, think_setting):
-        self.llm.set_think(think_setting)
+        if self.llm:
+            self.llm.set_think(think_setting)
 
     async def execute_tool_call(self, tool_name: str, tool_input: dict) -> Any:
-        return await self.llm.execute_tool(tool_name, tool_input)
+        return await self.llm.execute_tool(tool_name, tool_input) if self.llm else None
 
     def calculate_usage_cost(
         self, input_tokens, output_tokens, cached_tokens=0
     ) -> float:
-        return self.llm.calculate_cost(input_tokens, output_tokens, cached_tokens)
+        return (
+            self.llm.calculate_cost(input_tokens, output_tokens, cached_tokens)
+            if self.llm
+            else 0
+        )
 
     def get_model(self) -> str:
-        return f"{self.llm.provider_name}/{self.llm.model}"
+        return f"{self.llm.provider_name}/{self.llm.model}" if self.llm else ""
 
     def update_llm_service(self, new_llm_service: BaseLLMService) -> bool:
         """
@@ -459,7 +468,8 @@ class LocalAgent(BaseAgent):
         Returns:
             The processed messages with the agent's response
         """
-
+        if not self.llm:
+            return
         if self._defer_tool_registration:
             while len(self.mcps_loading) > 0:
                 await asyncio.sleep(0.2)

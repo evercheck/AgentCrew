@@ -440,7 +440,7 @@ class AgentCrewApplication:
 
             current_agent = self.agent_manager.get_local_agent(agent)
 
-            if current_agent:
+            if current_agent and current_agent.llm:
                 schema_dict = None
                 if output_schema:
                     schema_prompt, schema_dict = self._parse_output_schema(
