@@ -129,7 +129,7 @@ class ServiceManager:
             api_key=api_key,
             provider_name="opencode_go",
         )
-        llm.model = "glm-5.1"
+        llm.model = "kimi-k2.6"
         return llm
 
     def _create_github_copilot_service(
