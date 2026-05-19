@@ -533,6 +533,28 @@ When system access is requested:
   </Tool_Usage>
 </Delegate_Tool_Instruction>"""
 
+    def get_context_awareness_prompt(self, max_context_token: int) -> str:
+        return f"""<Context_Awareness_Instruction>
+  <Max_Context_Length>{max_context_token} tokens</Max_Context_Length>
+
+  <Tool_Result_Retention>
+    Tool results may be truncated or removed from context later to stay within
+    the token limit. After each tool call, your next assistant message must
+    include a brief summary of the key findings from that tool result.
+    Write this summary in your response text — do not rely on the tool result
+    remaining visible in future turns.
+  </Tool_Result_Retention>
+
+  <Guidelines>
+    - Summarize the essential output of every tool call in the immediately
+      following assistant message.
+    - Keep summaries factual and concise — enough to reconstruct the key
+      information without re-running the tool.
+    - When context is approaching the limit, prioritize retaining your own
+      summaries over raw tool output blocks.
+  </Guidelines>
+</Context_Awareness_Instruction>"""
+
     def get_transfer_system_prompt(self):
         """
         Generate a transfer section for the system prompt based on available agents.
