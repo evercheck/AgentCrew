@@ -151,6 +151,61 @@ class UtilityCommands:
             self.message_handler._notify("error", f"Failed to retrieve usage: {str(e)}")
         return CommandResult(handled=True, clear_flag=True)
 
+    async def handle_clean_behaviors(self, user_input: str) -> CommandResult:
+        try:
+            context_service = self.message_handler.persistent_service
+            if not context_service:
+                self.message_handler._notify(
+                    "error", "Context persistence service not available"
+                )
+                return CommandResult(handled=True, clear_flag=True)
+
+            parts = user_input.split(maxsplit=1)
+            scope = parts[1].strip().lower() if len(parts) > 1 else "global"
+            if scope not in ("global", "project"):
+                self.message_handler._notify(
+                    "system_message",
+                    "⚠️  Scope must be 'global' or 'project'. Defaulting to 'global'.",
+                )
+                scope = "global"
+
+            is_local = scope == "project"
+            agent_name = self.message_handler.agent.name
+            behaviors = context_service.get_adaptive_behaviors(
+                agent_name, is_local=is_local
+            )
+
+            if not behaviors:
+                self.message_handler._notify(
+                    "system_message", f"ℹ️  No {scope} behaviors to clean."
+                )
+                return CommandResult(handled=True, clear_flag=True)
+
+            llm_service = self.message_handler.agent.llm
+            if not llm_service:
+                self.message_handler._notify("error", "LLM service not available")
+                return CommandResult(handled=True, clear_flag=True)
+
+            self.message_handler._notify(
+                "system_message",
+                f"🔄 Normalizing {len(behaviors)} {scope} behavior(s)...",
+            )
+            old_behaviors, normalized = await context_service.clean_adaptive_behaviors(
+                agent_name, llm_service, is_local=is_local
+            )
+            old_ids = set(old_behaviors.keys())
+            new_ids = set(normalized.keys())
+            removed = old_ids - new_ids
+            added = new_ids - old_ids
+            message = f"✅ Cleaned {scope} behaviors: {len(old_behaviors)} → {len(normalized)} entries"
+            if removed or added:
+                message += f" (merged/removed: {len(removed)}, new IDs: {len(added)})"
+            self.message_handler._notify("system_message", message)
+        except Exception as e:
+            logger.error(f"clean behaviors error: {str(e)}", exc_info=True)
+            self.message_handler._notify("error", f"Error cleaning behaviors: {str(e)}")
+        return CommandResult(handled=True, clear_flag=True)
+
     async def handle_copy(self, user_input: str) -> CommandResult:
         copy_idx = user_input[5:].strip() or 1
         user_input_idxs = [

@@ -327,6 +327,10 @@ class ChatCompleter(Completer):
                 "Delete an adaptive behavior (usage: /delete_behavior <id>)",
             ),
             (
+                "/clean_behaviors",
+                "Normalize and deduplicate adaptive behaviors (usage: /clean_behaviors global|project)",
+            ),
+            (
                 "/visual",
                 "Open visual mode to view raw message content with vim-like navigation",
             ),

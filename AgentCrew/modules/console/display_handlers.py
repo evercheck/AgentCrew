@@ -658,6 +658,10 @@ class DisplayHandlers:
                 "Use '/delete_behavior <scope> <id>' to delete an adaptive behavior.",
                 style=RICH_STYLE_YELLOW,
             ),
+            Text(
+                "Use '/clean_behaviors <scope>' to normalize and deduplicate adaptive behaviors in 'global' or 'project' scope.",
+                style=RICH_STYLE_YELLOW,
+            ),
             Text("Use '/list' to list saved conversations.", style=RICH_STYLE_YELLOW),
             Text(
                 "Use '/load <id>' or '/load <number>' to load a conversation.",

@@ -312,8 +312,6 @@ class ContextPersistenceService:
             ValueError: If metadata is not a dictionary.
             IOError, TypeError, OSError: If writing fails.
         """
-        if not isinstance(metadata, dict):
-            raise ValueError("Metadata must be a dictionary")
 
         file_path = os.path.join(
             self.conversations_dir, f"{conversation_id}.metadata.json"
@@ -594,6 +592,67 @@ class ContextPersistenceService:
         except Exception as e:
             logger.error(f"ERROR: Failed to store adaptive behavior: {e}")
             return False
+
+    async def clean_adaptive_behaviors(
+        self, agent_name: str, llm_service, is_local: bool = False
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        behaviors = self.get_adaptive_behaviors(agent_name, is_local=is_local)
+        if not behaviors:
+            return behaviors, behaviors
+
+        import re
+
+        try:
+            existing_section = "\n".join(
+                f"{bid}: {btext}" for bid, btext in behaviors.items()
+            )
+            prompt = f"""You are a behavior normalizer. Clean up, deduplicate, and merge a full set of adaptive behavior rules.
+
+BEHAVIORS:
+{existing_section}
+
+Rules:
+- Merge behaviors that overlap or duplicate each other.
+- Remove redundant or contradictory entries (prefer the more general, reusable one).
+- Remove behaviors that are too narrow or overly specific — those that apply only to a single exact situation, reference a one-time event, or cannot reasonably recur across different conversations.
+- Clean up grammar and formatting. All behaviors MUST start with \"when\".
+- Prefer existing IDs for stability when merging.
+- Return ONLY a JSON object: {{\"behaviors\": [{{\"id\": \"<id>\", \"behavior\": \"<cleaned behavior string>\"}}, ...]}}"""
+            response = await llm_service.process_message(prompt, temperature=0)
+            match = re.search(r"\{.*\}", response, re.DOTALL)
+            if not match:
+                return behaviors, behaviors
+            data = json.loads(match.group())
+            normalized = {}
+            for entry in data.get("behaviors", []):
+                behavior_id = entry.get("id", "").strip()
+                behavior = entry.get("behavior", "").strip()
+                if behavior_id and behavior and behavior.lower().startswith("when"):
+                    normalized[behavior_id] = behavior
+            if not normalized:
+                return behaviors, behaviors
+
+            adaptive_file_path = (
+                self.adaptive_behaviors_local_path
+                if is_local
+                else self.adaptive_behaviors_file_path
+            )
+            adaptive_data = self._read_json_file(adaptive_file_path, default_value={})
+            if not isinstance(adaptive_data, dict):
+                logger.warning(
+                    "WARNING: Adaptive behaviors file was not a dictionary. Resetting."
+                )
+                adaptive_data = {}
+
+            adaptive_data[agent_name] = normalized
+            self._write_json_file(adaptive_file_path, adaptive_data)
+            logger.info(
+                f"INFO: Cleaned {len(behaviors)} adaptive behaviors into {len(normalized)} for agent '{agent_name}'"
+            )
+            return behaviors, normalized
+        except Exception as e:
+            logger.warning(f"Bulk behavior normalization failed, keeping original: {e}")
+            return behaviors, behaviors
 
     def remove_adaptive_behavior(
         self, agent_name: str, behavior_id: str, is_local: bool = False
