@@ -81,11 +81,16 @@ Add OpenAI-compatible providers like llama.cpp, Ollama, or LM Studio:
           "id": "../Qwen3-14B-Q6_K.gguf",
           "name": "Local Qwen 14B",
           "provider": "llama.cpp",
-          "capabilities": ["thinking", "vision"],
-          "default": true,
+          "capabilities": ["tool_use", "stream"],
+          "default": false,
           "description": "Quantized Qwen model running locally",
           "input_token_price_1m": 0.0,
-          "output_token_price_1m": 0.0
+          "output_token_price_1m": 0.0,
+          "cached_token_price_1m": 0.0,
+          "default_reasoning": null,
+          "max_context_token": 72000,
+          "service_name": null,
+          "force_sample_params": null
         }
       ],
       "is_stream": false,
@@ -106,11 +111,37 @@ Add OpenAI-compatible providers like llama.cpp, Ollama, or LM Studio:
 - `is_stream` - Whether to enable streaming responses
 - `extra_headers` - Additional HTTP headers for requests
 
+**Model Fields:**
+
+- `id` - Unique model identifier
+- `name` - Human-readable model name
+- `provider` - (Optional) Override provider name; defaults to parent provider `name`
+- `description` - Model description
+- `capabilities` - List of capability flags (see below)
+- `default` - Whether this is the default model for the provider
+- `input_token_price_1m` - Price per million input tokens (USD)
+- `output_token_price_1m` - Price per million output tokens (USD)
+- `cached_token_price_1m` - Price per million cached input tokens (USD)
+- `default_reasoning` - Default reasoning/thinking level
+  - Options: `null`, `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"`
+- `max_context_token` - Maximum context window in tokens (default: `72000`)
+- `service_name` - Override the LLM service class name; leave `null` to use the provider name
+- `force_sample_params` - Override sampling parameters for this model (see below)
+  - `temperature` - Sampling temperature (0.0–5.0)
+  - `top_p` - Nucleus sampling threshold (0.0–1.0)
+  - `min_p` - Minimum probability threshold (0.0–1.0)
+  - `top_k` - Top-K sampling (0–500)
+  - `frequency_penalty` - Frequency penalty (-2.0–2.0)
+  - `presence_penalty` - Presence penalty (-2.0–2.0)
+  - `repetition_penalty` - Repetition penalty (0.0–2.0)
+
 **Model Capabilities:**
 
+- `"tool_use"` - The model can call tools/functions
 - `"thinking"` - Supports extended reasoning (like Claude's thinking mode)
 - `"vision"` - Can process images
-- `"function_calling"` - Supports tool/function calls
+- `"stream"` - Supports streaming responses
+- `"structured_output"` - Supports JSON-structured output mode
 
 ### Global Settings
 

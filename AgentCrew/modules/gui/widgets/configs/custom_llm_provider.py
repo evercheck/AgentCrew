@@ -13,7 +13,10 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QTextEdit,
     QDoubleSpinBox,
+    QSpinBox,
+    QComboBox,
     QCheckBox,
+    QGroupBox,
 )
 from PySide6.QtCore import Qt, Signal
 from loguru import logger
@@ -63,20 +66,97 @@ class ModelEditorDialog(QDialog):
         self.capabilities_thinking_checkbox = QCheckBox("Thinking")
         self.capabilities_vision_checkbox = QCheckBox("Vision")
         self.capabilities_stream_checkbox = QCheckBox("Stream")
+        self.capabilities_structured_output_checkbox = QCheckBox("Structured Output")
 
         self.input_price_edit = QDoubleSpinBox()
-        self.input_price_edit.setDecimals(6)  # Increased precision
+        self.input_price_edit.setDecimals(6)
         self.input_price_edit.setMaximum(999999.0)
         self.input_price_edit.setSingleStep(0.000001)
         self.output_price_edit = QDoubleSpinBox()
-        self.output_price_edit.setDecimals(6)  # Increased precision
+        self.output_price_edit.setDecimals(6)
         self.output_price_edit.setMaximum(999999.0)
         self.output_price_edit.setSingleStep(0.000001)
+        self.cached_price_edit = QDoubleSpinBox()
+        self.cached_price_edit.setDecimals(6)
+        self.cached_price_edit.setMaximum(999999.0)
+        self.cached_price_edit.setSingleStep(0.000001)
+
+        # Default reasoning combo
+        self.default_reasoning_combo = QComboBox()
+        self.default_reasoning_combo.addItem("Use provider default", None)
+        self.default_reasoning_combo.addItem("None", "none")
+        self.default_reasoning_combo.addItem("Minimal", "minimal")
+        self.default_reasoning_combo.addItem("Low", "low")
+        self.default_reasoning_combo.addItem("Medium", "medium")
+        self.default_reasoning_combo.addItem("High", "high")
+
+        # Max context token
+        self.max_context_token_edit = QSpinBox()
+        self.max_context_token_edit.setRange(1000, 10_000_000)
+        self.max_context_token_edit.setSingleStep(1000)
+        self.max_context_token_edit.setValue(72_000)
+
+        # Service name
+        self.service_name_edit = QLineEdit()
+        self.service_name_edit.setPlaceholderText("Leave empty to use provider name")
+
+        # Force sample params group
+        self.force_sample_group = QGroupBox("Override Sampling Parameters")
+        self.force_sample_group.setCheckable(True)
+        self.force_sample_group.setChecked(False)
+        sample_layout = QFormLayout(self.force_sample_group)
+
+        self.sample_temperature = QDoubleSpinBox()
+        self.sample_temperature.setRange(0.0, 5.0)
+        self.sample_temperature.setSingleStep(0.1)
+        self.sample_temperature.setDecimals(2)
+        self.sample_temperature.setSpecialValueText("Not set")
+
+        self.sample_top_p = QDoubleSpinBox()
+        self.sample_top_p.setRange(0.0, 1.0)
+        self.sample_top_p.setSingleStep(0.05)
+        self.sample_top_p.setDecimals(2)
+        self.sample_top_p.setSpecialValueText("Not set")
+
+        self.sample_min_p = QDoubleSpinBox()
+        self.sample_min_p.setRange(0.0, 1.0)
+        self.sample_min_p.setSingleStep(0.05)
+        self.sample_min_p.setDecimals(2)
+        self.sample_min_p.setSpecialValueText("Not set")
+
+        self.sample_top_k = QSpinBox()
+        self.sample_top_k.setRange(0, 500)
+        self.sample_top_k.setSingleStep(1)
+        self.sample_top_k.setSpecialValueText("Not set")
+
+        self.sample_frequency_penalty = QDoubleSpinBox()
+        self.sample_frequency_penalty.setRange(-2.0, 2.0)
+        self.sample_frequency_penalty.setSingleStep(0.1)
+        self.sample_frequency_penalty.setDecimals(2)
+        self.sample_frequency_penalty.setSpecialValueText("Not set")
+
+        self.sample_presence_penalty = QDoubleSpinBox()
+        self.sample_presence_penalty.setRange(-2.0, 2.0)
+        self.sample_presence_penalty.setSingleStep(0.1)
+        self.sample_presence_penalty.setDecimals(2)
+        self.sample_presence_penalty.setSpecialValueText("Not set")
+
+        self.sample_repetition_penalty = QDoubleSpinBox()
+        self.sample_repetition_penalty.setRange(0.0, 2.0)
+        self.sample_repetition_penalty.setSingleStep(0.1)
+        self.sample_repetition_penalty.setDecimals(2)
+        self.sample_repetition_penalty.setSpecialValueText("Not set")
+
+        sample_layout.addRow("Temperature:", self.sample_temperature)
+        sample_layout.addRow("Top P:", self.sample_top_p)
+        sample_layout.addRow("Min P:", self.sample_min_p)
+        sample_layout.addRow("Top K:", self.sample_top_k)
+        sample_layout.addRow("Frequency Penalty:", self.sample_frequency_penalty)
+        sample_layout.addRow("Presence Penalty:", self.sample_presence_penalty)
+        sample_layout.addRow("Repetition Penalty:", self.sample_repetition_penalty)
 
         form_layout.addRow("ID*:", self.id_edit)
-        form_layout.addRow(
-            "Provider:", self.provider_display
-        )  # This is the custom provider's name
+        form_layout.addRow("Provider:", self.provider_display)
         form_layout.addRow("Name*:", self.name_edit)
         form_layout.addRow("Description:", self.description_edit)
 
@@ -86,13 +166,20 @@ class ModelEditorDialog(QDialog):
         capabilities_layout.addWidget(self.capabilities_thinking_checkbox)
         capabilities_layout.addWidget(self.capabilities_vision_checkbox)
         capabilities_layout.addWidget(self.capabilities_stream_checkbox)
-        capabilities_layout.addStretch()  # To push checkboxes to the left
+        capabilities_layout.addWidget(self.capabilities_structured_output_checkbox)
+        capabilities_layout.addStretch()
         form_layout.addRow("Capabilities:", capabilities_layout)
+
+        form_layout.addRow("Default Reasoning:", self.default_reasoning_combo)
+        form_layout.addRow("Max Context Tokens:", self.max_context_token_edit)
+        form_layout.addRow("Service Name:", self.service_name_edit)
 
         form_layout.addRow("Input Token Price (per 1M):", self.input_price_edit)
         form_layout.addRow("Output Token Price (per 1M):", self.output_price_edit)
+        form_layout.addRow("Cached Token Price (per 1M):", self.cached_price_edit)
 
         layout.addLayout(form_layout)
+        layout.addWidget(self.force_sample_group)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -119,9 +206,53 @@ class ModelEditorDialog(QDialog):
         )
         self.capabilities_vision_checkbox.setChecked("vision" in current_capabilities)
         self.capabilities_stream_checkbox.setChecked("stream" in current_capabilities)
+        self.capabilities_structured_output_checkbox.setChecked(
+            "structured_output" in current_capabilities
+        )
 
         self.input_price_edit.setValue(data.get("input_token_price_1m", 0.0))
         self.output_price_edit.setValue(data.get("output_token_price_1m", 0.0))
+        self.cached_price_edit.setValue(data.get("cached_token_price_1m", 0.0))
+
+        # Default reasoning
+        reasoning_value = data.get("default_reasoning")
+        idx = self.default_reasoning_combo.findData(reasoning_value)
+        if idx >= 0:
+            self.default_reasoning_combo.setCurrentIndex(idx)
+
+        # Max context tokens
+        self.max_context_token_edit.setValue(data.get("max_context_token", 72_000))
+
+        # Service name
+        self.service_name_edit.setText(data.get("service_name", ""))
+
+        # Force sample params
+        force_params = data.get("force_sample_params")
+        if force_params and isinstance(force_params, dict):
+            self.force_sample_group.setChecked(True)
+            if "temperature" in force_params and force_params["temperature"] is not None:
+                self.sample_temperature.setValue(force_params["temperature"])
+            if "top_p" in force_params and force_params["top_p"] is not None:
+                self.sample_top_p.setValue(force_params["top_p"])
+            if "min_p" in force_params and force_params["min_p"] is not None:
+                self.sample_min_p.setValue(force_params["min_p"])
+            if "top_k" in force_params and force_params["top_k"] is not None:
+                self.sample_top_k.setValue(force_params["top_k"])
+            if (
+                "frequency_penalty" in force_params
+                and force_params["frequency_penalty"] is not None
+            ):
+                self.sample_frequency_penalty.setValue(force_params["frequency_penalty"])
+            if (
+                "presence_penalty" in force_params
+                and force_params["presence_penalty"] is not None
+            ):
+                self.sample_presence_penalty.setValue(force_params["presence_penalty"])
+            if (
+                "repetition_penalty" in force_params
+                and force_params["repetition_penalty"] is not None
+            ):
+                self.sample_repetition_penalty.setValue(force_params["repetition_penalty"])
         # Model.provider is set by self.provider_name
         # Model.default is not directly edited here, assumed False for models within a custom provider list
 
@@ -136,16 +267,56 @@ class ModelEditorDialog(QDialog):
             capabilities_list.append("vision")
         if self.capabilities_stream_checkbox.isChecked():
             capabilities_list.append("stream")
+        if self.capabilities_structured_output_checkbox.isChecked():
+            capabilities_list.append("structured_output")
 
-        # Ensure Model Pydantic types are respected
+        # Default reasoning
+        default_reasoning = self.default_reasoning_combo.currentData()
+
+        # Force sample params
+        force_sample_params = None
+        if self.force_sample_group.isChecked():
+            force_sample_params = {}
+            temp = self.sample_temperature.value()
+            if self.sample_temperature.text() != self.sample_temperature.specialValueText():
+                force_sample_params["temperature"] = temp
+            top_p = self.sample_top_p.value()
+            if self.sample_top_p.text() != self.sample_top_p.specialValueText():
+                force_sample_params["top_p"] = top_p
+            min_p = self.sample_min_p.value()
+            if self.sample_min_p.text() != self.sample_min_p.specialValueText():
+                force_sample_params["min_p"] = min_p
+            top_k = self.sample_top_k.value()
+            if self.sample_top_k.text() != self.sample_top_k.specialValueText():
+                force_sample_params["top_k"] = top_k
+            freq_p = self.sample_frequency_penalty.value()
+            if self.sample_frequency_penalty.text() != self.sample_frequency_penalty.specialValueText():
+                force_sample_params["frequency_penalty"] = freq_p
+            pres_p = self.sample_presence_penalty.value()
+            if self.sample_presence_penalty.text() != self.sample_presence_penalty.specialValueText():
+                force_sample_params["presence_penalty"] = pres_p
+            rep_p = self.sample_repetition_penalty.value()
+            if self.sample_repetition_penalty.text() != self.sample_repetition_penalty.specialValueText():
+                force_sample_params["repetition_penalty"] = rep_p
+            if not force_sample_params:
+                force_sample_params = None
+
+        # Collect service_name (strip, or None if empty)
+        service_name = self.service_name_edit.text().strip() or None
+
         return {
             "id": self.id_edit.text().strip(),
             "name": self.name_edit.text().strip(),
             "description": self.description_edit.toPlainText().strip(),
             "capabilities": capabilities_list,
-            "default": False,  # Per Model type, 'default' is likely for global default, not provider-specific.
+            "default": False,
+            "default_reasoning": default_reasoning,
+            "force_sample_params": force_sample_params,
+            "max_context_token": int(self.max_context_token_edit.value()),
             "input_token_price_1m": float(self.input_price_edit.value()),
             "output_token_price_1m": float(self.output_price_edit.value()),
+            "cached_token_price_1m": float(self.cached_price_edit.value()),
+            "service_name": service_name,
         }
 
     def validate_and_accept(self):
