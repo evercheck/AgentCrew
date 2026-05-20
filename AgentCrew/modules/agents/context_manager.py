@@ -243,7 +243,7 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
         shrink_excluded.add("search_memory")
         last_agent_tool_calls = -1
         tool_result_needed_rearrange: dict[int, list[int]] = {}
-        tool_result_id_needed_rearrange: list[str] = []
+        tool_with_id_needed_rearrange: list[str] = []
         tool_result_id_needed_shrink: list[str] = []
 
         for i, msg in enumerate(final_messages):
@@ -259,7 +259,7 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
                     for tool_call in msg.get("tool_calls", []):
                         if tool_call.get("id", None):
                             if tool_call.get("name") in shrink_excluded:
-                                tool_result_id_needed_rearrange.append(
+                                tool_with_id_needed_rearrange.append(
                                     tool_call.get("id")
                                 )
                                 continue
@@ -274,6 +274,25 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
 
             elif msg.get("role") == "tool":
                 tool_name = msg.get("tool_name", "")
+
+                if msg.get("tool_call_id", None) in tool_with_id_needed_rearrange:
+                    if tool_result_needed_rearrange.get(last_agent_tool_calls, None):
+                        tool_result_needed_rearrange[last_agent_tool_calls].append(i)
+                    else:
+                        tool_result_needed_rearrange[last_agent_tool_calls] = [i]
+                    continue
+
+                if msg.get("tool_call_id", None) in tool_result_id_needed_shrink:
+                    msg["content"] = [
+                        {
+                            "text": f"[{msg.get('agent', 'Agent')} has used function_call `{tool_name}` but it has been truncated.]",
+                            "type": "text",
+                        }
+                    ]
+                    msg.pop("tool_name", None)
+                    msg.pop("is_rejected", None)
+                    msg["role"] = "user"
+                    continue
 
                 content = msg.get("content", "")
                 if (
@@ -297,25 +316,6 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
                         unique_tool_indices.append(i)
                         continue
 
-                if msg.get("tool_call_id", None) in tool_result_id_needed_rearrange:
-                    if tool_result_needed_rearrange.get(last_agent_tool_calls, None):
-                        tool_result_needed_rearrange[last_agent_tool_calls].append(i)
-                    else:
-                        tool_result_needed_rearrange[last_agent_tool_calls] = [i]
-                    continue
-
-                if msg.get("tool_call_id", None) in tool_result_id_needed_shrink:
-                    msg["content"] = [
-                        {
-                            "text": f"[{msg.get('agent', 'Agent')} has used function_call `{tool_name}` but it has been truncated.]",
-                            "type": "text",
-                        }
-                    ]
-                    msg.pop("tool_name", None)
-                    msg.pop("is_rejected", None)
-                    msg["role"] = "user"
-                    continue
-
         if len(unique_tool_indices) > 1:
             for i in unique_tool_indices[:-1]:
                 msg = final_messages[i]
@@ -323,15 +323,15 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
                 if msg.get("role") == "tool" and "content" in msg:
                     msg["content"] = "[INVALIDATED]"
 
-                elif msg.get("role") == "user" and isinstance(msg.get("content"), list):
-                    for content_item in msg["content"]:
-                        if (
-                            isinstance(content_item, dict)
-                            and content_item.get("type") == "tool_result"
-                            and "content" in content_item
-                        ):
-                            content_item["content"] = "[INVALIDATED]"
-                            break
+                # elif msg.get("role") == "user" and isinstance(msg.get("content"), list):
+                #     for content_item in msg["content"]:
+                #         if (
+                #             isinstance(content_item, dict)
+                #             and content_item.get("type") == "tool_result"
+                #             and "content" in content_item
+                #         ):
+                #             content_item["content"] = "[INVALIDATED]"
+                #             break
 
         for assistant_idx, tool_result_indices in sorted(
             tool_result_needed_rearrange.items(), reverse=True
