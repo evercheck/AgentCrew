@@ -35,6 +35,18 @@ class TurnExecutor:
             )
         await self._tool_manager.ensure_tools_for_session(session_id, state)
         agent = self._get_agent(state.agent_name)
+
+        retried_count = 0
+        await self._run_turn_with_retry(session_id, state, conn, agent, retried_count)
+
+    async def _run_turn_with_retry(
+        self,
+        session_id: str,
+        state: AcpSessionState,
+        conn: Any,
+        agent: LocalAgent,
+        retried_count: int,
+    ):
         current_response = ""
         thinking_content = ""
         thinking_signature = ""
@@ -46,60 +58,94 @@ class TurnExecutor:
             tool_uses = _tool_uses
             token_usage = _token_usage
 
-        async for (
-            response_message,
-            chunk_text,
-            thinking_chunk,
-        ) in agent.process_messages(
-            state.history,
-            callback=process_result,
-        ):
-            if state.cancelled:
+        try:
+            async for (
+                response_message,
+                chunk_text,
+                thinking_chunk,
+            ) in agent.process_messages(
+                state.history,
+                callback=process_result,
+            ):
+                if state.cancelled:
+                    return
+                if response_message:
+                    current_response = response_message
+                if chunk_text:
+                    await self._client_comm.send_agent_message(session_id, chunk_text)
+                if thinking_chunk:
+                    think_text_chunk, signature = thinking_chunk
+                    if think_text_chunk:
+                        thinking_content += think_text_chunk
+                        await self._client_comm.send_thought_chunk(
+                            session_id, think_text_chunk
+                        )
+                    if signature:
+                        thinking_signature += signature
+
+            thinking_data = (
+                (thinking_content, thinking_signature) if thinking_content else None
+            )
+            thinking_message = agent.format_message(
+                MessageType.Thinking,
+                {"thinking": thinking_data},
+            )
+            if thinking_message:
+                state.history.append(thinking_message)
+
+            assistant_message = agent.format_message(
+                MessageType.Assistant,
+                {"message": current_response, "tool_uses": tool_uses},
+            )
+            if assistant_message:
+                state.history.append(assistant_message)
+
+            if tool_uses:
+                await self.execute_tools(session_id, state, agent, tool_uses)
+                if not state.cancelled and state.pending_ask_tool is None:
+                    await self.run_turn(session_id, state, conn)
                 return
-            if response_message:
-                current_response = response_message
-            if chunk_text:
-                await self._client_comm.send_agent_message(session_id, chunk_text)
-            if thinking_chunk:
-                think_text_chunk, signature = thinking_chunk
-                if think_text_chunk:
-                    thinking_content += think_text_chunk
-                    await self._client_comm.send_thought_chunk(
-                        session_id, think_text_chunk
+
+            user_message = agent._extract_last_user_message_for_memory(state.history)
+            agent.store_memory_if_available(
+                user_message,
+                state.history,
+                current_response,
+                session_id=session_id,
+            )
+        except Exception as e:
+            from openai import APIError
+
+            if isinstance(e, APIError):
+                if (
+                    e.code == "model_max_prompt_tokens_exceeded"
+                    or e.message.find("This endpoint's maximum context length is") >= 0
+                    or e.message.find(
+                        "Your input exceeds the context window of this model."
                     )
-                if signature:
-                    thinking_signature += signature
+                    >= 0
+                ) and retried_count < 5:
+                    from AgentCrew.modules.agents import LocalAgent as _LocalAgent
+                    from AgentCrew.modules.llm.model_registry import ModelRegistry
 
-        thinking_data = (
-            (thinking_content, thinking_signature) if thinking_content else None
-        )
-        thinking_message = agent.format_message(
-            MessageType.Thinking,
-            {"thinking": thinking_data},
-        )
-        if thinking_message:
-            state.history.append(thinking_message)
+                    if isinstance(agent, _LocalAgent):
+                        max_token = ModelRegistry.get_model_limit(agent.get_model())
+                        agent.input_tokens_usage = max_token
+                        retried_count += 1
+                        return await self._run_turn_with_retry(
+                            session_id, state, conn, agent, retried_count
+                        )
+                elif (
+                    isinstance(e, APIError)
+                    and str(e) == "InternalServerError"
+                    and retried_count < 5
+                ):
+                    retried_count += 1
+                    return await self._run_turn_with_retry(
+                        session_id, state, conn, agent, retried_count
+                    )
 
-        assistant_message = agent.format_message(
-            MessageType.Assistant,
-            {"message": current_response, "tool_uses": tool_uses},
-        )
-        if assistant_message:
-            state.history.append(assistant_message)
-
-        if tool_uses:
-            await self.execute_tools(session_id, state, agent, tool_uses)
-            if not state.cancelled and state.pending_ask_tool is None:
-                await self.run_turn(session_id, state, conn)
-            return
-
-        user_message = agent._extract_last_user_message_for_memory(state.history)
-        agent.store_memory_if_available(
-            user_message,
-            state.history,
-            current_response,
-            session_id=session_id,
-        )
+            raise
 
     async def execute_tools(
         self,

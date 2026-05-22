@@ -569,12 +569,16 @@ class MessageHandler(Observable):
         except GeneratorExit:
             return assistant_response, token_usage
         except Exception as e:
-            from openai import BadRequestError, APIError
+            from openai import APIError
 
-            if isinstance(e, BadRequestError):
+            if isinstance(e, APIError):
                 if (
                     e.code == "model_max_prompt_tokens_exceeded"
                     or e.message.find("This endpoint's maximum context length is") >= 0
+                    or e.message.find(
+                        "Your input exceeds the context window of this model."
+                    )
+                    >= 0
                 ):
                     from AgentCrew.modules.agents import LocalAgent
                     from AgentCrew.modules.llm.model_registry import ModelRegistry
