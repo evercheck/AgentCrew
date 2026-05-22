@@ -99,7 +99,7 @@ class OpenAIResponseService(BaseLLMService):
                 msg["type"] = "function_call_output"
                 msg["call_id"] = msg.pop("tool_call_id", None)
                 msg["output"] = json.dumps(msg.pop("content", []))
-            elif role == " user":
+            elif role == "user":
                 msg.pop("tool_call_id", None)
 
             if isinstance(msg.get("content", ""), list):
