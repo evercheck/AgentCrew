@@ -12,7 +12,7 @@ class StreamSession:
     task: asyncio.Task | None = None
     cancel_requested: bool = False
     first_chunk_received: bool = False
-    first_chunk_timeout: float = 120.0
+    first_chunk_timeout: float = 60.0
     finished: asyncio.Event = field(default_factory=asyncio.Event)
 
     def bind(self, loop: asyncio.AbstractEventLoop, task: asyncio.Task) -> None:

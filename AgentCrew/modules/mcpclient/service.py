@@ -1,22 +1,34 @@
 from __future__ import annotations
 
+import asyncio
+import base64
+import os
+import random
+import tempfile
+import threading
+from urllib.parse import unquote, urlparse
+
 from loguru import logger
 from typing import TYPE_CHECKING
 from mcp import ClientSession, StdioServerParameters
-from mcp.types import ImageContent, TextContent
+from mcp.types import (
+    BlobResourceContents,
+    ImageContent,
+    ResourceLink,
+    TextContent,
+    TextResourceContents,
+)
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.client.sse import sse_client
 from AgentCrew.modules.agents import LocalAgent, AgentManager
 from .auth import OAuthClientResolver, FileTokenStorage, InlineTokenStorage
-import random
-import asyncio
-import threading
 from AgentCrew.modules import FileLogIO
 
 if TYPE_CHECKING:
     from typing import Any, Callable
     from mcp.types import ContentBlock, Prompt, Tool
+    from AgentCrew.modules.utils.file_handler import FileHandler
     from .config import MCPServerConfig
 
 # Initialize the logger
@@ -41,7 +53,15 @@ class MCPService:
         self._server_keepalive_tasks: dict[str, asyncio.Task] = {}
         self.server_prompts: dict[str, list[Prompt]] = {}
         self.tokens_storage_cache: dict[str, FileTokenStorage] = {}
+        self.file_handler: FileHandler | None = None
         self.ping_interval = ping_interval
+
+    def _get_file_handler(self) -> FileHandler:
+        if self.file_handler is None:
+            from AgentCrew.modules.utils.file_handler import FileHandler
+
+            self.file_handler = FileHandler()
+        return self.file_handler
 
     async def _manage_single_connection(
         self, server_config: MCPServerConfig, agent_name: str | None = None
@@ -675,7 +695,7 @@ class MCPService:
                 # Note: even though this is an async function, we need to use run_async to run it
                 # in a threadsafe coroutines, use await here will make main thread wait forever.
                 result = self._run_async(session.call_tool(tool_name, params))
-                return self._format_contents(result.content)
+                return self._format_contents(result.content, session)
 
             return actual_tool_executor  # Return the async function
 
@@ -759,7 +779,11 @@ class MCPService:
                 "status": "error",
             }
 
-    def _format_contents(self, content: list[ContentBlock]) -> list[dict[str, Any]]:
+    def _format_contents(
+        self,
+        content: list[ContentBlock],
+        session: ClientSession | None = None,
+    ) -> list[dict[str, Any]]:
         result = []
         for c in content:
             if isinstance(c, TextContent):
@@ -776,8 +800,139 @@ class MCPService:
                         "image_url": {"url": f"data:{c.mimeType};base64,{c.data}"},
                     }
                 )
+            elif isinstance(c, ResourceLink):
+                result.extend(self._format_resource_link(c, session))
 
         return result
+
+    def _format_resource_link(
+        self, resource_link: ResourceLink, session: ClientSession | None
+    ) -> list[dict[str, Any]]:
+        if session is None:
+            return [
+                self._resource_link_fallback(resource_link, "No MCP session available")
+            ]
+
+        try:
+            resource_result = self._run_async(session.read_resource(resource_link.uri))
+        except Exception as e:
+            return [self._resource_link_fallback(resource_link, str(e))]
+
+        formatted = []
+        for resource_content in resource_result.contents:
+            error_str = None
+            try:
+                processed = self._process_resource_content(
+                    resource_link, resource_content
+                )
+            except Exception as e:
+                processed = None
+                error_str = str(e)
+
+            if processed:
+                formatted.append(processed)
+            else:
+                image_fallback = self._resource_image_fallback(
+                    resource_link, resource_content
+                )
+                formatted.append(
+                    image_fallback
+                    or self._resource_link_fallback(
+                        resource_link,
+                        error_str
+                        or f"Unsupported MIME type: {self._resource_mime_type(resource_link, resource_content)}",
+                    )
+                )
+        return formatted
+
+    def _process_resource_content(
+        self,
+        resource_link: ResourceLink,
+        resource_content: TextResourceContents | BlobResourceContents,
+    ) -> dict[str, Any] | None:
+        suffix = self._resource_temp_suffix(resource_link, resource_content)
+        temp_path = None
+
+        try:
+            if isinstance(resource_content, TextResourceContents):
+                with tempfile.NamedTemporaryFile(
+                    mode="w", encoding="utf-8", suffix=suffix, delete=False
+                ) as temp_file:
+                    temp_file.write(resource_content.text)
+                    temp_path = temp_file.name
+            elif isinstance(resource_content, BlobResourceContents):
+                with tempfile.NamedTemporaryFile(
+                    mode="wb", suffix=suffix, delete=False
+                ) as temp_file:
+                    temp_file.write(base64.b64decode(resource_content.blob))
+                    temp_path = temp_file.name
+
+            return self._get_file_handler().process_file(temp_path)
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+    def _resource_temp_suffix(
+        self,
+        resource_link: ResourceLink,
+        resource_content: TextResourceContents | BlobResourceContents,
+    ) -> str:
+        uri_path = unquote(urlparse(str(resource_link.uri)).path)
+        _, ext = os.path.splitext(uri_path)
+
+        if not ext:
+            name = getattr(resource_link, "name", "")
+            _, ext = os.path.splitext(name)
+
+        if not ext:
+            mime_type = self._resource_mime_type(resource_link, resource_content)
+            if mime_type.startswith("text/"):
+                ext = ".txt"
+
+        return ext
+
+    def _resource_mime_type(
+        self,
+        resource_link: ResourceLink,
+        resource_content: TextResourceContents | BlobResourceContents,
+    ) -> str:
+        return (
+            getattr(resource_content, "mimeType", None)
+            or getattr(resource_link, "mimeType", None)
+            or "unknown"
+        )
+
+    def _resource_image_fallback(
+        self,
+        resource_link: ResourceLink,
+        resource_content: TextResourceContents | BlobResourceContents,
+    ) -> dict[str, Any] | None:
+        mime_type = self._resource_mime_type(resource_link, resource_content)
+        if not mime_type.startswith("image/") or not isinstance(
+            resource_content, BlobResourceContents
+        ):
+            return None
+
+        return {
+            "type": "image_url",
+            "image_url": {"url": f"data:{mime_type};base64,{resource_content.blob}"},
+        }
+
+    def _resource_link_fallback(
+        self, resource_link: ResourceLink, reason: str
+    ) -> dict[str, Any]:
+        name = getattr(resource_link, "name", "resource")
+        uri = str(getattr(resource_link, "uri", ""))
+        mime_type = getattr(resource_link, "mimeType", None) or "unknown"
+        return {
+            "type": "text",
+            "text": (
+                f"MCP resource link could not be processed: {name}\n"
+                f"URI: {uri}\n"
+                f"MIME type: {mime_type}\n"
+                f"Reason: {reason}"
+            ),
+        }
 
     async def call_tool(
         self, server_id: str, tool_name: str, tool_args: dict[str, Any]
@@ -816,7 +971,9 @@ class MCPService:
         try:
             result = await self.sessions[server_id].call_tool(tool_name, tool_args)
             return {
-                "content": self._format_contents(result.content),
+                "content": self._format_contents(
+                    result.content, self.sessions[server_id]
+                ),
                 "status": "success",
             }
         except Exception as e:

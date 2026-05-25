@@ -1,8 +1,18 @@
+import asyncio
+import base64
 import json
 import time
 
 import pytest
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
+from mcp.types import (
+    BlobResourceContents,
+    ImageContent,
+    ReadResourceResult,
+    ResourceLink,
+    TextContent,
+    TextResourceContents,
+)
 
 from AgentCrew.modules.mcpclient.auth import InlineTokenStorage
 from AgentCrew.modules.mcpclient.config import (
@@ -278,6 +288,31 @@ class TestInlineTokenStorage:
         assert base_storage.set_client_info_calls == [new_client_info]
 
 
+class FakeResourceSession:
+    def __init__(self, result=None, error=None):
+        self.result = result
+        self.error = error
+        self.read_resource_calls = []
+
+    async def read_resource(self, uri):
+        self.read_resource_calls.append(str(uri))
+        if self.error:
+            raise self.error
+        return self.result
+
+
+class FakeFileHandler:
+    def __init__(self, result=None):
+        self.result = result
+        self.processed_paths = []
+
+    def process_file(self, file_path):
+        self.processed_paths.append(file_path)
+        if self.result is not None:
+            return self.result
+        return None
+
+
 class TestMCPService:
     def test_build_token_storage_returns_base_storage_without_oauth(self):
         service = MCPService()
@@ -318,3 +353,130 @@ class TestMCPService:
 
         assert isinstance(token_storage, InlineTokenStorage)
         assert token_storage.base_storage is base_storage
+
+    def test_format_contents_keeps_text_and_image_behavior(self):
+        service = MCPService()
+
+        formatted = service._format_contents(
+            [
+                TextContent(type="text", text="hello"),
+                ImageContent(type="image", data="abc", mimeType="image/png"),
+            ]
+        )
+
+        assert formatted == [
+            {"type": "text", "text": "hello"},
+            {
+                "type": "image_url",
+                "image_url": {"url": "data:image/png;base64,abc"},
+            },
+        ]
+
+    def test_format_contents_resource_link_reads_and_processes_text_resource(self):
+        service = MCPService()
+        processed_output = {"type": "text", "text": "processed content"}
+        fake_file_handler = FakeFileHandler(result=processed_output)
+        service._get_file_handler = lambda: fake_file_handler
+        service._run_async = lambda coro: asyncio.run(coro)
+        resource_link = ResourceLink(
+            type="resource_link",
+            uri="file:///tmp/example.txt",
+            name="example.txt",
+            mimeType="text/plain",
+        )
+        session = FakeResourceSession(
+            ReadResourceResult(
+                contents=[
+                    TextResourceContents(
+                        uri="file:///tmp/example.txt",
+                        mimeType="text/plain",
+                        text="resource text",
+                    )
+                ]
+            )
+        )
+
+        formatted = service._format_contents([resource_link], session)
+
+        assert session.read_resource_calls == ["file:///tmp/example.txt"]
+        assert formatted == [processed_output]
+        assert len(fake_file_handler.processed_paths) == 1
+        assert fake_file_handler.processed_paths[0].endswith(".txt")
+
+    def test_format_contents_resource_link_falls_back_for_unsupported_mime(self):
+        service = MCPService()
+        service._get_file_handler = lambda: FakeFileHandler(result=None)
+        service._run_async = lambda coro: asyncio.run(coro)
+        resource_link = ResourceLink(
+            type="resource_link",
+            uri="file:///tmp/data.bin",
+            name="data.bin",
+            mimeType="application/octet-stream",
+        )
+        session = FakeResourceSession(
+            ReadResourceResult(
+                contents=[
+                    BlobResourceContents(
+                        uri="file:///tmp/data.bin",
+                        mimeType="application/octet-stream",
+                        blob=base64.b64encode(b"binary").decode("utf-8"),
+                    )
+                ]
+            )
+        )
+
+        formatted = service._format_contents([resource_link], session)
+
+        assert formatted[0]["type"] == "text"
+        assert "MCP resource link could not be processed" in formatted[0]["text"]
+        assert "file:///tmp/data.bin" in formatted[0]["text"]
+        assert "application/octet-stream" in formatted[0]["text"]
+
+    def test_format_contents_resource_link_image_falls_back_to_image_format(self):
+        service = MCPService()
+        service._get_file_handler = lambda: FakeFileHandler(result=None)
+        service._run_async = lambda coro: asyncio.run(coro)
+        image_data = base64.b64encode(b"image-bytes").decode("utf-8")
+        resource_link = ResourceLink(
+            type="resource_link",
+            uri="file:///tmp/image.png",
+            name="image.png",
+            mimeType="image/png",
+        )
+        session = FakeResourceSession(
+            ReadResourceResult(
+                contents=[
+                    BlobResourceContents(
+                        uri="file:///tmp/image.png",
+                        mimeType="image/png",
+                        blob=image_data,
+                    )
+                ]
+            )
+        )
+
+        formatted = service._format_contents([resource_link], session)
+
+        assert formatted == [
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{image_data}"},
+            }
+        ]
+
+    def test_format_contents_resource_link_read_failure_falls_back(self):
+        service = MCPService()
+        service._run_async = lambda coro: asyncio.run(coro)
+        resource_link = ResourceLink(
+            type="resource_link",
+            uri="file:///tmp/fail.txt",
+            name="fail.txt",
+            mimeType="text/plain",
+        )
+        session = FakeResourceSession(error=RuntimeError("read failed"))
+
+        formatted = service._format_contents([resource_link], session)
+
+        assert session.read_resource_calls == ["file:///tmp/fail.txt"]
+        assert formatted[0]["type"] == "text"
+        assert "read failed" in formatted[0]["text"]
