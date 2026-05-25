@@ -6,6 +6,7 @@ import os
 import random
 import tempfile
 import threading
+from collections.abc import Iterable
 from urllib.parse import unquote, urlparse
 
 from loguru import logger
@@ -14,6 +15,8 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.types import (
     BlobResourceContents,
     ImageContent,
+    Resource,
+    PaginatedRequestParams,
     ResourceLink,
     TextContent,
     TextResourceContents,
@@ -52,6 +55,7 @@ class MCPService:
         self._server_shutdown_events: dict[str, asyncio.Event] = {}
         self._server_keepalive_tasks: dict[str, asyncio.Task] = {}
         self.server_prompts: dict[str, list[Prompt]] = {}
+        self.server_resources: dict[str, list[dict[str, Any]]] = {}
         self.tokens_storage_cache: dict[str, FileTokenStorage] = {}
         self.file_handler: FileHandler | None = None
         self.ping_interval = ping_interval
@@ -133,19 +137,22 @@ class MCPService:
                             f"MCPService: {server_name} connected. Registering tools..."
                         )
 
-                        if agent_name:
+                        target_agent_names = self._target_agent_names(
+                            agent_name, server_config
+                        )
+                        if server_info.capabilities.resources:
+                            await self.register_server_resources(
+                                combined_server_id,
+                                server_config,
+                                target_agent_names,
+                            )
+
+                        for enabled_agent_name in target_agent_names:
                             await self.register_server_tools(
                                 combined_server_id,
                                 server_config,
-                                agent_name,
+                                enabled_agent_name,
                             )
-                        else:
-                            for agent_name in server_config.enabledForAgents:
-                                await self.register_server_tools(
-                                    combined_server_id,
-                                    server_config,
-                                    agent_name,
-                                )
 
                         if server_info.capabilities.prompts:
                             prompts = await self.sessions[
@@ -218,19 +225,21 @@ class MCPService:
                             f"MCPService: {combined_server_id} connected. Registering tools..."
                         )
 
-                        if agent_name:
+                        target_agent_names = self._target_agent_names(
+                            agent_name, server_config
+                        )
+                        if server_info.capabilities.resources:
+                            await self.register_server_resources(
+                                combined_server_id,
+                                server_config,
+                                target_agent_names,
+                            )
+                        for enabled_agent_name in target_agent_names:
                             await self.register_server_tools(
                                 combined_server_id,
                                 server_config,
-                                agent_name,
+                                enabled_agent_name,
                             )
-                        else:
-                            for agent_name in server_config.enabledForAgents:
-                                await self.register_server_tools(
-                                    combined_server_id,
-                                    server_config,
-                                    agent_name,
-                                )
 
                         if server_info.capabilities.prompts:
                             prompts = await self.sessions[
@@ -340,6 +349,135 @@ class MCPService:
     ) -> str:
         """Format server ID with optional agent name prefix."""
         return f"{agent_name}__{server_name}" if agent_name else server_name
+
+    def _target_agent_names(
+        self, agent_name: str | None, server_config: MCPServerConfig
+    ) -> list[str]:
+        if agent_name:
+            return [agent_name]
+        return list(server_config.enabledForAgents)
+
+    async def _list_all_resources(self, session: ClientSession) -> list[Resource]:
+        resources: list[Resource] = []
+        cursor = None
+        for _ in range(50):
+            response = await session.list_resources(
+                params=PaginatedRequestParams(cursor=cursor)
+            )
+            resources.extend(response.resources)
+            cursor = response.nextCursor
+            if not cursor:
+                return resources
+        return resources
+
+    async def register_server_resources(
+        self,
+        combined_server_id: str,
+        server_config: MCPServerConfig,
+        agent_names: Iterable[str],
+    ) -> None:
+
+        try:
+            resources = [
+                self._format_resource_for_agent(resource)
+                for resource in await self._list_all_resources(
+                    self.sessions[combined_server_id]
+                )
+            ]
+            self.server_resources[server_config.name] = resources
+
+            for agent_name in agent_names:
+                agent = AgentManager.get_instance().get_local_agent(agent_name)
+                if not agent:
+                    continue
+                agent.mcp_resources[server_config.name] = resources
+                self._register_get_resource_tool(
+                    agent, combined_server_id, server_config.name
+                )
+
+            logger.info(
+                f"MCPService: Registered {len(resources)} resources for server '{combined_server_id}'"
+            )
+        except Exception:
+            logger.exception(
+                f"Error listing resources from server '{combined_server_id}'"
+            )
+
+    def _format_resource_for_agent(self, resource: Resource) -> dict[str, Any]:
+        data = {"uri": str(resource.uri), "name": resource.name}
+        if resource.title:
+            data["title"] = resource.title
+        if resource.description:
+            data["description"] = resource.description
+        if resource.mimeType:
+            data["mimeType"] = resource.mimeType
+        return data
+
+    def _get_resource_tool_definition(self, server_name: str) -> dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {
+                "name": f"{server_name}__get_resource",
+                "description": f"Fetch the content of an available MCP resource from server '{server_name}' by URI.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "uri": {
+                            "type": "string",
+                            "description": "The exact MCP resource URI to fetch.",
+                        }
+                    },
+                    "required": ["uri"],
+                },
+            },
+        }
+
+    def _register_get_resource_tool(
+        self, agent: LocalAgent, combined_server_id: str, server_name: str
+    ) -> None:
+        agent.register_tool(
+            lambda: self._get_resource_tool_definition(server_name),
+            self._create_get_resource_handler(combined_server_id, server_name),
+            self,
+        )
+
+    def _create_get_resource_handler(
+        self, combined_server_id: str, server_name: str
+    ) -> Callable:
+        def handler_factory(service_instance=None):
+            async def get_resource(uri: str) -> list[dict[str, Any]]:
+                from pydantic import AnyUrl
+
+                resource_uri = uri.strip() if uri else ""
+                if not resource_uri:
+                    raise ValueError("Resource URI is required")
+                if (
+                    combined_server_id not in self.sessions
+                    or not self.connected_servers.get(combined_server_id)
+                ):
+                    raise ValueError(
+                        f"Cannot read resource: Server '{server_name}' is not connected"
+                    )
+                if not any(
+                    resource.get("uri") == resource_uri
+                    for resource in self.server_resources.get(server_name, [])
+                ):
+                    raise ValueError(
+                        f"Resource URI is not available on MCP server '{server_name}': {resource_uri}"
+                    )
+
+                resource_link = ResourceLink(
+                    type="resource_link",
+                    uri=AnyUrl(resource_uri),
+                    name=resource_uri,
+                )
+                return self._format_resource_link(
+                    resource_link, self.sessions[combined_server_id]
+                )
+
+            return get_resource
+
+        return handler_factory
 
     def _get_or_create_token_storage(self, server_name: str) -> FileTokenStorage:
         """
@@ -592,9 +730,10 @@ class MCPService:
 
         for tool_name in tool_names_to_remove:
             local_agent.tool_definitions.pop(tool_name, None)
+        local_agent.mcp_resources.pop(server_name, None)
 
         if local_agent.is_active:
-            local_agent._register_tools_with_llm()
+            local_agent.resync_tools_to_llm()
 
     async def deregister_server_tools(
         self, server_name: str, agent_name: str | None = None

@@ -28,7 +28,7 @@ class LocalAgent(BaseAgent):
         self,
         name: str,
         description: str,
-        llm_service: BaseLLMService,
+        llm_service: BaseLLMService | None,
         services: dict[str, Any],
         tools: list[str],
         temperature: float | None = None,
@@ -55,6 +55,7 @@ class LocalAgent(BaseAgent):
         self.system_prompt = None
         self.custom_system_prompt = None
         self.tool_prompts = []
+        self.mcp_resources: dict[str, list[dict[str, Any]]] = {}
         self.is_remoting_mode: bool = is_remoting_mode
         self.pinned_model_id: str | None = None
         self.token_usage = TokenUsage()
@@ -220,6 +221,7 @@ class LocalAgent(BaseAgent):
         self._clear_tools_from_llm()
         self.tool_definitions = {}
         self.tool_prompts = []
+        self.mcp_resources = {}
         self.is_active = False
         self.mcps_loading = []
         # Reinitialize MCP session manager for the current agent

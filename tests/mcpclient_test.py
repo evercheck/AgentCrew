@@ -2,18 +2,22 @@ import asyncio
 import base64
 import json
 import time
+from types import SimpleNamespace
 
 import pytest
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from mcp.types import (
     BlobResourceContents,
     ImageContent,
+    ListResourcesResult,
     ReadResourceResult,
+    Resource,
     ResourceLink,
     TextContent,
     TextResourceContents,
 )
 
+from AgentCrew.modules.agents.context_manager import AgentContextManager
 from AgentCrew.modules.mcpclient.auth import InlineTokenStorage
 from AgentCrew.modules.mcpclient.config import (
     MCPConfigManager,
@@ -313,6 +317,27 @@ class FakeFileHandler:
         return None
 
 
+class FakeListResourcesSession:
+    def __init__(self, pages):
+        self.pages = pages
+        self.list_resources_calls = []
+
+    async def list_resources(self, cursor=None, params=None):
+        effective_cursor = cursor or getattr(params, "cursor", None)
+        self.list_resources_calls.append(effective_cursor)
+        return self.pages[effective_cursor or "first"]
+
+
+class FakeLocalAgent:
+    def __init__(self):
+        self.mcp_resources = {}
+        self.registered_tools = []
+        self.is_active = False
+
+    def register_tool(self, definition_func, handler_factory, service_instance=None):
+        self.registered_tools.append(definition_func())
+
+
 class TestMCPService:
     def test_build_token_storage_returns_base_storage_without_oauth(self):
         service = MCPService()
@@ -353,6 +378,107 @@ class TestMCPService:
 
         assert isinstance(token_storage, InlineTokenStorage)
         assert token_storage.base_storage is base_storage
+
+    @pytest.mark.asyncio
+    async def test_register_server_resources_lists_resources_and_registers_scoped_tool(
+        self, monkeypatch
+    ):
+        service = MCPService()
+        fake_agent = FakeLocalAgent()
+        fake_manager = SimpleNamespace(get_local_agent=lambda agent_name: fake_agent)
+        monkeypatch.setattr(
+            "AgentCrew.modules.mcpclient.service.AgentManager.get_instance",
+            lambda: fake_manager,
+        )
+        service.sessions["Engineer__docs"] = FakeListResourcesSession(
+            {
+                "first": ListResourcesResult(
+                    resources=[
+                        Resource(
+                            uri="file:///tmp/guide.md",
+                            name="guide.md",
+                            description="Guide",
+                            mimeType="text/markdown",
+                            size=42,
+                        )
+                    ]
+                )
+            }
+        )
+        server_config = MCPServerConfig(
+            name="docs",
+            command="python",
+            args=["server.py"],
+            enabledForAgents=["Engineer"],
+        )
+        await service.register_server_resources(
+            "Engineer__docs", server_config, ["Engineer"]
+        )
+
+        assert fake_agent.mcp_resources == {
+            "docs": [
+                {
+                    "uri": "file:///tmp/guide.md",
+                    "name": "guide.md",
+                    "description": "Guide",
+                    "mimeType": "text/markdown",
+                    "size": 42,
+                }
+            ]
+        }
+        assert fake_agent.registered_tools[0]["function"]["name"] == "docs__get_resource"
+        assert service.server_resources == fake_agent.mcp_resources
+
+    def test_server_scoped_get_resource_handler_reads_known_resource(self):
+        service = MCPService()
+        session = FakeResourceSession(
+            ReadResourceResult(
+                contents=[
+                    TextResourceContents(
+                        uri="file:///tmp/guide.md",
+                        mimeType="text/plain",
+                        text="guide",
+                    )
+                ]
+            )
+        )
+        service.sessions["Engineer__docs"] = session
+        service.connected_servers["Engineer__docs"] = True
+        service.server_resources["docs"] = [
+            {"uri": "file:///tmp/guide.md", "name": "guide.md"}
+        ]
+        service._format_resource_link = lambda resource_link, resource_session: [
+            {"type": "text", "text": str(resource_link.uri)}
+        ]
+
+        handler = service._create_get_resource_handler("Engineer__docs", "docs")()
+        result = asyncio.run(handler("file:///tmp/guide.md"))
+
+        assert result == [{"type": "text", "text": "file:///tmp/guide.md"}]
+
+    def test_mcp_resources_prompt_lists_server_scoped_resource_tools(self):
+        agent = SimpleNamespace(
+            services={},
+            name="Engineer",
+            mcp_resources={
+                "docs": [
+                    {
+                        "uri": "file:///tmp/guide.md",
+                        "name": "guide.md",
+                        "description": "Developer guide",
+                        "mimeType": "text/markdown",
+                    }
+                ]
+            },
+        )
+        context = AgentContextManager(agent)
+
+        prompt = context._build_mcp_resources_prompt()
+
+        assert "## MCP Resources" in prompt
+        assert "Get resource tool: `docs__get_resource`" in prompt
+        assert "file:///tmp/guide.md" in prompt
+        assert "Developer guide" in prompt
 
     def test_format_contents_keeps_text_and_image_behavior(self):
         service = MCPService()
