@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import httpx
@@ -117,6 +118,12 @@ class OpenAICodexService(OpenAIResponseService):
                 return dict_items[0]
         return {}
 
+    @staticmethod
+    def _codex_service_tier() -> str:
+        if os.getenv("AGENTCREW_FAST_CODEX") == "1":
+            return "priority"
+        return "default"
+
     async def get_usage(self) -> dict[str, Any]:
         self._ensure_valid_token()
         access_token = self._oauth.get_valid_access_token()
@@ -172,6 +179,7 @@ class OpenAICodexService(OpenAIResponseService):
             "stream": True,
             "store": False,
             "instructions": self.system_prompt or DEFAULT_CODEX_INSTRUCTIONS,
+            "service_tier": self._codex_service_tier(),
         }
         if self._extra_headers:
             request_params["extra_headers"] = self._extra_headers
@@ -226,6 +234,7 @@ class OpenAICodexService(OpenAIResponseService):
             "instructions": self.system_prompt or DEFAULT_CODEX_INSTRUCTIONS,
             "store": False,
             "include": ["reasoning.encrypted_content"],
+            "service_tier": self._codex_service_tier(),
         }
 
         forced_sample_params = ModelRegistry.get_model_sample_params(full_model_id)

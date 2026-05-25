@@ -426,7 +426,9 @@ class TestMCPService:
                 }
             ]
         }
-        assert fake_agent.registered_tools[0]["function"]["name"] == "docs__get_resource"
+        assert (
+            fake_agent.registered_tools[0]["function"]["name"] == "docs__get_resource"
+        )
         assert service.server_resources == fake_agent.mcp_resources
 
     def test_server_scoped_get_resource_handler_reads_known_resource(self):

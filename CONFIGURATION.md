@@ -580,6 +580,9 @@ export GEMINI_API_KEY="AIza..."
 # Override config location
 export AGENTCREW_CONFIG_DIR="/custom/path"
 
+# Use priority service tier for OpenAI Codex requests
+export AGENTCREW_FAST_CODEX="1"
+
 # Enable debug logging
 export LOGURU_LEVEL="DEBUG"
 ```
