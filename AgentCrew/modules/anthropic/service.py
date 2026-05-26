@@ -505,8 +505,7 @@ class AnthropicService(BaseLLMService):
             "max_tokens": 20000,
             "system": self.system_prompt,
             "messages": self._convert_internal_format(messages),
-            "top_p": 0.95,
-            "temperature": self.temperature / 2,  # agent temperature scales at 2,
+            "temperature": self.temperature,
         }
 
         # Add thinking configuration if enabled
@@ -515,10 +514,7 @@ class AnthropicService(BaseLLMService):
                 "type": "enabled",
                 "budget_tokens": self.thinking_budget,
             }
-            stream_params.pop("top_p", None)
             stream_params.pop("temperature", None)
-        if self.model == "claude-sonnet-4-5":
-            stream_params.pop("top_p", None)
         # else:
         #     stream_params["temperature"] = 0.7
 
