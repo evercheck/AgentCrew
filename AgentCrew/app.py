@@ -22,7 +22,7 @@ def common_options(func):
         "--provider",
         type=click.Choice(PROVIDER_LIST),
         default=None,
-        help="LLM provider to use (claude, openai, google, github_copilot, deepinfra, together, or opencode_go)",
+        help="LLM provider to use (claude, openai, google, github_copilot, deepinfra, together, opencode_go, or commandcode)",
     )
     @click.option(
         "--agent-config",
@@ -43,6 +43,7 @@ def common_options(func):
                 "deepinfra",
                 "together",
                 "opencode_go",
+                "commandcode",
                 "github_copilot",
                 "copilot_response",
             ]

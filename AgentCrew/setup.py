@@ -37,6 +37,7 @@ PROVIDER_LIST = [
     "deepinfra",
     "together",
     "opencode_go",
+    "commandcode",
     "fireworks",
     "github_copilot",
 ]
@@ -87,6 +88,7 @@ class ApplicationSetup:
             "DEEPINFRA_API_KEY",
             "TOGETHER_API_KEY",
             "OPENCODE_API_KEY",
+            "COMMAND_CODE_API_KEY",
             "GITHUB_COPILOT_API_KEY",
             "FIREWORKS_API_KEY",
             "TAVILY_API_KEY",
@@ -118,6 +120,7 @@ class ApplicationSetup:
                         "deepinfra": "DEEPINFRA_API_KEY",
                         "together": "TOGETHER_API_KEY",
                         "opencode_go": "OPENCODE_API_KEY",
+                        "commandcode": "COMMAND_CODE_API_KEY",
                         "github_copilot": "GITHUB_COPILOT_API_KEY",
                         "fireworks": "FIREWORKS_API_KEY",
                     }
@@ -152,6 +155,8 @@ class ApplicationSetup:
             return "together"
         elif os.getenv("OPENCODE_API_KEY"):
             return "opencode_go"
+        elif os.getenv("COMMAND_CODE_API_KEY"):
+            return "commandcode"
         elif os.getenv("FIREWORKS_API_KEY"):
             return "fireworks"
         else:

@@ -13,6 +13,7 @@ def _build_available_models():
     from AgentCrew.modules.custom_llm.crofai_models import CROFAI_MODELS
     from AgentCrew.modules.custom_llm.fireworks_models import FIREWORKS_MODELS
     from AgentCrew.modules.custom_llm.github_copilot_models import GITHUB_COPILOT_MODELS
+    from AgentCrew.modules.custom_llm.commandcode_models import COMMANDCODE_MODELS
     from AgentCrew.modules.custom_llm.opencode_models import OPENCODE_GO_MODELS
     from AgentCrew.modules.together.models import TOGETHER_MODELS
 
@@ -24,6 +25,7 @@ def _build_available_models():
         + DEEPINFRA_MODELS
         + CROFAI_MODELS
         + TOGETHER_MODELS
+        + COMMANDCODE_MODELS
         + OPENCODE_GO_MODELS
         + FIREWORKS_MODELS
         + GITHUB_COPILOT_MODELS

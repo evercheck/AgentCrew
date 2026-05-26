@@ -46,6 +46,8 @@ class ServiceManager:
             "github_copilot": self._create_github_copilot_service,
             "copilot_response": self._create_copilot_response_service,
             "fireworks": self._create_fireworks_service,
+            "commandcode": self._create_commandcode_service,
+            "commandcode_anthropic": self._create_commandcode_anthropic_service,
         }
 
         # Store details for custom providers
@@ -170,6 +172,32 @@ class ServiceManager:
         from AgentCrew.modules.custom_llm import FireworksService
 
         return FireworksService()
+
+    def _create_commandcode_service(self) -> BaseLLMService:
+        """Lazy import and create CommandCode service (OpenAI-compatible endpoint)."""
+        api_key = os.getenv("COMMAND_CODE_API_KEY", "")
+        if not api_key:
+            logger.error("COMMAND_CODE_API_KEY not found in environment variables.")
+        from AgentCrew.modules.custom_llm import CustomLLMService
+
+        return CustomLLMService(
+            base_url="https://api.commandcode.ai/provider/v1",
+            api_key=api_key,
+            provider_name="commandcode",
+        )
+
+    def _create_commandcode_anthropic_service(self) -> BaseLLMService:
+        """Lazy import and create CommandCode Anthropic service (Anthropic Messages endpoint)."""
+        api_key = os.getenv("COMMAND_CODE_API_KEY", "")
+        if not api_key:
+            logger.error("COMMAND_CODE_API_KEY not found in environment variables.")
+        from AgentCrew.modules.anthropic import AnthropicService
+
+        return AnthropicService(
+            api_key=api_key,
+            base_url="https://api.commandcode.ai/provider",
+            provider_name="commandcode",
+        )
 
     def _create_custom_llm_service(
         self,

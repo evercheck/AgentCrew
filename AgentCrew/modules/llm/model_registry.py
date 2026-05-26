@@ -19,6 +19,8 @@ PROVIDER_API_KEY_MAP: dict[str, str] = {
     "fireworks": "FIREWORKS_API_KEY",
     "github_copilot": "GITHUB_COPILOT_API_KEY",
     "copilot_response": "GITHUB_COPILOT_API_KEY",
+    "commandcode": "COMMAND_CODE_API_KEY",
+    "commandcode_anthropic": "COMMAND_CODE_API_KEY",
 }
 
 
