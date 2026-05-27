@@ -175,16 +175,12 @@ class ServiceManager:
 
     def _create_commandcode_service(self) -> BaseLLMService:
         """Lazy import and create CommandCode service (OpenAI-compatible endpoint)."""
-        api_key = os.getenv("COMMAND_CODE_API_KEY", "")
+        api_key = os.getenv("COMMAND_CODE_API_KEY")
         if not api_key:
             logger.error("COMMAND_CODE_API_KEY not found in environment variables.")
-        from AgentCrew.modules.custom_llm import CustomLLMService
+        from AgentCrew.modules.custom_llm import CommandCodeService
 
-        return CustomLLMService(
-            base_url="https://api.commandcode.ai/provider/v1",
-            api_key=api_key,
-            provider_name="commandcode",
-        )
+        return CommandCodeService()
 
     def _create_commandcode_anthropic_service(self) -> BaseLLMService:
         """Lazy import and create CommandCode Anthropic service (Anthropic Messages endpoint)."""

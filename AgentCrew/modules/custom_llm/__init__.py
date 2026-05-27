@@ -1,4 +1,5 @@
 from .service import CustomLLMService
+from .commandcode_service import CommandCodeService
 from .deepinfra_service import DeepInfraService
 from .fireworks_service import FireworksService
 from .crofai_service import CrofAIService
@@ -8,6 +9,7 @@ from .opencode_service import OpenCodeService
 
 __all__ = [
     "CustomLLMService",
+    "CommandCodeService",
     "DeepInfraService",
     "FireworksService",
     "CrofAIService",
