@@ -25,7 +25,7 @@ class CommandCodeService(CustomLLMService):
             "COMMAND_CODE_BASE_URL", "https://api.commandcode.ai/provider/v1"
         )
         if not api_key:
-            logger.error("CROFAI_API_KEY not found in environment variables")
+            logger.error("COMMAND_CODE_API_KEY not found in environment variables")
         super().__init__(
             api_key=api_key,
             base_url=base_url,
