@@ -372,7 +372,7 @@ class ServiceManager:
         # Fallback: treat provider as a direct service name
         return self.get_service(provider)
 
-    def set_model_for_model(self, model: Model):
+    def set_model_for_llm(self, model: Model):
         """Set the model on the service instance declared by the given model."""
         service = self.get_service_for_model(model)
         service.model = model.id

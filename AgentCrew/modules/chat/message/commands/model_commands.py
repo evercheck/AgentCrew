@@ -54,7 +54,7 @@ class ModelCommands:
         if registry.set_current_model(model_id):
             model = registry.get_current_model()
             if model:
-                llm_manager.set_model_for_model(model)
+                llm_manager.set_model_for_llm(model)
 
                 new_llm_service = llm_manager.get_service_for_model(model)
 

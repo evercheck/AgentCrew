@@ -48,29 +48,29 @@ class ModelRegistry:
         self._initialize_models()
 
     @classmethod
-    def get_model_capabilities(cls, mode_id):
+    def get_model_capabilities(cls, full_qualified_mode_id):
         registry = ModelRegistry.get_instance()
-        model = registry.get_model(mode_id)
+        model = registry.get_model(full_qualified_mode_id)
         if not model:
-            logger.warning(f"Model not found in registry: {mode_id}")
+            logger.warning(f"Model not found in registry: {full_qualified_mode_id}")
             return ["tool_use", "stream"]
         return model.capabilities
 
     @classmethod
-    def get_model_limit(cls, mode_id):
+    def get_model_limit(cls, full_qualified_mode_id):
         registry = ModelRegistry.get_instance()
-        model = registry.get_model(mode_id)
+        model = registry.get_model(full_qualified_mode_id)
         if not model:
-            logger.warning(f"Model not found in registry: {mode_id}")
+            logger.warning(f"Model not found in registry: {full_qualified_mode_id}")
             return 128_000
         return model.max_context_token
 
     @classmethod
-    def get_model_sample_params(cls, mode_id):
+    def get_model_sample_params(cls, full_qualified_mode_id):
         registry = ModelRegistry.get_instance()
-        model = registry.get_model(mode_id)
+        model = registry.get_model(full_qualified_mode_id)
         if not model:
-            logger.warning(f"Model not found in registry: {mode_id}")
+            logger.warning(f"Model not found in registry: {full_qualified_mode_id}")
             return None
         return model.force_sample_params
 
@@ -174,7 +174,7 @@ class ModelRegistry:
         """
         return [model for model in self.models.values() if model.provider == provider]
 
-    def set_current_model(self, model_id: str) -> bool:
+    def set_current_model(self, full_qualified_model_id: str) -> bool:
         """
         Set the current model by ID.
 
@@ -184,11 +184,13 @@ class ModelRegistry:
         Returns:
             True if successful, False otherwise
         """
-        model = self.get_model(model_id)
+        model = self.get_model(full_qualified_model_id)
         if model:
             self.current_model = model
             return True
-        logger.warning("Model with ID '%s' not found in registry.", model_id)
+        logger.warning(
+            "Model with ID '%s' not found in registry.", full_qualified_model_id
+        )
         return False
 
     def get_current_model(self) -> Model | None:

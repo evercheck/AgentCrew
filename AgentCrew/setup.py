@@ -183,15 +183,15 @@ class ApplicationSetup:
         llm_service = None
 
         try:
-            last_model = GlobalConfig().get_last_used_model()
+            last_full_qualified_model = GlobalConfig().get_last_used_model()
             last_provider = GlobalConfig().get_last_used_provider()
 
-            if last_model and last_provider:
+            if last_full_qualified_model and last_provider:
                 should_restore = False
                 if provider == last_provider:
                     should_restore = True
 
-                last_model_class = registry.get_model(last_model)
+                last_model_class = registry.get_model(last_full_qualified_model)
                 if should_restore and last_model_class:
                     llm_service = llm_manager.get_service_for_model(last_model_class)
                     llm_manager.apply_model_defaults(llm_service, last_model_class)
@@ -210,12 +210,13 @@ class ApplicationSetup:
             else:
                 llm_service = llm_manager.get_service_for_provider(provider)
 
-            if model_id:
-                model = registry.get_model(model_id)
-                if model:
-                    llm_manager.set_model_for_model(model)
-                else:
-                    llm_service.model = model_id
+        if model_id:
+            model = registry.get_model(f"{provider}/{model_id}")
+            if model:
+                registry.set_current_model(f"{provider}/{model_id}")
+                llm_manager.set_model_for_llm(model)
+            else:
+                llm_service.model = model_id
 
         memory_service = None
         context_service = None
@@ -421,7 +422,7 @@ tools = ["memory", "browser", "web_search", "code_analysis"]
             else:
                 if standalone_provider:
                     if model_id:
-                        model = registry.get_model(model_id)
+                        model = registry.get_model(f"{standalone_provider}/{model_id}")
                         if model:
                             standalone_llm_service = (
                                 llm_manager.initialize_standalone_service_for_model(

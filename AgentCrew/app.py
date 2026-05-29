@@ -435,7 +435,7 @@ class AgentCrewApplication:
             registry = ModelRegistry.get_instance()
 
             if model_id:
-                model = registry.get_model(model_id)
+                model = registry.get_model(f"{provider}/{model_id}")
                 if model:
                     llm_service = llm_manager.get_service_for_model(model)
                     llm_manager.apply_model_defaults(llm_service, model)
