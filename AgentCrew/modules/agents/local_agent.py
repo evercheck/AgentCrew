@@ -73,7 +73,7 @@ class LocalAgent(BaseAgent):
 
         from AgentCrew.modules.agents.manager import AgentMode
 
-        self._colaboration_mode = AgentMode.TRANSFER
+        self._colaboration_mode = AgentMode.NONE
 
         from .tool_registrar import AgentToolRegistrar
         from .context_manager import AgentContextManager
@@ -224,6 +224,7 @@ class LocalAgent(BaseAgent):
         self.mcp_resources = {}
         self.is_active = False
         self.mcps_loading = []
+        self._defer_tool_registration = False
         # Reinitialize MCP session manager for the current agent
         if not self.is_remoting_mode:
             from AgentCrew.modules.mcpclient import MCPSessionManager
@@ -243,7 +244,6 @@ class LocalAgent(BaseAgent):
 
     def resync_tools_to_llm(self):
         self._register_tools_with_llm()
-        self._defer_tool_registration = False
 
     @property
     def clean_history(self):
@@ -550,6 +550,7 @@ class LocalAgent(BaseAgent):
             while len(self.mcps_loading) > 0:
                 await asyncio.sleep(0.2)
             self._register_tools_with_llm()
+            self._defer_tool_registration = False
 
         assistant_response = ""
         _tool_uses = []

@@ -18,9 +18,7 @@ from AgentCrew.modules.clipboard import ClipboardService
 from AgentCrew.modules.web_search import TavilySearchService
 from AgentCrew.modules.code_analysis import CodeAnalysisService
 from AgentCrew.modules.browser_automation import BrowserAutomationService
-from AgentCrew.modules.agents.manager import AgentManager
-from AgentCrew.modules.agents.local_agent import LocalAgent
-from AgentCrew.modules.agents.remote_agent import RemoteAgent
+from AgentCrew.modules.agents import AgentManager, LocalAgent, RemoteAgent
 from AgentCrew.modules.agents.example import (
     DEFAULT_NAME,
     DEFAULT_DESCRIPTION,

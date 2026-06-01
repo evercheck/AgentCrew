@@ -10,6 +10,7 @@ from AgentCrew.modules.acp.session_state import AcpSessionState
 from AgentCrew.modules.mcpclient import MCPSessionManager
 
 if TYPE_CHECKING:
+    from AgentCrew.modules.agents import AgentManager
     from AgentCrew.modules.mcpclient import MCPService
 
 ACP_MCP_STARTUP_TIMEOUT_SECONDS = 8.0
@@ -17,7 +18,7 @@ ACP_MCP_STARTUP_POLL_SECONDS = 0.1
 
 
 class McpOrchestrator:
-    def __init__(self, agent_manager: Any):
+    def __init__(self, agent_manager: AgentManager):
         self._agent_manager = agent_manager
 
     async def setup_session_mcp_servers(

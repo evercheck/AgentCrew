@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from AgentCrew.modules.acp.session_state import AcpSessionState
 
+if TYPE_CHECKING:
+    from AgentCrew.modules.agents import LocalAgent, AgentManager
+
 
 class AcpToolManager:
-    def __init__(self, agent_manager: Any):
+    def __init__(self, agent_manager: AgentManager):
         self._agent_manager = agent_manager
         self._client_capabilities: Any = None
 
@@ -55,7 +58,7 @@ class AcpToolManager:
         caps = self._client_capabilities
         return self._capability_flag(caps, "terminal")
 
-    def _get_agent(self, agent_name: str) -> Any:
+    def _get_agent(self, agent_name: str) -> LocalAgent:
 
         agent = self._agent_manager.get_local_agent(agent_name)
         if agent is None:
@@ -79,11 +82,11 @@ class AcpToolManager:
 
             if can_read_files and "get_file" in agent.tool_definitions:
                 state.tool_state.acp_backup_tool_defs["get_file"] = (
-                    agent.tool_definitions.pop("get_file")
+                    agent.tool_definitions.pop("get_file", None)
                 )
             if can_write_files and "write_or_edit_file" in agent.tool_definitions:
                 state.tool_state.acp_backup_tool_defs["write_or_edit_file"] = (
-                    agent.tool_definitions.pop("write_or_edit_file")
+                    agent.tool_definitions.pop("write_or_edit_file", None)
                 )
             register_acp_fs(
                 agent=agent,
@@ -103,11 +106,13 @@ class AcpToolManager:
                 "run_command",
                 "check_command_status",
                 "terminate_command",
+                "list_running_commands",
+                "send_command_input",
             ]
             for name in replaced_terminal:
                 if name in agent.tool_definitions:
                     state.tool_state.acp_backup_tool_defs[name] = (
-                        agent.tool_definitions.pop(name)
+                        agent.tool_definitions.pop(name, None)
                     )
             register_acp_terminal(agent=agent)
             tools_changed = True

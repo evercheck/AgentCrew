@@ -306,8 +306,7 @@ class AgentCrewApplication:
 
             os.environ["AGENTCREW_DISABLE_GUI"] = "true"
 
-            self.setup.setup_agents(services, agent_config, provider, model_id)
-            self.setup.restore_last_agent()
+            self.setup.setup_agents(services, agent_config)
 
             if self.agent_manager is None:
                 raise ValueError("Agent manager is not initialized")
@@ -315,6 +314,8 @@ class AgentCrewApplication:
             self.agent_manager.enforce_transfer = False
             if agent:
                 self.agent_manager.select_agent(agent)
+            else:
+                self.setup.restore_last_agent()
 
             asyncio.run(run_acp_agent(self.agent_manager, agent))
         except Exception as e:

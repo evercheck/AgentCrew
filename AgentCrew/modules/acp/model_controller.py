@@ -81,7 +81,6 @@ class ModelController:
         else:
             state.agent_name = next_agent_name
         await self.apply_session_model_to_agent(state)
-        await self.apply_session_thought_level_to_agent(state)
 
     async def apply_session_model_to_agent(self, state: AcpSessionState):
         if not state.model_id:
@@ -120,7 +119,9 @@ class ModelController:
             )
 
         manager = ServiceManager.get_instance()
-        new_llm_service = manager.initialize_standalone_service_for_model(model)
+        manager.set_model_for_llm(model)
+
+        new_llm_service = manager.get_service_for_model(model)
         manager.apply_model_defaults(new_llm_service, model)
         self._get_agent(state.agent_name).update_llm_service(new_llm_service)
         state.model_id = model_id
@@ -184,7 +185,7 @@ class ModelController:
         agent = self._get_agent(state.agent_name)
         agent_value = self.thought_level_to_agent_value(agent, thought_level)
         try:
-            applied = agent.llm.set_think(agent_value)
+            applied = agent.llm.set_think(agent_value) if agent.llm else False
         except ValueError as e:
             raise RequestError.invalid_params(
                 {

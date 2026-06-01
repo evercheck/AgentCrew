@@ -111,8 +111,8 @@ class AgentManager:
         return self.agent_mode == AgentMode.TRANSFER
 
     @enforce_transfer.setter
-    def enforce_transfer(self, value: bool):
-        self.agent_mode = AgentMode.TRANSFER if value else AgentMode.NONE
+    def enforce_transfer(self, enabled: bool):
+        self.agent_mode = AgentMode.TRANSFER if enabled else AgentMode.NONE
 
     @classmethod
     def get_instance(cls):

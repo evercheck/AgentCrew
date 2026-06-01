@@ -33,8 +33,8 @@ class TurnExecutor:
                 conn=conn,
                 session_id=session_id,
             )
-        await self._tool_manager.ensure_tools_for_session(session_id, state)
         agent = self._get_agent(state.agent_name)
+        await self._tool_manager.ensure_tools_for_session(session_id, state)
 
         retried_count = 0
         await self._run_turn_with_retry(session_id, state, conn, agent, retried_count)
@@ -360,4 +360,6 @@ class TurnExecutor:
         agent = agent_manager.get_local_agent(agent_name)
         if agent is None:
             raise ValueError(f"Agent '{agent_name}' not found")
+        if not agent.is_active:
+            agent.activate()
         return agent

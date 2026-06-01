@@ -117,9 +117,10 @@ class AgentToolRegistrar:
             register_skills(skills_service, agent)
 
         if agent.services.get("agent_manager"):
-            from AgentCrew.modules.agents.manager import AgentMode
+            from AgentCrew.modules.agents import AgentMode
 
             mode = agent.services["agent_manager"].agent_mode
+            print(mode)
             if not agent.is_remoting_mode and mode == AgentMode.TRANSFER:
                 from AgentCrew.modules.agents.tools.transfer import (
                     register as register_transfer,
@@ -209,8 +210,6 @@ class AgentToolRegistrar:
                 agent.registered_tools.add(tool_name)
             except Exception as e:
                 logger.error(f"Error registering tool {tool_name}: {e}")
-
-        agent._defer_tool_registration = False
 
     def _clear_from_llm(self) -> None:
         """Remove all tool registrations from the LLM service."""
