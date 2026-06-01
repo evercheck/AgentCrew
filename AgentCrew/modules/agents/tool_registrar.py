@@ -120,7 +120,6 @@ class AgentToolRegistrar:
             from AgentCrew.modules.agents import AgentMode
 
             mode = agent.services["agent_manager"].agent_mode
-            print(mode)
             if not agent.is_remoting_mode and mode == AgentMode.TRANSFER:
                 from AgentCrew.modules.agents.tools.transfer import (
                     register as register_transfer,
