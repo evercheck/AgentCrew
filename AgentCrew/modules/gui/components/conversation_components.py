@@ -45,7 +45,7 @@ class ConversationComponents:
 
         # Reset session cost when loading a new conversation
         self.chat_window.session_cost = 0.0
-        self.chat_window.token_usage.update_token_info(0, 0, 0.0, 0.0)
+        self.chat_window.token_usage.update_token_info(0, 0, 0, 0.0, 0.0)
 
         last_consolidated_idx = 0
 

@@ -281,7 +281,7 @@ class MessageHandler(Observable):
                             "output_tokens": token_usage.output_tokens,
                             "cached_tokens": token_usage.cached_tokens,
                             "cache_creation_tokens": token_usage.cache_creation_tokens,
-                            "total_tokens": token_usage.total_tokens,
+                            "total_tokens": token_usage.total_input_tokens,
                         }
                         self.persistent_service.store_conversation_metadata(
                             self.current_conversation_id, metadata
@@ -513,11 +513,11 @@ class MessageHandler(Observable):
                     self._notify("response_completed", assistant_response)
                     return assistant_response, token_usage
 
-                return await self.get_assistant_response()
+                return await self.get_assistant_response(token_usage)
 
             # prevent stream drop
             if assistant_response.strip() == "":
-                return await self.get_assistant_response()
+                return await self.get_assistant_response(token_usage)
 
             self._finalize_current_turn(
                 assistant_response,
@@ -539,7 +539,7 @@ class MessageHandler(Observable):
                     }
                 )
                 self.agent_manager.defered_transfer = ""
-                return await self.get_assistant_response()
+                return await self.get_assistant_response(token_usage)
 
             return assistant_response, token_usage
 
@@ -588,10 +588,10 @@ class MessageHandler(Observable):
                             self.agent.get_model()
                         )
                         self.agent.input_tokens_usage = max_token
-                        return await self.get_assistant_response()
+                        return await self.get_assistant_response(token_usage)
             # retry if internal server error from provider
             elif isinstance(e, APIError) and str(e) == "Internal server error":
-                return await self.get_assistant_response()
+                return await self.get_assistant_response(token_usage)
             if self.current_user_input:
                 self.conversation_manager.store_conversation_turn(
                     self.current_user_input, self.current_user_input_idx
@@ -606,7 +606,7 @@ class MessageHandler(Observable):
                         "output_tokens": token_usage.output_tokens,
                         "cached_tokens": token_usage.cached_tokens,
                         "cache_creation_tokens": token_usage.cache_creation_tokens,
-                        "total_tokens": token_usage.total_tokens,
+                        "total_tokens": token_usage.total_input_tokens,
                     }
                     self.persistent_service.store_conversation_metadata(
                         self.current_conversation_id, metadata

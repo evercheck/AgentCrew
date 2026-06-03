@@ -376,6 +376,7 @@ class ConsoleUI(Observer):
                 input_tokens=data.get("input_tokens", 0),
                 output_tokens=data.get("output_tokens", 0),
                 cached_tokens=data.get("cached_tokens", 0),
+                total_input_tokens=data.get("total_tokens", 0),
                 cache_creation_tokens=data.get("cache_creation_tokens", 0),
             )
             self._calculate_token_usage(self._token_usage)

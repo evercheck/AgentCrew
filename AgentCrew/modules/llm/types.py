@@ -31,7 +31,7 @@ class Model(BaseModel):
     default: bool = False
     default_reasoning: Literal["none", "minimal", "low", "medium", "high"] | None = None
     force_sample_params: SampleParam | None = None
-    max_context_token: int = 72_000
+    max_context_token: int = 80_000
     input_token_price_1m: float = 0.0
     output_token_price_1m: float = 0.0
     cached_token_price_1m: float = 0.0

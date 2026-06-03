@@ -102,7 +102,7 @@ class CommandHandler:
 
         # Reset session cost display
         self.chat_window.session_cost = 0.0
-        self.chat_window.token_usage.update_token_info(0, 0, 0.0, 0.0)
+        self.chat_window.token_usage.update_token_info(0, 0, 0, 0.0, 0.0)
 
         # If the clear was initiated by the user (not loading a conversation),
         # tell the message handler to clear its state.
@@ -356,7 +356,7 @@ class CommandHandler:
         if event == "clear_requested":
             self.chat_window.chat_components.clear_chat_ui()
             self.chat_window.session_cost = 0.0
-            self.chat_window.token_usage.update_token_info(0, 0, 0.0, 0.0)
+            self.chat_window.token_usage.update_token_info(0, 0, 0, 0.0, 0.0)
             self.chat_window.chat_components.add_system_message(
                 "Welcome! Select a past conversation or start a new one."
             )

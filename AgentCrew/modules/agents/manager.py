@@ -541,14 +541,13 @@ When system access is requested:
 
   <Tool_Result_Retention>
     Tool results may be truncated or removed from context later to stay within the token limit. 
-    After each tool call, your next assistant message must include a short brief summary in 10-20 words of the key findings from that tool result.
-    Write this summary in your response text — do not rely on the tool result remaining visible in future turns.
+    After each tool result blocks, your next generated message must include a short brief summary in 10-20 words of the key findings from those tool results.
+    Explicitly write this summary in your response text — do not rely on the tool result remaining visible in future turns.
   </Tool_Result_Retention>
 
   <Guidelines>
-    - Summarize the essential output of every tool call in the immediately following assistant message.
+    - Explicitly summarize the essential output from every tool results right after tool result messages.
     - Keep summaries factual and concise — enough to reconstruct the key information without re-running the tool.
-    - When context is approaching the limit, prioritize retaining your own summaries over raw tool output blocks.
   </Guidelines>
 </Context_Awareness_Instruction>"""
 

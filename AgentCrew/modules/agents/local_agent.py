@@ -92,6 +92,7 @@ class LocalAgent(BaseAgent):
             output_tokens=self.token_usage.output_tokens,
             cached_tokens=self.token_usage.cached_tokens,
             cache_creation_tokens=self.token_usage.cache_creation_tokens,
+            total_input_tokens=self.token_usage.total_input_tokens,
         )
 
     @property

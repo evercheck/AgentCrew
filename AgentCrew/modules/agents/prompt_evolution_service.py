@@ -171,6 +171,9 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
             current_system_prompt=agent.get_system_prompt(),
             approved_summary=approved_summary,
         )
+        if not agent.llm:
+            raise ValueError("LLM Service is not ready.")
+
         revised_prompt = await agent.llm.process_message(prompt)
         revised_prompt = revised_prompt.strip()
         if not revised_prompt:
@@ -335,6 +338,8 @@ Output ONLY the complete revised system prompt. No commentary, no explanation, n
             memory_corpus=corpus_text,
         )
         logger.debug(f"Evolution analysis prompt length: {len(prompt)} chars")
+        if not agent.llm:
+            raise ValueError("LLM Service is not ready.")
         raw_response = await agent.llm.process_message(prompt)
         return self._parse_json_response(raw_response)
 

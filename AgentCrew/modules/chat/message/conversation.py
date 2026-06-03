@@ -181,6 +181,7 @@ class ConversationManager:
                         input_tokens=metadata.get("input_tokens", 0),
                         output_tokens=metadata.get("output_tokens", 0),
                         cached_tokens=metadata.get("cached_tokens", 0),
+                        total_input_tokens=metadata.get("total_tokens", 0),
                         cache_creation_tokens=metadata.get("cache_creation_tokens", 0),
                     )
                     self.message_handler.agent.token_usage = token_usage
@@ -191,6 +192,7 @@ class ConversationManager:
                             "input_tokens": token_usage.input_tokens,
                             "output_tokens": token_usage.output_tokens,
                             "cached_tokens": token_usage.cached_tokens,
+                            "total_tokens": token_usage.total_input_tokens,
                             "cache_creation_tokens": token_usage.cache_creation_tokens,
                         },
                     )

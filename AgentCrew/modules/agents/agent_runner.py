@@ -14,12 +14,14 @@ async def run_agent_loop(
     history: list[dict[str, Any]],
     *,
     tool_filter: Callable[[dict[str, Any]], bool] | None = None,
+    prior_token_usage: TokenUsage | None = None,
 ) -> tuple[str, TokenUsage]:
     current_response = ""
     thinking_content = ""
     thinking_signature = ""
     tool_uses: list[dict[str, Any]] = []
-    token_usage = TokenUsage()
+
+    token_usage = prior_token_usage or TokenUsage()
 
     def process_result(_tool_uses, _token_usage):
         nonlocal tool_uses, token_usage
@@ -133,4 +135,6 @@ async def run_agent_loop(
             if msg:
                 history.append(msg)
 
-    return await run_agent_loop(agent, history, tool_filter=tool_filter)
+    return await run_agent_loop(
+        agent, history, tool_filter=tool_filter, prior_token_usage=token_usage
+    )

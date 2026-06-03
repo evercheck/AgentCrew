@@ -312,6 +312,7 @@ class ChatWindow(QMainWindow, Observer):
             {
                 "input_tokens": token_usage.input_tokens,
                 "output_tokens": token_usage.output_tokens,
+                "total_tokens": token_usage.total_input_tokens,
                 "cached_tokens": token_usage.cached_tokens,
                 "cache_creation_tokens": token_usage.cache_creation_tokens,
                 "total_cost": total_cost,
@@ -362,6 +363,7 @@ class ChatWindow(QMainWindow, Observer):
         """Update token usage display."""
         input_tokens = usage_data.get("input_tokens", 0)
         output_tokens = usage_data.get("output_tokens", 0)
+        total_input_tokens = usage_data.get("total_tokens", 0)
         cached_tokens = usage_data.get("cached_tokens", 0)
         cache_creation_tokens = usage_data.get("cache_creation_tokens", 0)
         total_cost = usage_data.get("total_cost", 0.0)
@@ -373,6 +375,7 @@ class ChatWindow(QMainWindow, Observer):
         self.token_usage.update_token_info(
             input_tokens,
             output_tokens,
+            total_input_tokens,
             total_cost,
             self.session_cost,
             cached_tokens,
@@ -617,6 +620,7 @@ class ChatWindow(QMainWindow, Observer):
                 input_tokens=data.get("input_tokens", 0),
                 output_tokens=data.get("output_tokens", 0),
                 cached_tokens=data.get("cached_tokens", 0),
+                total_input_tokens=data.get("total_tokens", 0),
                 cache_creation_tokens=data.get("cache_creation_tokens", 0),
             )
             self._update_cost_info(token_usage)

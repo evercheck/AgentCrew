@@ -35,6 +35,7 @@ class TokenUsageWidget(QWidget):
         self,
         input_tokens: int,
         output_tokens: int,
+        total_input_tokens: int,
         total_cost: float,
         session_cost: float,
         cached_tokens: int = 0,
@@ -47,8 +48,7 @@ class TokenUsageWidget(QWidget):
         if cache_creation_tokens > 0:
             parts.append(f"Cache Write: {cache_creation_tokens:,}")
         parts.append(f"Output: {output_tokens:,}")
-        total = input_tokens + cached_tokens + cache_creation_tokens + output_tokens
-        parts.append(f"Total: {total:,}")
+        parts.append(f"Total: {total_input_tokens:,}")
         parts.append(f"Cost: ${total_cost:.4f}")
         parts.append(f"Session: ${session_cost:.4f}")
         self.token_label.setText("  ·  ".join(parts))

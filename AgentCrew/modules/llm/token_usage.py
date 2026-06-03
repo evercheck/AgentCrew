@@ -19,11 +19,7 @@ class TokenUsage:
     output_tokens: int = 0
     cached_tokens: int = 0
     cache_creation_tokens: int = 0
-
-    @property
-    def total_input_tokens(self) -> int:
-        """All input tokens including cached reads and cache writes."""
-        return self.input_tokens + self.cached_tokens + self.cache_creation_tokens
+    total_input_tokens: int = 0
 
     @property
     def total_tokens(self) -> int:
@@ -33,9 +29,12 @@ class TokenUsage:
     def merge(self, other: TokenUsage) -> TokenUsage:
         """Return a new TokenUsage with fields summed from self and other."""
         return TokenUsage(
-            input_tokens=self.input_tokens + other.input_tokens,
-            output_tokens=self.output_tokens + other.output_tokens,
-            cached_tokens=self.cached_tokens + other.cached_tokens,
+            input_tokens=other.input_tokens,
+            output_tokens=other.output_tokens,
+            cached_tokens=other.cached_tokens,
+            total_input_tokens=self.total_input_tokens
+            + other.input_tokens
+            + other.cached_tokens,
             cache_creation_tokens=self.cache_creation_tokens
             + other.cache_creation_tokens,
         )
