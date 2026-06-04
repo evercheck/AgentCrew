@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
 # Initialize the logger
 mcp_log_io = FileLogIO("mcpclient_agentcrew")
+MCP_OPERATION_TIMEOUT_SECONDS = 300.0
 
 
 class MCPService:
@@ -478,7 +479,7 @@ class MCPService:
                     description=resource.get("description"),
                     mimeType=resource.get("mimeType"),
                 )
-                return self._format_resource_link(
+                return await self._format_resource_link_async(
                     resource_link, self.sessions[combined_server_id]
                 )
 
@@ -811,6 +812,33 @@ class MCPService:
             self.loop = asyncio.new_event_loop()
         return asyncio.run_coroutine_threadsafe(coro, self.loop).result()
 
+    async def _await_on_service_loop(
+        self, coro, timeout: float | None = MCP_OPERATION_TIMEOUT_SECONDS
+    ):
+        """Await a coroutine on the MCP service loop without blocking the caller loop."""
+        if self.loop.is_closed():
+            raise RuntimeError("MCP service event loop is closed")
+
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if running_loop is self.loop:
+            if timeout is None:
+                return await coro
+            return await asyncio.wait_for(coro, timeout=timeout)
+
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        wrapped = asyncio.wrap_future(future)
+        try:
+            if timeout is None:
+                return await wrapped
+            return await asyncio.wait_for(wrapped, timeout=timeout)
+        except TimeoutError:
+            future.cancel()
+            raise
+
     def _create_tool_handler(self, server_id: str, tool_name: str) -> Callable:
         """
         Create an asynchronous handler function for a tool.
@@ -838,10 +866,10 @@ class MCPService:
                     )
 
                 session = self.sessions[server_id]
-                # Note: even though this is an async function, we need to use run_async to run it
-                # in a threadsafe coroutines, use await here will make main thread wait forever.
-                result = self._run_async(session.call_tool(tool_name, params))
-                return self._format_contents(result.content, session)
+                result = await self._await_on_service_loop(
+                    session.call_tool(tool_name, params)
+                )
+                return await self._format_contents_async(result.content, session)
 
             return actual_tool_executor  # Return the async function
 
@@ -913,7 +941,9 @@ class MCPService:
 
         try:
             session = self.sessions[server_id]
-            result = self._run_async(session.get_prompt(prompt_name, arguments))
+            result = await self._await_on_service_loop(
+                session.get_prompt(prompt_name, arguments)
+            )
             return {"content": result.messages, "status": "success"}
         except Exception as e:
             logger.error(
@@ -951,6 +981,32 @@ class MCPService:
 
         return result
 
+    async def _format_contents_async(
+        self,
+        content: list[ContentBlock],
+        session: ClientSession | None = None,
+    ) -> list[dict[str, Any]]:
+        result = []
+        for c in content:
+            if isinstance(c, TextContent):
+                result.append(
+                    {
+                        "type": "text",
+                        "text": c.text,
+                    }
+                )
+            elif isinstance(c, ImageContent):
+                result.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{c.mimeType};base64,{c.data}"},
+                    }
+                )
+            elif isinstance(c, ResourceLink):
+                result.extend(await self._format_resource_link_async(c, session))
+
+        return result
+
     def _format_resource_link(
         self, resource_link: ResourceLink, session: ClientSession | None
     ) -> list[dict[str, Any]]:
@@ -964,6 +1020,28 @@ class MCPService:
         except Exception as e:
             return [self._resource_link_fallback(resource_link, str(e))]
 
+        return self._format_resource_result(resource_link, resource_result)
+
+    async def _format_resource_link_async(
+        self, resource_link: ResourceLink, session: ClientSession | None
+    ) -> list[dict[str, Any]]:
+        if session is None:
+            return [
+                self._resource_link_fallback(resource_link, "No MCP session available")
+            ]
+
+        try:
+            resource_result = await self._await_on_service_loop(
+                session.read_resource(resource_link.uri)
+            )
+        except Exception as e:
+            return [self._resource_link_fallback(resource_link, str(e))]
+
+        return self._format_resource_result(resource_link, resource_result)
+
+    def _format_resource_result(
+        self, resource_link: ResourceLink, resource_result
+    ) -> list[dict[str, Any]]:
         formatted = []
         for resource_content in resource_result.contents:
             error_str = None
@@ -1115,9 +1193,11 @@ class MCPService:
                 }
 
         try:
-            result = await self.sessions[server_id].call_tool(tool_name, tool_args)
+            result = await self._await_on_service_loop(
+                self.sessions[server_id].call_tool(tool_name, tool_args)
+            )
             return {
-                "content": self._format_contents(
+                "content": await self._format_contents_async(
                     result.content, self.sessions[server_id]
                 ),
                 "status": "success",
