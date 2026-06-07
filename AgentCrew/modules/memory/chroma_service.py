@@ -48,6 +48,10 @@ class ChromaMemoryService(BaseMemoryService):
                 self.llm_service.model = "Qwen/Qwen3.5-9B"
             elif self.llm_service.provider_name == "opencode_go":
                 self.llm_service.model = "deepseek-v4-flash"
+            elif self.llm_service.provider_name == "commandcode":
+                self.llm_service.model = "deepseek/deepseek-v4-flash"
+            elif self.llm_service.provider_name == "crofai":
+                self.llm_service.model = "deepseek-v4-flash"
 
         self._collection = None
         self.collection_name = collection_name
