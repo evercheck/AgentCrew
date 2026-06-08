@@ -237,7 +237,7 @@ class ChromaMemoryService(BaseMemoryService):
         sorted_conversations = sorted(conversation_chunks, key=lambda x: x["relevance"])
 
         output = []
-        for conv_data in sorted_conversations:
+        for conv_data in sorted_conversations[:3]:
             conversation_text = conv_data["document"]
             if conv_data["relevance"] > RELEVANT_THRESHOLD:
                 continue
@@ -253,9 +253,7 @@ class ChromaMemoryService(BaseMemoryService):
                 except Exception:
                     timestamp = conv_data["timestamp"]
 
-            output.append(
-                f"--- Memory from {timestamp} [id:{conv_data['id']}] ---\n{conversation_text}\n---"
-            )
+            output.append(f"---Date:{timestamp}---\n{conversation_text}\n---")
 
         memories = "\n\n".join(output)
         return memories
