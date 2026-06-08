@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import shutil
-from typing import Any
+from typing import Any, Literal
 from loguru import logger
 
 from AgentCrew.modules.command_execution.service import CommandExecutionService
@@ -746,6 +746,7 @@ class GrepTextService:
         path: list[str] | str,
         case_sensitive: bool = True,
         max_results: int | None = None,
+        path_type: Literal["absolute", "relative"] = "absolute",
     ) -> str:
         """
         Search for text patterns within one or more files and directories.
@@ -757,6 +758,8 @@ class GrepTextService:
                            Default: True (case-sensitive)
             max_results: Maximum number of results to return. None for unlimited.
                         Default: None (return all matches)
+            path_type: Type of paths to return - "absolute" (default) or "relative".
+                      Relative paths are calculated relative to the current working directory.
 
         Returns:
             str: Formatted search results with structure:
@@ -852,6 +855,17 @@ class GrepTextService:
 
         if max_results is not None:
             combined_matches = combined_matches[:max_results]
+
+        if path_type == "relative":
+            cwd = os.getcwd()
+            converted_matches = []
+            for file_path, line_number, line_content in combined_matches:
+                try:
+                    rel_path = os.path.relpath(file_path, cwd)
+                    converted_matches.append((rel_path, line_number, line_content))
+                except (ValueError, TypeError):
+                    converted_matches.append((file_path, line_number, line_content))
+            combined_matches = converted_matches
 
         total_matches = len(combined_matches)
         if total_matches == 0:

@@ -345,19 +345,17 @@ def get_find_files_tool_handler(service_instance: FileSearchService) -> Callable
         # Expand user directory if present (e.g., ~/project -> /home/user/project)
         expanded_directory = os.path.expanduser(directory)
 
-        path_type = "absolute" if os.path.isabs(expanded_directory) else "relative"
-
         logger.info(
             f"find_files tool called with: pattern='{pattern}', directory='{directory}', "
             f"expanded_directory='{expanded_directory}', isabs={os.path.isabs(expanded_directory)}, "
-            f"max_results={max_results}, path_type='{path_type}'"
+            f"max_results={max_results}, path_type='relative'"
         )
 
         file_search_result = service_instance.search_files(
             pattern=pattern,
             directory=expanded_directory,
             max_results=max_results,
-            path_type=path_type,
+            path_type="relative",
         )
 
         return [
@@ -529,6 +527,7 @@ def get_grep_text_tool_handler(service_instance: GrepTextService) -> Callable:
                 path=expanded_path,
                 case_sensitive=case_sensitive,
                 max_results=max_results,
+                path_type="relative",
             )
         except Exception as e:
             error_msg = f"Text search failed: {str(e)}"

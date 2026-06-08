@@ -228,20 +228,24 @@ You must analyze then execute it with your available tools and execute then give
                 from AgentCrew.modules.agents.manager import AgentMode
 
                 if agent._colaboration_mode == AgentMode.TRANSFER:
-                    eval_text = """Before processing user request, quickly evaluate inside <agent_evaluation> tags:
-- Plan out the tool call strategy for this request: which tools to call, in what order, and what inputs each needs.
+                    eval_text = """Before processing user request, quickly evaluate the plan to fullfil user request inside <agent_evaluation> tags:
+- Plan out the tool call strategy for this request: which tools you should call, in what order, and what inputs each needs.
+- Sum up what you get from tool results in your next messages.
 - Is another agent better suited? If yes, transfer immediately.
 Then execute your plan.
 Skip evaluation for: simple one-sentence answers, or when the request matches "when [condition], [action]" — call `learn_behavior` directly instead."""
                 elif agent._colaboration_mode == AgentMode.DELEGATE:
-                    eval_text = """Before processing user request, quickly evaluate inside <agent_evaluation> tags:
-- Plan out the tool call strategy for this request: which tools to call, in what order, and what inputs each needs.
-- Can any sub-tasks be delegated to specialist agents? If yes, delegate them.
+                    eval_text = """Before processing user request, quickly evaluate the plan to fullfil user request inside <agent_evaluation> tags:
+- Plan out the tool call strategy for this request: which tools you should call, in what order, and what inputs each needs.
+- Sum up what you get from tool results in your next messages.
+- Can this request break into multiple sub-tasks and be delegated to specialist agents? If yes, delegate them.
 - Can multiple sub-tasks run in parallel? If yes, emit multiple delegate calls in one turn.
 Then execute your plan.
 Skip evaluation for: simple one-sentence answers, or when the request matches "when [condition], [action]" — call `learn_behavior` directly instead."""
                 else:
-                    eval_text = None
+                    eval_text = """"Before processing user request, quickly evaluate the plan to fullfil user request inside <agent_evaluation> tags:
+- Plan out the tool call strategy for this request: which tools you should call, in what order, and what inputs each needs.
+- Sum up what you get from tool results in your next messages."""
 
                 if eval_text:
                     adaptive_messages["content"].insert(
@@ -365,16 +369,6 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
 
                 if msg.get("role") == "tool" and "content" in msg:
                     msg["content"] = "[INVALIDATED]"
-
-                # elif msg.get("role") == "user" and isinstance(msg.get("content"), list):
-                #     for content_item in msg["content"]:
-                #         if (
-                #             isinstance(content_item, dict)
-                #             and content_item.get("type") == "tool_result"
-                #             and "content" in content_item
-                #         ):
-                #             content_item["content"] = "[INVALIDATED]"
-                #             break
 
         for assistant_idx, tool_result_indices in sorted(
             tool_result_needed_rearrange.items(), reverse=True
