@@ -78,22 +78,26 @@ class TavilySearchService:
         """Format search results into a readable string."""
         if "error" in results:
             return f"Search error: {results['error']}"
-        formatted_text = ""
 
-        if "answer" in results:
-            formatted_text += f"**Query's Summary**: {results['answer']}  \n\n"
+        lines = []
 
-        formatted_text += "**Search Results**:  \n\n"
+        if results.get("answer"):
+            lines.append(f"summary: {results['answer']}")
 
-        if "results" in results:
-            for i, result in enumerate(results["results"], 1):
-                formatted_text += f"{i}. {result.get('title', 'No title')} (Matching score: {result.get('score', 'Unknown')}) \n"
-                formatted_text += f"   URL: {result.get('url', 'No URL')}  \n"
-                formatted_text += f"   {result.get('content', 'No content')}  \n\n"
-        else:
-            formatted_text += "No results found."
+        search_results = results.get("results") or []
+        if not search_results:
+            lines.append("0 results")
+            return "\n".join(lines)
 
-        return formatted_text
+        lines.append(f"{len(search_results)} results")
+        for i, result in enumerate(search_results, 1):
+            lines.append(f"{i}. {result.get('title', 'No title')}")
+            lines.append(result.get("url", "No URL"))
+            content = result.get("content")
+            if content:
+                lines.append(content)
+
+        return "\n".join(lines)
 
     def format_extract_results(self, results: dict[str, Any]) -> str:
         """Format extract results into a readable string."""
@@ -106,8 +110,6 @@ class TavilySearchService:
             result = results["results"][0]
             url = result.get("url", "Unknown URL")
             content = result.get("raw_content", "No content available")
-            # if self.llm:
-            #     content = self.llm.summarize_content(content)
-            return f"Extracted content from {url}:\n\n{content}"
+            return f"{url}\n{content}"
         else:
             return "No content could be extracted."

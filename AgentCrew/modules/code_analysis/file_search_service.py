@@ -340,24 +340,23 @@ class FileSearchService:
 
     def _format_results_as_markdown(self, files: list[str]) -> str:
         """
-        Convert list of file paths to markdown format with summary.
+        Convert list of file paths to compact text with summary.
 
         Args:
             files: list of file paths
 
         Returns:
-            str: Markdown formatted string with count summary and file paths
+            str: Formatted string with count summary and file paths
         """
         count = len(files)
 
         if count == 0:
-            return "**Found 0 files**"
+            return "0 files"
 
-        # Build markdown with summary header and file list
-        markdown_lines = [f"**Found {count} file{'s' if count != 1 else ''}:**", ""]
-        markdown_lines.extend(files)
+        lines = [f"{count} file{'s' if count != 1 else ''}"]
+        lines.extend(files)
 
-        return "\n".join(markdown_lines)
+        return "\n".join(lines)
 
     def _parse_search_results(
         self, output: str, searcher: str, max_results: int | None = None
@@ -463,7 +462,7 @@ class FileSearchService:
                       Relative paths are calculated relative to the search directory
 
         Returns:
-            str: Markdown formatted string with count summary and file paths
+            str: Formatted string with count summary and file paths
 
         Raises:
             FileSearchError: If directory is invalid, inaccessible, or search parameters are invalid

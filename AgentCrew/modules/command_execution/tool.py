@@ -9,6 +9,27 @@ from .service import CommandExecutionService
 import os
 
 
+RUNNING_STDOUT_TAIL_LINES = 40
+RUNNING_STDERR_TAIL_LINES = 20
+
+
+def _append_section(response: str, label: str, content: str | None) -> str:
+    if not content:
+        return response
+    separator = "\n" if response.endswith("\n") else "\n\n"
+    return f"{response}{separator}{label}:\n{content}"
+
+
+def _tail_text(content: str | None, max_lines: int) -> str | None:
+    if not content:
+        return content
+    lines = content.splitlines()
+    if len(lines) <= max_lines:
+        return content
+    tail = "\n".join(lines[-max_lines:])
+    return f"[truncated: showing last {max_lines}/{len(lines)} lines]\n{tail}"
+
+
 def get_run_command_tool_definition() -> dict[str, Any]:
     """Get tool definition for running shell commands."""
     import sys
@@ -184,19 +205,16 @@ def get_run_command_tool_handler(command_service: CommandExecutionService) -> Ca
         )
 
         if result["status"] == "completed":
-            response = f"Command completed successfully.\nExit Code: {result['exit_code']}\nDuration: {result['duration_seconds']}s\n\n"
-            if result["output"]:
-                response += f"Output:\n{result['output']}"
-            if result.get("error"):
-                response += f"\n\nStderr:\n{result['error']}"
+            response = (
+                f"ok exit={result['exit_code']} dur={result['duration_seconds']}s"
+            )
+            response = _append_section(response, "stdout", result.get("output"))
+            response = _append_section(response, "stderr", result.get("error"))
             return response
 
         elif result["status"] == "running":
             cmd_id = result["command_id"]
-            response = f"Command still running after {result['timeout_seconds']}s.\nCommand ID: {cmd_id}\n\n"
-            response += f"Use check_command_status(command_id='{cmd_id}') to monitor.\n"
-            response += f"Use send_command_input(command_id='{cmd_id}', input_text='...') if waiting for input."
-            return response
+            return f"running id={cmd_id} timeout={result['timeout_seconds']}s"
 
         else:
             return f"Command failed: {result.get('error', 'Unknown error')}"
@@ -217,28 +235,31 @@ def get_check_command_status_tool_handler(
         result = command_service.get_command_status(command_id=command_id)
 
         if result["status"] == "completed":
-            response = f"Command completed.\nExit Code: {result['exit_code']}\nDuration: {result['duration_seconds']}s\n\n"
-            if result["output"]:
-                response += f"Output:\n{result['output']}"
-            if result.get("error"):
-                response += f"\n\nStderr:\n{result['error']}"
+            response = (
+                f"done exit={result['exit_code']} dur={result['duration_seconds']}s"
+            )
+            response = _append_section(response, "stdout", result.get("output"))
+            response = _append_section(response, "stderr", result.get("error"))
             return response
 
         elif result["status"] == "running":
-            response = f"Command still running.\nElapsed: {result['elapsed_seconds']}s\nState: {result.get('state', 'running')}\n\n"
-            if result.get("output"):
-                response += f"Output so far:\n{result['output']}\n\n"
-            if result.get("error"):
-                response += f"Stderr so far:\n{result['error']}\n\n"
-            response += "Check again later."
+            response = f"running id={command_id} elapsed={result['elapsed_seconds']}s state={result.get('state', 'running')}"
+            response = _append_section(
+                response,
+                "stdout_tail",
+                _tail_text(result.get("output"), RUNNING_STDOUT_TAIL_LINES),
+            )
+            response = _append_section(
+                response,
+                "stderr_tail",
+                _tail_text(result.get("error"), RUNNING_STDERR_TAIL_LINES),
+            )
             return response
 
         elif result["status"] == "timeout":
-            response = f"Command exceeded max lifetime and was terminated.\nElapsed: {result['elapsed_seconds']}s\n\n"
-            if result.get("output"):
-                response += f"Output before timeout:\n{result['output']}"
-            if result.get("error"):
-                response += f"\n\nStderr:\n{result['error']}"
+            response = f"timeout id={command_id} elapsed={result['elapsed_seconds']}s"
+            response = _append_section(response, "stdout", result.get("output"))
+            response = _append_section(response, "stderr", result.get("error"))
             return response
 
         else:
@@ -264,15 +285,18 @@ def get_list_running_commands_tool_handler(
         if count == 0:
             return "No commands currently running."
 
-        response = f"Running commands: {count}\n\n"
-        for idx, cmd in enumerate(commands, 1):
-            response += f"{idx}. ID: {cmd['command_id']}\n   Command: {cmd['command']}\n   State: {cmd['state']}\n   Elapsed: {cmd['elapsed_seconds']}s\n   Dir: {cmd['working_dir']}\n"
+        lines = [f"{count} running command{'s' if count != 1 else ''}"]
+        for cmd in commands:
+            line = (
+                f"{cmd['command_id']} state={cmd['state']} "
+                f"elapsed={cmd['elapsed_seconds']}s dir={cmd['working_dir']} "
+                f"cmd={cmd['command']}"
+            )
             if "exit_code" in cmd:
-                response += f"   Exit: {cmd['exit_code']}\n"
-            response += "\n"
+                line += f" exit={cmd['exit_code']}"
+            lines.append(line)
 
-        response += "Use check_command_status(command_id='...') for details.\nUse terminate_command(command_id='...') to stop."
-        return response
+        return "\n".join(lines)
 
     return handle_list_running_commands
 
@@ -290,7 +314,7 @@ def get_terminate_command_tool_handler(
         result = command_service.terminate_command(command_id=command_id)
 
         if result["status"] == "success":
-            return f"Command {command_id} terminated successfully.\nAll resources cleaned up."
+            return f"terminated id={command_id}"
         else:
             return f"Failed: {result.get('error', 'Unknown error')}"
 
@@ -316,9 +340,7 @@ def get_send_command_input_tool_handler(
         )
 
         if result["status"] == "success":
-            return (
-                f"Input sent to {command_id}.\nUse check_command_status to see result."
-            )
+            return f"input_sent id={command_id}"
         else:
             return f"Failed: {result.get('error', 'Unknown error')}"
 

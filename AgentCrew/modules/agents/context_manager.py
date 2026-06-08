@@ -332,7 +332,7 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
                 if msg.get("tool_call_id", None) in tool_result_id_needed_shrink:
                     msg["content"] = [
                         {
-                            "text": f"[{msg.get('agent', 'Agent')} has used function_call `{tool_name}` but it has been truncated.]",
+                            "text": f"[tool:{tool_name} truncated]",
                             "type": "text",
                         }
                     ]
@@ -368,7 +368,7 @@ Skip evaluation for: simple one-sentence answers, or when the request matches "w
                 msg = final_messages[i]
 
                 if msg.get("role") == "tool" and "content" in msg:
-                    msg["content"] = "[INVALIDATED]"
+                    msg["content"] = "[stale]"
 
         for assistant_idx, tool_result_indices in sorted(
             tool_result_needed_rearrange.items(), reverse=True

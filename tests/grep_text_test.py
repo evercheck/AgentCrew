@@ -689,13 +689,13 @@ class TestGrepTextServiceOutputParsing(unittest.TestCase):
         """Test parsing empty output."""
         result = self.service._parse_output("")
 
-        self.assertEqual(result, "Found 0 matches.")
+        self.assertEqual(result, "0 matches")
 
     def test_parse_output_whitespace_only(self):
         """Test parsing whitespace-only output."""
         result = self.service._parse_output("   \n\n  ")
 
-        self.assertEqual(result, "Found 0 matches.")
+        self.assertEqual(result, "0 matches")
 
     def test_parse_output_single_match(self):
         """Test parsing single match."""
@@ -703,24 +703,25 @@ class TestGrepTextServiceOutputParsing(unittest.TestCase):
         result = self.service._parse_output(output)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 1 match(es).", result)
+        self.assertIn("1 match", result)
         self.assertIn("/home/user/file.py", result)
-        self.assertIn("10: def test_function():", result)
+        self.assertIn("10 def test_function():", result)
 
     def test_parse_output_multiple_matches(self):
         """Test parsing multiple matches."""
         output = """
 /home/user/file1.py:10:def test():
-/home/user/file2.py:20:class Test:
-/home/user/file3.py:30:import test
+/home/user/file1.py:20:class Test:
+/home/user/file2.py:30:import test
         """.strip()
         result = self.service._parse_output(output)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 3 match(es).", result)
-        self.assertIn("file1.py", result)
+        self.assertIn("3 matches", result)
+        self.assertEqual(result.count("/home/user/file1.py"), 1)
+        self.assertIn("10 def test():", result)
+        self.assertIn("20 class Test:", result)
         self.assertIn("file2.py", result)
-        self.assertIn("file3.py", result)
 
     def test_parse_output_with_max_results(self):
         """Test parsing with max results limit."""
@@ -730,7 +731,7 @@ class TestGrepTextServiceOutputParsing(unittest.TestCase):
         result = self.service._parse_output(output, max_results=5)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 5 match(es).", result)
+        self.assertIn("5 matches", result)
         # Count occurrences of "line content"
         self.assertEqual(result.count("line content"), 5)
 
@@ -747,7 +748,7 @@ another:malformed
 
         self.assertIsInstance(result, str)
         # Should only parse the 3 valid lines
-        self.assertIn("Found 3 match(es).", result)
+        self.assertIn("3 matches", result)
 
     def test_parse_output_invalid_line_number(self):
         """Test that lines with invalid line numbers are skipped."""
@@ -760,7 +761,7 @@ another:malformed
 
         self.assertIsInstance(result, str)
         # Should skip the line with invalid line number
-        self.assertIn("Found 2 match(es).", result)
+        self.assertIn("2 matches", result)
 
     def test_parse_output_preserves_line_content_whitespace(self):
         """Test that line content whitespace at the end may be stripped during parsing."""
@@ -979,9 +980,9 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 1 match(es).", result)
+        self.assertIn("1 match", result)
         self.assertIn("file1.py", result)
-        self.assertIn("1: def test_function():", result)
+        self.assertIn("1 def test_function():", result)
 
     @patch(
         "AgentCrew.modules.command_execution.service.CommandExecutionService.get_instance"
@@ -1015,7 +1016,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 1 match(es).", result)
+        self.assertIn("1 match", result)
         self.assertIn("file1.py", result)
 
     @patch(
@@ -1050,7 +1051,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 1 match(es).", result)
+        self.assertIn("1 match", result)
         self.assertIn("temp", result)
 
     @patch(
@@ -1075,7 +1076,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("Test", self.temp_dir, case_sensitive=True)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 0 matches.", result)
+        self.assertIn("0 matches", result)
 
         # Verify command was called without case-insensitive flag
         call_args = mock_cmd_instance.execute_command.call_args[0][0]
@@ -1103,7 +1104,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir, case_sensitive=False)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 0 matches.", result)
+        self.assertIn("0 matches", result)
 
         # Verify command includes case-insensitive flag
         call_args = mock_cmd_instance.execute_command.call_args[0][0]
@@ -1134,7 +1135,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir, max_results=5)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 5 match(es).", result)
+        self.assertIn("5 matches", result)
         self.assertEqual(result.count("test line"), 5)
 
     @patch(
@@ -1175,7 +1176,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
 
         result = self.service.search_text("test", [self.temp_dir, second_dir])
 
-        self.assertIn("Found 2 match(es).", result)
+        self.assertIn("2 matches", result)
         self.assertIn("file1.py", result)
         self.assertIn("other.py", result)
 
@@ -1221,7 +1222,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
 
         result = self.service.search_text("test", [file_path, self.temp_dir])
 
-        self.assertIn("Found 2 match(es).", result)
+        self.assertIn("2 matches", result)
         self.assertIn("file1.py", result)
         self.assertIn("file2.py", result)
 
@@ -1292,7 +1293,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
             "test", [self.temp_dir, second_dir], max_results=4
         )
 
-        self.assertIn("Found 4 match(es).", result)
+        self.assertIn("4 matches", result)
         self.assertEqual(result.count("test line"), 4)
 
     @patch(
@@ -1350,7 +1351,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("nonexistent", self.temp_dir)
 
         self.assertIsInstance(result, str)
-        self.assertEqual(result, "Found 0 matches.")
+        self.assertEqual(result, "0 matches")
 
     def test_search_text_empty_pattern(self):
         """Test search with empty pattern raises error."""
@@ -1451,7 +1452,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 1 match(es).", result)
+        self.assertIn("1 match", result)
         self.assertIn("file1.py", result)
 
         # Verify git grep was used
@@ -1508,7 +1509,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 1 match(es).", result)
+        self.assertIn("1 match", result)
 
         # Verify grep was used (not git grep)
         search_call = mock_cmd_instance.execute_command.call_args_list[1][0][0]
@@ -1561,7 +1562,7 @@ class TestGrepTextServiceMainSearch(unittest.TestCase):
         result = self.service.search_text("test", self.temp_dir)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Found 1 match(es).", result)
+        self.assertIn("1 match", result)
 
         # Verify rg was used (not git grep)
         search_call = mock_cmd_instance.execute_command.call_args_list[1][0][0]

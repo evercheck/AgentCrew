@@ -426,12 +426,12 @@ class TestFileSearchServiceMainSearch(unittest.TestCase):
 
             # Result should be markdown formatted string
             self.assertIsInstance(result, str)
-            self.assertIn("Found 2 files:", result)
+            self.assertIn("2 files", result)
 
             # Extract file paths from markdown
             lines = result.split("\n")
             file_lines = [
-                line for line in lines[2:] if line.strip()
+                line for line in lines[1:] if line.strip()
             ]  # Skip header and empty line
 
             # All file paths should be absolute
@@ -486,12 +486,12 @@ class TestFileSearchServiceMainSearch(unittest.TestCase):
 
                 # Result should be markdown formatted string
                 self.assertIsInstance(result, str)
-                self.assertIn("Found 2 files:", result)
+                self.assertIn("2 files", result)
 
                 # Extract file paths from markdown
                 lines = result.split("\n")
                 file_lines = [
-                    line for line in lines[2:] if line.strip()
+                    line for line in lines[1:] if line.strip()
                 ]  # Skip header and empty line
 
                 # All file paths should be relative
@@ -536,12 +536,12 @@ class TestFileSearchServiceMainSearch(unittest.TestCase):
 
             # Result should be markdown formatted string
             self.assertIsInstance(result, str)
-            self.assertIn("Found 2 files:", result)
+            self.assertIn("2 files", result)
 
             # Extract file paths from markdown
             lines = result.split("\n")
             file_lines = [
-                line for line in lines[2:] if line.strip()
+                line for line in lines[1:] if line.strip()
             ]  # Skip header and empty line
 
             self.assertEqual(len(file_lines), 2)
@@ -620,7 +620,7 @@ class TestFileSearchServiceSearcherFallback(unittest.TestCase):
 
             # Result should be markdown formatted string
             self.assertIsInstance(result, str)
-            self.assertIn("Found 1 file:", result)
+            self.assertIn("1 file", result)
 
             # Should have attempted fd first, then rg
             self.assertEqual(mock_cmd_instance.execute_command.call_count, 2)
@@ -728,12 +728,12 @@ class TestFileSearchServiceHiddenFiles(unittest.TestCase):
 
             # Result should be markdown formatted string
             self.assertIsInstance(result, str)
-            self.assertIn("Found 4 files:", result)
+            self.assertIn("4 files", result)
 
             # Extract file paths from markdown
             lines = result.split("\n")
             file_lines = [
-                line for line in lines[2:] if line.strip()
+                line for line in lines[1:] if line.strip()
             ]  # Skip header and empty line
 
             # Verify results include both regular and hidden files
@@ -773,12 +773,12 @@ class TestFileSearchServiceHiddenFiles(unittest.TestCase):
 
             # Result should be markdown formatted string
             self.assertIsInstance(result, str)
-            self.assertIn("Found 4 files:", result)
+            self.assertIn("4 files", result)
 
             # Extract file paths from markdown
             lines = result.split("\n")
             file_lines = [
-                line for line in lines[2:] if line.strip()
+                line for line in lines[1:] if line.strip()
             ]  # Skip header and empty line
 
             # Verify results include both regular and hidden files
@@ -797,14 +797,14 @@ class TestFileSearchServiceMarkdownFormatting(unittest.TestCase):
         """Test markdown formatting with empty file list."""
         result = self.service._format_results_as_markdown([])
 
-        self.assertEqual(result, "**Found 0 files**")
+        self.assertEqual(result, "0 files")
 
     def test_format_results_single_file(self):
         """Test markdown formatting with single file."""
         files = ["/home/user/project/file.py"]
         result = self.service._format_results_as_markdown(files)
 
-        expected = "**Found 1 file:**\n\n/home/user/project/file.py"
+        expected = "1 file\n/home/user/project/file.py"
         self.assertEqual(result, expected)
 
     def test_format_results_multiple_files(self):
@@ -817,17 +817,15 @@ class TestFileSearchServiceMarkdownFormatting(unittest.TestCase):
         result = self.service._format_results_as_markdown(files)
 
         # Check header
-        self.assertIn("**Found 3 files:**", result)
-
+        self.assertIn("3 files", result)
         # Check all files are included
         for file in files:
             self.assertIn(file, result)
 
         # Check structure (header + empty line + files)
         lines = result.split("\n")
-        self.assertEqual(lines[0], "**Found 3 files:**")
-        self.assertEqual(lines[1], "")
-        self.assertEqual(len(lines), 5)  # header + empty + 3 files
+        self.assertEqual(lines[0], "3 files")
+        self.assertEqual(len(lines), 4)  # header + 3 files
 
     def test_format_results_relative_paths(self):
         """Test markdown formatting with relative paths."""
@@ -838,8 +836,7 @@ class TestFileSearchServiceMarkdownFormatting(unittest.TestCase):
         ]
         result = self.service._format_results_as_markdown(files)
 
-        self.assertIn("**Found 3 files:**", result)
-
+        self.assertIn("3 files", result)
         for file in files:
             self.assertIn(file, result)
 
@@ -851,8 +848,7 @@ class TestFileSearchServiceMarkdownFormatting(unittest.TestCase):
         ]
         result = self.service._format_results_as_markdown(files)
 
-        self.assertIn("**Found 2 files:**", result)
-
+        self.assertIn("2 files", result)
         for file in files:
             self.assertIn(file, result)
 
@@ -866,7 +862,7 @@ class TestFileSearchServiceMarkdownFormatting(unittest.TestCase):
         result = self.service._format_results_as_markdown(files)
 
         # Extract file lines (skip header and empty line)
-        lines = result.split("\n")[2:]
+        lines = result.split("\n")[1:]
 
         # Verify order is preserved
         self.assertEqual(lines[0], "/home/user/z.py")
@@ -882,8 +878,7 @@ class TestFileSearchServiceMarkdownFormatting(unittest.TestCase):
         ]
         result = self.service._format_results_as_markdown(files)
 
-        self.assertIn("**Found 3 files:**", result)
-
+        self.assertIn("3 files", result)
         # All special characters should be preserved
         for file in files:
             self.assertIn(file, result)

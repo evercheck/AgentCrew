@@ -663,18 +663,17 @@ class GrepTextService:
 
         Returns:
             str: Formatted search results with structure:
-                Found <number of matches> match(es).
-                **<path/to/file1>:**
-                - <line number>: <line content>
-                - <line number>: <line content>
-                **<path/to/file2>:**
+                <number> matches
+                <path/to/file1>
+                <line number> <line content>
+                <line number> <line content>
+                <path/to/file2>
                 ...
         """
         if not output or not output.strip():
             # No matches found (not an error)
             logger.debug("No matches found in output")
-            return "Found 0 matches."
-
+            return "0 matches"
         # Parse, sort, and format in a single pass
         matches = []
         lines = output.strip().split("\n")
@@ -721,22 +720,20 @@ class GrepTextService:
         total_matches = len(matches)
         logger.info(f"Parsed {total_matches} matches")
 
-        result_lines = [f"Found {total_matches} match(es)."]
+        result_lines = [f"{total_matches} match{'es' if total_matches != 1 else ''}"]
         current_file = None
 
         for file_path, line_number, line_content in matches:
-            # Add file header when file changes
             if file_path != current_file:
-                result_lines.append(f"**{file_path}:**")
+                result_lines.append(file_path)
                 current_file = file_path
 
-            # Add match line
             formatted_content = self._format_line_context(
                 line_content,
                 pattern=pattern,
                 case_sensitive=case_sensitive,
             )
-            result_lines.append(f"- {line_number}: {formatted_content}")
+            result_lines.append(f"{line_number} {formatted_content}")
 
         return "\n".join(result_lines)
 
@@ -763,11 +760,11 @@ class GrepTextService:
 
         Returns:
             str: Formatted search results with structure:
-                Found <number of matches> match(es).
-                **<path/to/file1>:**
-                - <line number>: <line content>
-                - <line number>: <line content>
-                **<path/to/file2>:**
+                <number> matches
+                <path/to/file1>
+                <line number> <line content>
+                <line number> <line content>
+                <path/to/file2>
                 ...
 
         Raises:
@@ -870,21 +867,20 @@ class GrepTextService:
         total_matches = len(combined_matches)
         if total_matches == 0:
             logger.info("Search completed successfully with 0 matches")
-            return "Found 0 matches."
-
-        result_lines = [f"Found {total_matches} match(es)."]
+            return "0 matches"
+        result_lines = [f"{total_matches} match{'es' if total_matches != 1 else ''}"]
         current_file = None
 
         for file_path, line_number, line_content in combined_matches:
             if file_path != current_file:
-                result_lines.append(f"**{file_path}:**")
+                result_lines.append(file_path)
                 current_file = file_path
             formatted_content = self._format_line_context(
                 line_content,
                 pattern=validated_pattern,
                 case_sensitive=case_sensitive,
             )
-            result_lines.append(f"- {line_number}: {formatted_content}")
+            result_lines.append(f"{line_number} {formatted_content}")
 
         logger.info("Search completed successfully")
         return "\n".join(result_lines)

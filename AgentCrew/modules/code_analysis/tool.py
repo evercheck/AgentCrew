@@ -23,7 +23,7 @@ def get_code_analysis_tool_definition() -> dict[str, Any]:
     Returns:
         dict containing the tool definition
     """
-    description = "Analyzes the structure of source code files within a repository, creating a structural map. This identifies key code elements, enabling code understanding and project organization insights."
+    description = "Analyzes the structure of source code files within a repository, creating a structural map. This identifies key code elements, enabling code understanding and project organization insights. When deep_analysis is true, project notes (rules, conventions, patterns, flows) are extracted and included in the result. Use the project notes to adapt your behaviors accordingly - call learn_behavior with scope 'project' for key patterns you identify."
 
     tool_arguments = {
         "path": {
@@ -95,7 +95,7 @@ def get_code_analysis_tool_handler(
             output.append(
                 {
                     "type": "text",
-                    "text": f"===PROJECT NOTES & RULES===\n{project_notes}\n\nUse the above project notes to adapt your project behaviors accordingly. Call learn_behavior with scope 'project' for key patterns you identify.",
+                    "text": f"project notes:\n{project_notes}",
                 }
             )
 
@@ -132,7 +132,7 @@ def get_file_content_tool_definition():
         },
         "end_line": {
             "type": "integer",
-            "description": "Optional. The ending line number (1-indexed) to stop reading at (inclusive). If provided with start_line, only reads the specified line range.",
+            "description": "Optional. The ending line number (1-indexed) to stop reading at. If provided with start_line, only reads the specified line range.",
         },
     }
     tool_required = ["file_path"]
@@ -157,7 +157,7 @@ def get_file_content_tool_handler(
     """Returns a function that handles the get_file_content tool."""
 
     async def handler(**params):
-        file_path = params.get("file_path", "./")
+        file_path = params.get("file_path", None)
         start_line = params.get("start_line")
         end_line = params.get("end_line")
 
@@ -165,19 +165,21 @@ def get_file_content_tool_handler(
             raise Exception("File path is required")
 
         if not os.path.isabs(file_path):
-            file_path = os.path.abspath(os.path.expanduser(file_path))
+            abs_file_path = os.path.abspath(os.path.expanduser(file_path))
+        else:
+            abs_file_path = file_path
 
-        path, file_content = code_analysis_service.get_file_content(
-            file_path, start_line=start_line, end_line=end_line
+        _, file_content = code_analysis_service.get_file_content(
+            abs_file_path, start_line=start_line, end_line=end_line
         )
 
         if isinstance(file_content, dict) and file_content.get("type") == "image_url":
             return [
-                {"type": "text", "text": f"Image file: {path}"},
+                {"type": "text", "text": f"Image file: {file_path}"},
                 file_content,
             ]
 
-        return f"`{path}`: {file_content}"
+        return f"{file_path}\n{file_content}"
 
     return handler
 

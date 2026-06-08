@@ -70,34 +70,24 @@ class ResultFormatter:
 
         sections = []
 
-        sections.append("\n===ANALYSIS STATISTICS===\n")
-        sections.append(f"Total files analyzed: {total_files}")
+        sections.append(
+            f"files: {total_files} classes: {classes} funcs: {functions} decorated: {decorated_functions} errors: {error_count}"
+        )
         if non_analyzed_count > 0:
             sections.append(
-                f"Total files skipped (repository too large): {non_analyzed_count}"
+                f"skipped: {non_analyzed_count} supported: {total_supported_files}"
             )
-            sections.append(
-                f"Total supported files in repository: {total_supported_files}"
-            )
-        sections.append(f"Total errors: {error_count}")
-        sections.append(f"Total classes found: {classes}")
-        sections.append(f"Total functions found: {functions}")
-        sections.append(f"Total decorated functions: {decorated_functions}")
 
         if errors:
-            sections.append("\n===ERRORS===")
+            sections.append("errors:")
             for error in errors:
                 error_first_line = error["error"].split("\n")[0]
                 sections.append(f"{error['path']}: {error_first_line}")
 
-        sections.append("\n===REPOSITORY STRUCTURE===")
         sections.append(self._text_map_formatter.generate_text_map(analysis_results))
 
         if non_analyzed_files:
-            sections.append("\n===NON-ANALYZED FILES (repository too large)===")
-            sections.append(
-                f"The following {non_analyzed_count} files were not analyzed due to the {self._max_files_to_analyze} file limit:"
-            )
+            sections.append("skipped analyzed files:")
             max_non_analyzed_to_show = int(self._max_files_to_analyze / 2)
             non_analyzed_tree = self._file_tree_formatter.build_file_tree(
                 sorted(non_analyzed_files)[:max_non_analyzed_to_show]

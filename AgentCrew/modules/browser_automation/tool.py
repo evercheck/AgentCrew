@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+SCRIPT_RESULT_MAX_CHARS = 12000
+
+
+def _truncate_text(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    return (
+        f"{text[:max_chars]}\n[truncated: showing first {max_chars}/{len(text)} chars]"
+    )
+
+
 if TYPE_CHECKING:
     from .service import BrowserAutomationService
     from typing import Any, Callable, Union
@@ -185,7 +196,7 @@ def get_browser_navigate_tool_handler(
                 if result.get("profile")
                 else ""
             )
-            return f"{result.get('message', 'Success')}. Call `get_browser_content` tool to read the url content.\nCurrent URL: {result.get('current_url', 'Unknown')}{profile_info}"
+            return f"{result.get('message', 'Success')}\nURL: {result.get('current_url', 'Unknown')}{profile_info}"
         else:
             raise RuntimeError(f"Navigation failed: {result['error']}")
 
@@ -208,21 +219,20 @@ def get_browser_mouse_action_tool_handler(
             result = browser_service.click_element(element_uuid)
             if result.get("success", True):
                 return (
-                    f"{result.get('message', 'Success')}. Call `get_browser_content` tool to inspect the updated page state and current element mappings.\n"
-                    f"Action: {action}\nUUID: {element_uuid}\n"
-                    f"ClickedElement: {result.get('elementInfo', {}).get('text', 'Unknown')}."
+                    f"{result.get('message', 'Success')}\n"
+                    f"action={action} uuid={element_uuid}\n"
+                    f"element={result.get('elementInfo', {}).get('text', 'Unknown')}"
                 )
             raise RuntimeError(
-                f"Mouse action failed: {result['error']}\nAction: {action}\nUUID: {element_uuid}.\nCall `get_browser_content` tool to refresh the page state and inspect current element mappings."
+                f"Mouse action failed: {result['error']}\naction={action} uuid={element_uuid}"
             )
 
         if action == "scroll_to":
             result = browser_service.scroll_to_element(element_uuid)
             if result.get("success", True):
                 return (
-                    f"{result.get('message', 'Success')}.\n"
-                    f"Action: {action}\nUUID: {element_uuid}\n"
-                    "Call `get_browser_content` tool to inspect the updated page state and current element mappings."
+                    f"{result.get('message', 'Success')}\n"
+                    f"action={action} uuid={element_uuid}"
                 )
             raise RuntimeError(
                 f"Mouse action failed: {result['error']}\nAction: {action}\nUUID: {element_uuid}"
@@ -305,13 +315,11 @@ def get_browser_keyboard_action_tool_handler(
             if result.get("success", True):
                 return (
                     f"{result.get('message', 'Success')}\n"
-                    f"Action: {action}\nUUID: {element_uuid}\nValue: {value}\n"
-                    "Call `get_browser_content` tool to inspect the updated page state and current element mappings."
+                    f"action={action} uuid={element_uuid} value={value}"
                 )
             raise RuntimeError(
                 f"Keyboard action failed: {result['error']}\n"
-                f"Action: {action}\nUUID: {element_uuid}\nValue: {value}.\n"
-                "Call `get_browser_content` tool to refresh the page state and inspect current element mappings."
+                f"action={action} uuid={element_uuid} value={value}"
             )
 
         if action == "send_key":
@@ -330,11 +338,10 @@ def get_browser_keyboard_action_tool_handler(
                     else ""
                 )
                 success_msg = (
-                    f"{result.get('message', 'Success')}. Action: {action}. {key_info}"
+                    f"{result.get('message', 'Success')} action={action} {key_info}"
                 )
                 if modifiers_info:
-                    success_msg += f". {modifiers_info}"
-                success_msg += "\nCall `get_browser_content` tool to inspect the updated page state and current element mappings."
+                    success_msg += f" {modifiers_info}"
                 return success_msg
             raise RuntimeError(
                 f"Keyboard action failed: {result.get('error', 'Unknown error')}\n"
@@ -491,12 +498,15 @@ def get_browser_execute_script_tool_handler(
             import json
 
             if isinstance(result_value, (dict, list)):
-                formatted = json.dumps(result_value, indent=2, ensure_ascii=False)
+                formatted = json.dumps(
+                    result_value, separators=(",", ":"), ensure_ascii=False
+                )
             else:
                 formatted = (
                     str(result_value) if result_value is not None else "undefined"
                 )
-            return f"Script executed successfully.\nResult type: {result_type}\nResult:\n{formatted}"
+            formatted = _truncate_text(formatted, SCRIPT_RESULT_MAX_CHARS)
+            return f"script_ok type={result_type}\n{formatted}"
         else:
             error = result.get("error", "Unknown error")
             stack = result.get("stack", "")

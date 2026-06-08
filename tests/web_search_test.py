@@ -45,8 +45,8 @@ class WebSearchTest(unittest.IsolatedAsyncioTestCase):
         result = await self.search_handler(**params)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Search Results", result)
-        self.assertIn("URL:", result)
+        self.assertIn("results", result)
+        self.assertIn("http", result)
 
     async def test_web_extract_handler(self):
         """Test the web extract tool handler."""
@@ -55,7 +55,7 @@ class WebSearchTest(unittest.IsolatedAsyncioTestCase):
         result = await self.extract_handler(**params)
 
         self.assertIsInstance(result, str)
-        self.assertIn("Extracted content", result)
+        self.assertIn("https://www.python.org/", result)
         self.assertNotIn("Extract error", result)
 
     def test_search_with_advanced_depth(self):
