@@ -383,7 +383,7 @@ class CodeAnalysisService:
 
             selected_lines = lines[start_line - 1 : end_line]
             return file_path, "\n".join(
-                line[:200] + "..." if len(line) > 200 else line
+                line[:1000] + "..." if len(line) > 1000 else line
                 for line in selected_lines
             )
 
