@@ -590,14 +590,30 @@ class CustomLLMService(OpenAIService):
                 if hasattr(chunk.usage.prompt_tokens_details, "cached_tokens"):
                     cached_tokens = chunk.usage.prompt_tokens_details.cached_tokens or 0
 
-        # Handle regular content chunks
+        if (not chunk.choices) or (len(chunk.choices) == 0):
+            return (
+                assistant_response or " ",
+                tool_uses,
+                TokenUsage(
+                    input_tokens=input_tokens - cached_tokens,
+                    output_tokens=output_tokens,
+                    cached_tokens=cached_tokens,
+                ),
+                "",
+                (thinking_content, None) if thinking_content else None,
+            )
+
+        delta_chunk = chunk.choices[0].delta
+
         if (
-            chunk.choices
-            and len(chunk.choices) > 0
-            and hasattr(chunk.choices[0].delta, "content")
-            and chunk.choices[0].delta.content is not None
+            hasattr(delta_chunk, "reasoning_content")
+            and delta_chunk.reasoning_content is not None
         ):
-            chunk_text = chunk.choices[0].delta.content
+            thinking_content = delta_chunk.reasoning_content
+
+        # Handle regular content chunks
+        if hasattr(delta_chunk, "content") and delta_chunk.content is not None:
+            chunk_text = delta_chunk.content
             if "<think>" in chunk_text:
                 self._is_thinking = True
 
@@ -622,12 +638,8 @@ class CustomLLMService(OpenAIService):
         # Handle final chunk with usage information
 
         # Handle tool call chunks
-        if (
-            chunk.choices
-            and len(chunk.choices) > 0
-            and hasattr(chunk.choices[0].delta, "tool_calls")
-        ):
-            delta_tool_calls = chunk.choices[0].delta.tool_calls
+        if hasattr(delta_chunk, "tool_calls"):
+            delta_tool_calls = delta_chunk.tool_calls
             if delta_tool_calls:
                 for tool_call_delta in delta_tool_calls:
                     self._merge_stream_tool_call_delta(tool_uses, tool_call_delta)

@@ -108,6 +108,19 @@ class FileEditingService:
                 file_path, result["new_content"]
             )
 
+            # prevent full replace could corrupted file
+            if not is_search_replace and not syntax_result.is_valid:
+                return {
+                    "status": "error",
+                    "file_path": file_path,
+                    "syntax_check": {
+                        "is_valid": syntax_result.is_valid,
+                        "language": syntax_result.language,
+                    },
+                    "error": syntax_result.errors,
+                    "backup_created": backup_path is not None,
+                }
+
             self._atomic_write(file_path, result["new_content"])
 
             syntax_warnings = None

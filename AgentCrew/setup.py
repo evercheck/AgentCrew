@@ -224,6 +224,16 @@ class ApplicationSetup:
 
             memory_provider = memory_llm or provider
             memory_llm_svc = llm_manager.initialize_standalone_service(memory_provider)
+
+            # Set default model for memory service if using custom provider or explicit model_id
+            if model_id:
+                model = registry.get_model(f"{provider}/{model_id}")
+                if model:
+                    memory_llm_svc.model = model.id
+                    logger.info(f"Set default model '{model.id}' for memory service")
+            else:
+                memory_llm_svc.model = llm_service.model
+
             memory_service = ChromaMemoryService(llm_service=memory_llm_svc)
 
             context_service = ContextPersistenceService()
@@ -254,6 +264,18 @@ class ApplicationSetup:
             from AgentCrew.modules.code_analysis import CodeAnalysisService
 
             code_analysis_llm = llm_manager.initialize_standalone_service(provider)
+
+            # Set default model for code analysis service if using custom provider or explicit model_id
+            if model_id:
+                model = registry.get_model(f"{provider}/{model_id}")
+                if model:
+                    code_analysis_llm.model = model.id
+                    logger.info(
+                        f"Set default model '{model.id}' for code analysis service"
+                    )
+            else:
+                code_analysis_llm.model = llm_service.model
+
             code_analysis_service = CodeAnalysisService(llm_service=code_analysis_llm)
         except Exception as e:
             click.echo(f"\u26a0\ufe0f Code analysis tool not available: {str(e)}")
