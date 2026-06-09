@@ -50,7 +50,7 @@ class ConfirmationHandler:
         # Special handling for 'write_file' tool with search/replace blocks
         if tool_use["name"] == "write_file":
             file_path = tool_use["input"].get("file_path", "")
-            text_or_blocks = tool_use["input"].get("text_or_search_replace_blocks", "")
+            text_or_blocks = tool_use["input"].get("write_blocks", "")
 
             if DiffDisplay.has_search_replace_blocks(text_or_blocks):
                 self._display_write_file_diff(tool_use, file_path, text_or_blocks)

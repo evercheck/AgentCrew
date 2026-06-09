@@ -72,16 +72,32 @@ def get_acp_read_file_tool_handler() -> Callable:
 
 
 def get_acp_write_file_tool_definition() -> dict[str, Any]:
+    block_schema = {
+        "type": "object",
+        "properties": {
+            "search": {
+                "type": "string",
+                "description": "Exact content to find.",
+            },
+            "replace": {
+                "type": "string",
+                "description": "Replacement content (empty string to delete)",
+            },
+        },
+        "required": ["search", "replace"],
+    }
+
     return {
         "type": "function",
         "function": {
             "name": "acp_write_file",
             "description": (
                 "Write/edit files on the client's filesystem via ACP. "
-                'Format: Array of {"search": "...", "replace": "..."} objects. '
-                "Empty search + replace with content = full file write (delegated to ACP client). "
-                "Non-empty search + replace = search/replace operation (processed locally). "
-                "Non-empty search + empty replace = delete matched content. "
+                "Accepts either full file content as a string or search/replace blocks as an array.\n\n"
+                "TEXT MODE (string): Full content string — entire file is written (delegated to ACP client).\n\n"
+                'BLOCK MODE (array of {"search", "replace"} objects):\n'
+                "- Non-empty search + replace = search/replace operation (processed locally).\n"
+                "- Non-empty search + empty replace = delete matched content.\n"
                 "Rules: 1) SEARCH must match exactly (character-perfect). "
                 "2) Include changing lines +0-3 context. 3) Preserve whitespace/indentation. "
                 "Auto syntax check (30+ langs) with rollback on error."
@@ -93,30 +109,24 @@ def get_acp_write_file_tool_definition() -> dict[str, Any]:
                         "type": "string",
                         "description": "Absolute path to write. Example: '/home/user/src/main.py'",
                     },
-                    "text_or_search_replace_blocks": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "search": {
-                                    "type": "string",
-                                    "description": "Exact content to find. Empty string means full file write mode.",
-                                },
-                                "replace": {
-                                    "type": "string",
-                                    "description": "Replacement content (empty string to delete)",
-                                },
+                    "write_blocks": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "description": "Full file content. Use this for a full file write.",
                             },
-                            "required": ["search", "replace"],
-                        },
+                            {
+                                "type": "array",
+                                "items": block_schema,
+                                "description": "Array of search/replace blocks for targeted edits.",
+                            },
+                        ],
                         "description": (
-                            "Array of search/replace blocks. "
-                            'For full file write: [{"search": "", "replace": "full content"}]. '
-                            'For edits: [{"search": "exact match", "replace": "replacement"}]'
+                            'String for full file write, or array of {"search", "replace"} blocks for targeted edits.'
                         ),
                     },
                 },
-                "required": ["file_path", "text_or_search_replace_blocks"],
+                "required": ["file_path", "write_blocks"],
             },
         },
     }
@@ -125,22 +135,20 @@ def get_acp_write_file_tool_definition() -> dict[str, Any]:
 def get_acp_write_file_tool_handler() -> Callable:
     async def handle_acp_write_file(**params) -> str:
         file_path = params.get("file_path", "")
-        blocks = params.get("text_or_search_replace_blocks")
+        value = params.get("write_blocks")
 
         if not file_path:
             return "Error: file_path is required"
-        if not blocks or not isinstance(blocks, list):
-            return "Error: text_or_search_replace_blocks must be a non-empty array"
+        if value is None:
+            return "Error: write_blocks is required"
 
-        is_full_write = len(blocks) == 1 and blocks[0].get("search", "") == ""
-
-        if is_full_write:
-            content = blocks[0].get("replace", "")
+        # String mode — full file write via ACP or local
+        if isinstance(value, str):
             ctx = _current_acp_session.get()
             if ctx is not None and ctx.conn is not None:
                 try:
                     await ctx.conn.write_text_file(
-                        content=content,
+                        content=value,
                         path=file_path,
                         session_id=ctx.session_id,
                     )
@@ -149,8 +157,17 @@ def get_acp_write_file_tool_handler() -> Callable:
                     logger.warning(
                         f"ACP write_file failed for '{file_path}', falling back to local: {exc}"
                     )
+            return await _local_write_file(file_path, value)
 
-        return await _local_write_file(file_path, blocks)
+        # Array mode — search/replace blocks (local only)
+        if isinstance(value, list):
+            if not value:
+                return "Error: write_blocks must be a non-empty array"
+            return await _local_write_file(file_path, value)
+
+        return (
+            "Error: write_blocks must be a string or an array of search/replace objects"
+        )
 
     return handle_acp_write_file
 
@@ -171,26 +188,24 @@ async def _local_read_file(
     return f"`{path}`: {content}"
 
 
-async def _local_write_file(file_path: str, blocks: list[dict[str, str]]) -> str:
+async def _local_write_file(file_path: str, value: str | list[dict[str, str]]) -> str:
     from AgentCrew.modules.file_editing.service import FileEditingService
-    from AgentCrew.modules.file_editing.tool import (
-        convert_blocks_to_string,
-        is_full_content_mode,
-    )
+    from AgentCrew.modules.file_editing.tool import convert_blocks_to_string
 
     if not os.path.isabs(file_path):
         file_path = os.path.abspath(os.path.expanduser(file_path))
 
     service = FileEditingService()
-    if is_full_content_mode(blocks):
-        content = blocks[0].get("replace", "")
+
+    # String mode — full file write
+    if isinstance(value, str):
         result = service.write_or_edit_file(
             file_path=file_path,
             is_search_replace=False,
-            text_or_search_replace_blocks=content,
+            text_or_search_replace_blocks=value,
         )
     else:
-        blocks_string = convert_blocks_to_string(blocks)
+        blocks_string = convert_blocks_to_string(value)
         result = service.write_or_edit_file(
             file_path=file_path,
             is_search_replace=True,

@@ -103,7 +103,7 @@ agentcrew chat --provider github_copilot
 ```
 
 Supported providers: Anthropic Claude, OpenAI, Google Gemini, GitHub Copilot,
-DeepInfra, Together AI, OpenCode, and any OpenAI-compatible endpoint.
+CrofAI, DeepInfra, Together AI, OpenCode, and any OpenAI-compatible endpoint.
 
 > **Tip:** Not sure which provider to pick? Claude and OpenAI work great for
 > most users. See [CONFIGURATION.md](CONFIGURATION.md) for provider-specific

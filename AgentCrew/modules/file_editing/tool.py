@@ -20,58 +20,62 @@ def convert_blocks_to_string(blocks: list[dict[str, str]]) -> str:
     return "\n".join(result_parts)
 
 
-def is_full_content_mode(blocks: list[dict[str, str]]) -> bool:
-    if len(blocks) == 1:
-        block = blocks[0]
-        search_text = block.get("search", "")
-        return search_text == ""
-    return False
-
-
 def get_file_write_or_edit_tool_definition() -> dict[str, Any]:
-    tool_description = """Write/edit files via search/replace blocks.
+    tool_description = """Write/edit files. Accepts either full file content as a string or search/replace blocks as an array.
 
-FORMAT: Array of {"search": "...", "replace": "..."} objects
-- Empty search + replace with content = write full file content
+TEXT MODE (string): Provide the full content and the entire file is written.
+
+BLOCK MODE (array of {"search": "...", "replace": "..."} objects):
 - Non-empty search + replace = search/replace operation
 - Non-empty search + empty replace = delete matched content
 
 RULES:
 1. SEARCH must match exactly (character-perfect)
-2. Include changing lines +0-3 context
+2. Include changing lines +0-5 context
 3. Preserve whitespace/indentation
 
 Auto syntax check (30+ langs) with rollback on error
 """
+
+    block_schema = {
+        "type": "object",
+        "properties": {
+            "search": {
+                "type": "string",
+                "description": "Exact content to find.",
+            },
+            "replace": {
+                "type": "string",
+                "description": "Replacement content (empty string to delete)",
+            },
+        },
+        "required": ["search", "replace"],
+    }
 
     tool_arguments = {
         "file_path": {
             "type": "string",
             "description": "Path (absolute/relative). Use ~ for home. Ex: './src/main.py'",
         },
-        "text_or_search_replace_blocks": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "search": {
-                        "type": "string",
-                        "description": "Exact content to find. Empty string means full file write mode.",
-                    },
-                    "replace": {
-                        "type": "string",
-                        "description": "Replacement content (empty string to delete)",
-                    },
+        "write_blocks": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "description": "Full file content. Use this to write an entire file.",
                 },
-                "required": ["search", "replace"],
-            },
-            "description": 'Array of search/replace blocks. For full file write: [{"search": "", "replace": "full content"}]. For edits: [{"search": "exact match", "replace": "replacement"}]',
+                {
+                    "type": "array",
+                    "items": block_schema,
+                    "description": "Array of search/replace blocks for targeted edits.",
+                },
+            ],
+            "description": 'String for full file write, or array of {"search", "replace"} blocks for targeted edits.',
         },
     }
 
     tool_required = [
         "file_path",
-        "text_or_search_replace_blocks",
+        "write_blocks",
     ]
 
     return {
@@ -93,38 +97,35 @@ def get_file_write_or_edit_tool_handler(
 ) -> Callable:
     async def handle_file_write_or_edit(**params) -> str:
         file_path = params.get("file_path")
-        blocks = params.get("text_or_search_replace_blocks")
+        blocks = params.get("write_blocks")
 
         if not file_path:
             raise ValueError("Error: No file path provided.")
 
         if blocks is None:
-            raise ValueError("Error: No search/replace blocks provided.")
-
-        if not isinstance(blocks, list):
             raise ValueError(
-                "Error: text_or_search_replace_blocks must be an array of search/replace objects."
+                "Error: No file content or search/replace blocks provided."
             )
 
-        full_content_mode = is_full_content_mode(blocks)
-
-        if full_content_mode:
-            content = blocks[0].get("replace", None)
-            if content is None:
-                raise ValueError(
-                    "Error: text_or_search_replace_blocks must be an array of search/replace objects."
-                )
+        # String mode — full file write
+        if isinstance(blocks, str):
             result = file_editing_service.write_or_edit_file(
                 file_path=file_path,
                 is_search_replace=False,
-                text_or_search_replace_blocks=content,
+                text_or_search_replace_blocks=blocks,
             )
-        else:
+        # Array mode — search/replace blocks
+        elif isinstance(blocks, list):
             blocks_string = convert_blocks_to_string(blocks)
             result = file_editing_service.write_or_edit_file(
                 file_path=file_path,
                 is_search_replace=True,
                 text_or_search_replace_blocks=blocks_string,
+            )
+        else:
+            raise ValueError(
+                "Error: write_blocks must be a string (full file write) "
+                "or an array of search/replace objects (targeted edit)."
             )
 
         if result["status"] == "success":

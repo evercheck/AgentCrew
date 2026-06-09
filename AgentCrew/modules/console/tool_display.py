@@ -93,7 +93,7 @@ class ToolDisplayHandlers:
 
         if tool_use["name"] == "write_file" and isinstance(tool_parameters, dict):
             file_path = tool_parameters.get("file_path", "")
-            text_or_blocks = tool_parameters.get("text_or_search_replace_blocks", "")
+            text_or_blocks = tool_parameters.get("write_blocks", "")
 
             if DiffDisplay.has_search_replace_blocks(text_or_blocks):
                 self._display_write_file_use(tool_use, file_path, text_or_blocks)

@@ -300,7 +300,7 @@ class ToolEventHandler:
 
         tool_input = tool_use.get("input", {})
         file_path = tool_input.get("file_path", "")
-        text_or_blocks = tool_input.get("text_or_search_replace_blocks", "")
+        text_or_blocks = tool_input.get("write_blocks", "")
 
         has_diff = DiffWidget.has_search_replace_blocks(text_or_blocks)
 

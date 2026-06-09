@@ -213,7 +213,7 @@ class ToolWidget(QWidget):
         if not isinstance(tool_params, dict):
             return False
 
-        text_or_blocks = tool_params.get("text_or_search_replace_blocks", "")
+        text_or_blocks = tool_params.get("write_blocks", "")
         return DiffWidget.has_search_replace_blocks(text_or_blocks)
 
     def _add_diff_content(self):
@@ -223,7 +223,7 @@ class ToolWidget(QWidget):
         arg_key = "input" if "input" in self.tool_data else "arguments"
         tool_params = self.tool_data.get(arg_key, {})
         file_path = tool_params.get("file_path", "")
-        text_or_blocks = tool_params.get("text_or_search_replace_blocks", "")
+        text_or_blocks = tool_params.get("write_blocks", "")
 
         diff_colors = self.style_provider.get_diff_colors()
         file_label = QLabel(f"📝 <b>File:</b> {file_path}")
