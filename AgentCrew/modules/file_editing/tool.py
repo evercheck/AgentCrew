@@ -109,6 +109,8 @@ def get_file_write_or_edit_tool_handler(
 
         # String mode — full file write
         if isinstance(blocks, str):
+            if blocks.lstrip().startswith('[{"search":'):
+                raise ValueError("Error: Malformed full content format.")
             result = file_editing_service.write_or_edit_file(
                 file_path=file_path,
                 is_search_replace=False,
