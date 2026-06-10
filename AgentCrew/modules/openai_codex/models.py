@@ -2,26 +2,6 @@ from AgentCrew.modules.llm.types import Model
 
 OPENAI_CODEX_MODELS = [
     Model(
-        id="gpt-5.2",
-        provider="openai_codex",
-        name="GPT-5.2 (ChatGPT)",
-        description="GPT-5.2 via ChatGPT subscription OAuth",
-        capabilities=["tool_use", "thinking", "vision", "stream", "structured_output"],
-        max_context_token=400_000,
-        input_token_price_1m=0.0,
-        output_token_price_1m=0.0,
-    ),
-    Model(
-        id="gpt-5.3-codex",
-        provider="openai_codex",
-        name="GPT-5.3 Codex (ChatGPT)",
-        description="GPT-5.3-Codex via ChatGPT subscription OAuth",
-        capabilities=["tool_use", "thinking", "vision", "stream", "structured_output"],
-        max_context_token=400_000,
-        input_token_price_1m=0.0,
-        output_token_price_1m=0.0,
-    ),
-    Model(
         id="gpt-5.4-mini",
         provider="openai_codex",
         name="GPT-5.4 Mini(ChatGPT)",
