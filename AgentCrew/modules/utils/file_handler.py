@@ -173,10 +173,12 @@ class FileHandler:
             mime_type = self._guess_mime_by_extension(file_path)
 
         # Use Docling for specific formats
-        if DOCLING_ENABLED and self.converter and mime_type in DOCLING_FORMATS:
+        if DOCLING_ENABLED and mime_type in DOCLING_FORMATS:
             self.initialize_docling_parser()
             from docling.exceptions import ConversionError
 
+            if not self.converter:
+                return None
             try:
                 logger.info(f"Processing file with Docling: {file_path}")
                 result = self.converter.convert(file_path)
