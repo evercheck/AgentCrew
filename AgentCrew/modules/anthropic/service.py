@@ -157,7 +157,7 @@ class AnthropicService(BaseLLMService):
 
         return None
 
-    def process_file_for_message(self, file_path):
+    def process_file_for_message(self, file_path: str) -> dict[str, Any] | None:
         """Process a file and return the appropriate message content."""
         return self._process_file(file_path, for_command=False)
 

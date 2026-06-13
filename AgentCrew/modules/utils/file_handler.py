@@ -1,4 +1,5 @@
 import os
+import base64
 import mimetypes
 from typing import Any
 import sys
@@ -19,6 +20,8 @@ ALLOWED_MIME_TYPES = [
     "application/msword",
     "image/jpeg",
     "image/png",
+    "image/gif",
+    "image/webp",
 ]
 
 DOCLING_FORMATS = [
@@ -37,6 +40,17 @@ EXTENSION_MIME_MAPPING = {
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "xls": "application/vnd.ms-excel",
 }
+
+
+def read_binary_file(file_path):
+    """Read a binary file and return base64 encoded content."""
+    try:
+        with open(file_path, "rb") as f:
+            content = f.read()
+        return base64.b64encode(content).decode("utf-8")
+    except Exception as e:
+        logger.error(f"❌ Error reading file {file_path}: {str(e)}")
+        return None
 
 
 class FileHandler:
@@ -112,9 +126,6 @@ class FileHandler:
                 )
 
                 pdf_pipeline_options = PdfPipelineOptions()
-                pdf_pipeline_options.do_ocr = True
-                pdf_pipeline_options.do_table_structure = True
-                pdf_pipeline_options.table_structure_options.do_cell_matching = True
 
                 pdf_pipeline_options.accelerator_options = AcceleratorOptions(
                     num_threads=2, device=AcceleratorDevice.MPS
@@ -195,6 +206,17 @@ class FileHandler:
                 logger.error(f"Unexpected error in Docling conversion: {str(e)}")
                 # Fall through to fallback methods
 
+        elif mime_type and mime_type.startswith("image/"):
+            image_data = read_binary_file(file_path)
+            if image_data:
+                message_content = {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{mime_type};base64,{image_data}",
+                        "detail": "high",
+                    },
+                }
+                return message_content
         # Directly read text-based files
         elif mime_type and mime_type.startswith("text/"):
             try:

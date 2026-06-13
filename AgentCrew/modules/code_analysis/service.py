@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import fnmatch
 import subprocess
-import base64
 from typing import Any, Tuple, Union, TYPE_CHECKING
 
 from .tree_sitter_runtime import TreeSitterRuntime, EXTENSION_TO_LANGUAGE
@@ -14,13 +13,6 @@ from .result_formatter import ResultFormatter
 from .project_notes import ProjectNotesExtractor
 from .file_selector import FileSelector, MAX_FILES_TO_ANALYZE
 import mimetypes
-
-IMAGE_MIME_TYPES = [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-]
 
 if TYPE_CHECKING:
     from AgentCrew.modules.llm.base import BaseLLMService
@@ -341,15 +333,6 @@ class CodeAnalysisService:
         )
 
         mime_type, _ = mimetypes.guess_type(file_path)
-
-        if mime_type and mime_type in IMAGE_MIME_TYPES:
-            with open(file_path, "rb") as file:
-                binary_data = file.read()
-            base64_data = base64.b64encode(binary_data).decode("utf-8")
-            return file_path, {
-                "type": "image_url",
-                "image_url": {"url": f"data:{mime_type};base64,{base64_data}"},
-            }
 
         if mime_type and mime_type in ALLOWED_MIME_TYPES:
             if self.file_handler is None:

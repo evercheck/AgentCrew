@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from typing_extensions import deprecated
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 import re
@@ -224,11 +224,15 @@ class BaseLLMService(ABC):
         pass
 
     @abstractmethod
+    @deprecated(
+        "to support unified message format, we won't allow llm process file by it self anymore"
+    )
     def process_file_for_message(self, file_path: str) -> dict[str, Any] | None:
         """Process a file and return the appropriate message content."""
         pass
 
     @abstractmethod
+    @deprecated("This method is not used anymore and will be remove soon")
     def handle_file_command(self, file_path: str) -> list[dict[str, Any]] | None:
         """Handle the /file command and return message content."""
         pass

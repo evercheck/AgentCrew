@@ -491,6 +491,7 @@ class AgentCrewApplication:
                     for file_path in files:
                         file_path = os.path.expanduser(file_path.strip())
                         file_content = file_handler.process_file(file_path)
+                        # TODO: this path is deprecated and never hit to this point
                         if not file_content:
                             file_content = current_agent.format_message(
                                 MessageType.FileContent, {"file_uri": file_path}
