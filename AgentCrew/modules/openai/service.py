@@ -92,12 +92,15 @@ class OpenAIService(BaseLLMService):
                         ),
                         None,
                     )
-                    msg["content"] = "\n".join(
-                        [
-                            block.get("text", "")
-                            for block in msg["content"]
-                            if block.get("type", "text") != "thinking"
-                        ]
+                    msg["content"] = (
+                        "\n".join(
+                            [
+                                block.get("text", "")
+                                for block in msg["content"]
+                                if block.get("type", "text") != "thinking"
+                            ]
+                        )
+                        or " "
                     )
                     if thinking_block:
                         msg["reasoning_text"] = thinking_block.get("thinking", "")

@@ -297,23 +297,27 @@ class CustomLLMService(OpenAIService):
                 msg["role"] = "user"
                 msg.pop("metadata", None)
             elif role == "assistant":
-                thinking_block = next(
-                    (
-                        block
-                        for block in msg.get("content", [])
-                        if block.get("type", "text") == "thinking"
-                    ),
-                    None,
-                )
-                msg["content"] = "\n".join(
-                    [
-                        block.get("text", "")
-                        for block in msg["content"]
-                        if block.get("type", "text") != "thinking"
-                    ]
-                )
-                if thinking_block:
-                    msg["reasoning_content"] = thinking_block.get("thinking", "")
+                if isinstance(msg.get("content"), list):
+                    thinking_block = next(
+                        (
+                            block
+                            for block in msg.get("content", [])
+                            if block.get("type", "text") == "thinking"
+                        ),
+                        None,
+                    )
+                    msg["content"] = (
+                        "\n".join(
+                            [
+                                block.get("text", "")
+                                for block in msg["content"]
+                                if block.get("type", "text") != "thinking"
+                            ]
+                        )
+                        or " "
+                    )
+                    if thinking_block:
+                        msg["reasoning_content"] = thinking_block.get("thinking", "")
 
                 if "tool_calls" in msg and msg.get("tool_calls", []):
                     normalized_tool_calls = []

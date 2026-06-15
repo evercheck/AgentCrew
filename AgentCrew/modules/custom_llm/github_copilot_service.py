@@ -293,7 +293,7 @@ class GithubCopilotService(CustomLLMService):
                         block
                         for block in msg["content"]
                         if block.get("type", "text") != "thinking"
-                    ]
+                    ] or " "
                     if thinking_block:
                         msg["reasoning_text"] = thinking_block.get("thinking", "")
                         msg["reasoning_opaque"] = thinking_block.get("signature", "")

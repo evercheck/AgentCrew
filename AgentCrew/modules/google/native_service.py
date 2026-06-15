@@ -451,6 +451,8 @@ class GoogleAINativeService(BaseLLMService):
                             )
                         else:
                             parts.append(Part.from_text(text=c.get("text", "")))
+                else:
+                    parts.append(Part.from_text(text=content))
 
                 # Add tool calls if present
                 if "tool_calls" in msg:

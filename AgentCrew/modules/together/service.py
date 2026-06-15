@@ -115,9 +115,9 @@ class TogetherAIService(BaseLLMService):
                                 cleaned_content.append(str(item))
                         elif item is not None:
                             cleaned_content.append(str(item))
-                    msg["content"] = "\n".join(c for c in cleaned_content if c)
+                    msg["content"] = "\n".join(c for c in cleaned_content if c) or " "
                 elif not isinstance(content, str):
-                    msg["content"] = str(content) if content is not None else ""
+                    msg["content"] = str(content) if content is not None else " "
 
             elif role == "user":
                 # Handle user message content arrays

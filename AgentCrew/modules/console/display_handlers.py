@@ -864,6 +864,9 @@ class DisplayHandlers:
         self._added_files = []
 
     def _extract_thinking_content(self, message):
+        content = message.get("content", "")
+        if isinstance(content, str):
+            return None
         thinking_block = next(
             (
                 c
