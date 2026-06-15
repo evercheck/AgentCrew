@@ -47,6 +47,7 @@ EXTENSION_MIME_MAPPING = {
     "doc": "application/msword",
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "xls": "application/vnd.ms-excel",
+    "webp": "image/webp",
 }
 
 
@@ -175,7 +176,8 @@ class FileHandler:
         """Initialize the file handling service."""
         self.converter = None
 
-    def _guess_mime_by_extension(self, file_path: str) -> str | None:
+    @staticmethod
+    def guess_mime_by_extension(file_path: str) -> str | None:
         extension = os.path.splitext(file_path)[1].lower().lstrip(".")
         if extension in EXTENSION_MIME_MAPPING:
             return EXTENSION_MIME_MAPPING[extension]
@@ -205,7 +207,7 @@ class FileHandler:
         # Check MIME type
         mime_type, _ = mimetypes.guess_type(file_path)
         if not mime_type:
-            mime_type = self._guess_mime_by_extension(file_path)
+            mime_type = self.guess_mime_by_extension(file_path)
 
         if (
             mime_type
@@ -296,7 +298,7 @@ class FileHandler:
         # Get file extension and MIME type
         mime_type, _ = mimetypes.guess_type(file_path)
         if not mime_type:
-            mime_type = self._guess_mime_by_extension(file_path)
+            mime_type = self.guess_mime_by_extension(file_path)
 
         # Use Docling for specific formats
         if DOCLING_ENABLED and mime_type in DOCLING_FORMATS:

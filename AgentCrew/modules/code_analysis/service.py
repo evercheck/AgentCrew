@@ -334,12 +334,17 @@ class CodeAnalysisService:
 
         mime_type, _ = mimetypes.guess_type(file_path)
 
+        if not mime_type:
+            mime_type = FileHandler.guess_mime_by_extension(file_path)
+
         if mime_type and mime_type in ALLOWED_MIME_TYPES:
             if self.file_handler is None:
                 self.file_handler = FileHandler()
             result = self.file_handler.process_file(file_path)
             if result and "text" in result:
                 return file_path, result["text"]
+            if result and "image_url" in result:
+                return file_path, result
             elif result is None:
                 raise ValueError(f"Failed to process document file: {file_path}")
 
