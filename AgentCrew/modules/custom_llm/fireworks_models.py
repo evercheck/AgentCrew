@@ -35,6 +35,17 @@ FIREWORKS_MODELS = [
         output_token_price_1m=1.2,
     ),
     Model(
+        id="accounts/fireworks/models/minimax-m3",
+        provider="fireworks",
+        name="MiniMax M3",
+        description="MiniMax M3 on Fireworks - efficient agentic model with tool use and structured output",
+        capabilities=["tool_use", "thinking", "vision", "stream", "structured_output"],
+        force_sample_params=SampleParam(temperature=0.6),
+        input_token_price_1m=0.3,
+        cached_token_price_1m=0.06,
+        output_token_price_1m=1.2,
+    ),
+    Model(
         id="accounts/fireworks/models/qwen3p6-plus",
         provider="fireworks",
         name="Qwen 3.6 Plus",
