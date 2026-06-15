@@ -304,7 +304,9 @@ class DisplayHandlers:
 
         return formatted
 
-    def _truncate_content(self, content, max_length: int = 200) -> str:
+    def _truncate_content(
+        self, content, max_length: int = 200
+    ) -> str | list[dict[str, Any]]:
         """Truncate content to max_length with ellipsis.
 
         Args:
@@ -318,22 +320,19 @@ class DisplayHandlers:
             text = content
         elif isinstance(content, list):
             # Extract text from content blocks
-            text_parts = []
             for item in content:
                 if isinstance(item, dict):
                     if item.get("type") == "text":
-                        text_parts.append(item.get("text", ""))
-                    elif item.get("type") == "tool_use":
-                        text_parts.append(f"[tool:{item.get('name', 'unknown')}]")
-                    elif item.get("type") == "tool_result":
-                        result = item.get("content", "")
-                        if isinstance(result, str):
-                            text_parts.append(f"[result:{result[:50]}...]")
-                        else:
-                            text_parts.append("[result:...]")
-                elif isinstance(item, str):
-                    text_parts.append(item)
-            text = " | ".join(text_parts)
+                        item["text"] = self._truncate_content(item.get("text", ""))
+                    elif item.get("type") == "thinking":
+                        item["thinking"] = self._truncate_content(
+                            f"[tool:{item.get('thinking', '')}]"
+                        )
+                    elif item.get("type") == "image_url":
+                        item["image_url"] = self._truncate_content(
+                            item.get("image_url", {}).get("url", "")
+                        )
+            return content
         else:
             text = str(content)
 
