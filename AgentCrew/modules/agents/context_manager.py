@@ -69,8 +69,7 @@ You must analyze and plan out the steps then execute it with your available tool
         )
         global_behaviors.update(
             {
-                "transfer": "When working on user request, consider whether if any other agents is more suitable, if yes, transfer to that agent.",
-                "good-to-say-no": "When encountering tasks that you have no data in the context and you don't know the anwser, say I don't know and ask user for helping you find the solution.",
+                "good-to-say-no": "When encountering tasks that you have no data in the context and you don't know the anwser, be honest and say I don't know and ask user for helping you find the solution.",
             }
         )
         project_behaviors = agent.services["context_persistent"].get_adaptive_behaviors(
