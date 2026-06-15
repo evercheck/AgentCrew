@@ -307,10 +307,13 @@ class MessageHandler(Observable):
         self.last_assisstant_response_idx = len(self.streamline_messages)
         return messages_for_this_turn
 
+    MAX_EMPTY_RESPONSE_RETRIES = 5
+
     async def _run_stream_response(
         self,
         session: StreamSession,
         prior_token_usage: TokenUsage | None = None,
+        _empty_response_retry_count: int = 0,
     ) -> Tuple[str | None, TokenUsage]:
         """
         Stream the assistant's response and return the response and token usage.
@@ -505,9 +508,23 @@ class MessageHandler(Observable):
 
                 return await self.get_assistant_response(token_usage)
 
-            # prevent stream drop
+            # prevent stream drop with bounded retry limit
             if assistant_response.strip() == "":
-                return await self.get_assistant_response(token_usage)
+                if _empty_response_retry_count >= self.MAX_EMPTY_RESPONSE_RETRIES:
+                    error_msg = (
+                        f"Model returned empty response {_empty_response_retry_count + 1} "
+                        f"times consecutively. Max retry limit ({self.MAX_EMPTY_RESPONSE_RETRIES}) reached."
+                    )
+                    logger.error(error_msg)
+                    self._notify("error", {"message": error_msg})
+                    return None, token_usage
+                logger.warning(
+                    f"Empty assistant response (attempt {_empty_response_retry_count + 1}), retrying..."
+                )
+                return await self.get_assistant_response(
+                    token_usage,
+                    _empty_response_retry_count=_empty_response_retry_count + 1,
+                )
 
             self._messages_append(
                 self.agent.format_message(
@@ -645,13 +662,17 @@ class MessageHandler(Observable):
             return None, TokenUsage()
 
     async def get_assistant_response(
-        self, token_usage: TokenUsage | None = None
+        self,
+        token_usage: TokenUsage | None = None,
+        _empty_response_retry_count: int = 0,
     ) -> Tuple[str | None, TokenUsage]:
         if token_usage is None:
             token_usage = TokenUsage()
         loop = asyncio.get_running_loop()
         session = self._create_stream_session()
-        task = loop.create_task(self._run_stream_response(session, token_usage))
+        task = loop.create_task(
+            self._run_stream_response(session, token_usage, _empty_response_retry_count)
+        )
         session.bind(loop, task)
 
         audio_handler = None
