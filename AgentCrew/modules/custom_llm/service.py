@@ -319,10 +319,6 @@ class CustomLLMService(OpenAIService):
                     )
                     if thinking_block:
                         msg["reasoning_content"] = thinking_block.get("thinking", "")
-                    elif "thinking" in ModelRegistry.get_model_capabilities(
-                        f"{self._provider_name}/{self.model}"
-                    ):
-                        msg["reasoning_content"] = " "
 
                 if "tool_calls" in msg and msg.get("tool_calls", []):
                     normalized_tool_calls = []
@@ -333,6 +329,11 @@ class CustomLLMService(OpenAIService):
                         if normalized_tool_call:
                             normalized_tool_calls.append(normalized_tool_call)
                     msg["tool_calls"] = normalized_tool_calls
+                    # set default empty reasoning_content if message has tool_calls
+                    if "thinking" in ModelRegistry.get_model_capabilities(
+                        f"{self._provider_name}/{self.model}"
+                    ):
+                        msg["reasoning_content"] = msg["reasoning_content"] or " "
 
                 converted_messages.append(msg)
                 continue
