@@ -35,8 +35,8 @@ class ImageGenerationService:
         from .providers.deepinfra_provider import DeepInfraImageProvider
 
         self._providers = [
-            OpenAIImageProvider(),
             GeminiImageProvider(),
+            OpenAIImageProvider(),
             DeepInfraImageProvider(),
         ]
 
