@@ -53,6 +53,18 @@ CROFAI_MODELS = [
         cached_token_price_1m=0.003,
     ),
     Model(
+        id="glm-5.2",
+        provider="crofai",
+        name="GLM 5.2",
+        description="Z.ai GLM 5.2 (Q8_0) on CrofAI, optimized for long-context agentic workloads.",
+        capabilities=["tool_use", "thinking", "stream", "structured_output"],
+        default_reasoning="medium",
+        max_context_token=202_752,
+        input_token_price_1m=0.5,
+        output_token_price_1m=2.2,
+        cached_token_price_1m=0.08,
+    ),
+    Model(
         id="glm-5.1",
         provider="crofai",
         name="GLM 5.1",
