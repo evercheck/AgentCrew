@@ -29,6 +29,15 @@ class OpenAICodexService(OpenAIResponseService):
         )
         self._provider_name = "openai_codex"
         self.model = "gpt-5.4"
+
+        # Match Codex CLI's header behavior:
+        # Authorization: Bearer <token> done by the client via api_key
+        # ChatGPT-Account-ID: <account_id> for subscription routing
+        if self._oauth.account_id:
+            self._extra_headers = {
+                "ChatGPT-Account-ID": self._oauth.account_id,
+            }
+
         logger.info("Initialized OpenAI Codex Service (ChatGPT subscription)")
 
     def _ensure_valid_token(self):
@@ -132,13 +141,17 @@ class OpenAICodexService(OpenAIResponseService):
                 "No valid OpenAI Codex OAuth token found. Run 'agentcrew chatgpt-auth' to authenticate."
             )
 
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+        if self._oauth.account_id:
+            headers["ChatGPT-Account-ID"] = self._oauth.account_id
+
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.get(
                 self._usage_url(),
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
             )
             response.raise_for_status()
             payload = response.json()
@@ -221,8 +234,16 @@ class OpenAICodexService(OpenAIResponseService):
 
         return result_text
 
+    async def _ensure_extra_headers(self):
+        """Ensure ChatGPT-Account-ID header is set after token refresh."""
+        if self._oauth.account_id:
+            base = dict(self._extra_headers or {})
+            base["ChatGPT-Account-ID"] = self._oauth.account_id
+            self._extra_headers = base
+
     async def stream_assistant_response(self, messages) -> Any:
         self._ensure_valid_token()
+        await self._ensure_extra_headers()
 
         input_data = self._convert_internal_format(messages)
         full_model_id = f"{self._provider_name}/{self.model}"

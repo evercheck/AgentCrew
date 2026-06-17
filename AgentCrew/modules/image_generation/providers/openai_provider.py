@@ -6,15 +6,61 @@ from openai import AsyncOpenAI
 
 from .base import BaseImageProvider, ImageGenerationResult
 
+CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex"
+
 
 class OpenAIImageProvider(BaseImageProvider):
-    """OpenAI gpt-image-2 image generation provider."""
+    """OpenAI gpt-image-2 image generation provider.
+
+    Authentication priority (matching Codex CLI approach):
+    1. ChatGPT subscription OAuth token (from ~/.codex/auth.json)
+       - Routes through Codex backend (CODEX_BASE_URL) because the
+         OAuth JWT scopes (openid, profile, email, offline_access,
+         api.connectors.*) don't include api.model.images.request
+         required by the standard images API.
+    2. OPENAI_API_KEY environment variable / config
+       - Uses standard OpenAI images API.
+
+    When using the subscription token, sends ChatGPT-Account-ID header
+    for proper routing, matching Codex CLI's BearerAuthProvider behavior.
+    """
 
     def __init__(self):
-        self._api_key = os.getenv("OPENAI_API_KEY")
+        self._auth_source: str | None = None
         self._client: AsyncOpenAI | None = None
-        if self._api_key:
-            self._client = AsyncOpenAI(api_key=self._api_key)
+        self._default_headers: dict[str, str] | None = None
+        self._init_auth()
+
+    def _init_auth(self):
+        # Priority 1: ChatGPT subscription OAuth token (Codex CLI approach)
+        # Must route through CODEX_BASE_URL because the OAuth JWT doesn't
+        # have api.model.images.request scope for the standard images API.
+        try:
+            from AgentCrew.modules.openai_codex.oauth import OpenAICodexOAuth
+
+            auth = OpenAICodexOAuth.get_auth()
+            if auth and auth.get("access_token"):
+                default_headers = {
+                    "ChatGPT-Account-ID": auth.get("account_id", ""),
+                } if auth.get("account_id") else None
+                self._client = AsyncOpenAI(
+                    api_key=auth["access_token"],
+                    base_url=CODEX_BASE_URL,
+                    default_headers=default_headers,
+                )
+                self._default_headers = default_headers
+                self._auth_source = "chatgpt_subscription"
+                return
+        except ImportError:
+            pass
+        except Exception:
+            pass
+
+        # Priority 2: Standard OpenAI API key (standard images API)
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            self._client = AsyncOpenAI(api_key=api_key)
+            self._auth_source = "api_key"
 
     @property
     def name(self) -> str:
@@ -25,7 +71,7 @@ class OpenAIImageProvider(BaseImageProvider):
         return "gpt-image-2"
 
     def is_available(self) -> bool:
-        return bool(self._api_key)
+        return bool(self._client)
 
     def supports_reference_images(self) -> bool:
         return True

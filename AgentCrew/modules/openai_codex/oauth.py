@@ -333,6 +333,13 @@ class OpenAICodexOAuth:
             return self._tokens.get("access")
         return None
 
+    @property
+    def account_id(self) -> str | None:
+        """Return the ChatGPT account ID from stored tokens, if available."""
+        if self._tokens:
+            return self._tokens.get("account_id")
+        return None
+
     def get_valid_access_token(self) -> str | None:
         if self.has_valid_tokens:
             return self.access_token
@@ -397,6 +404,29 @@ class OpenAICodexOAuth:
         except Exception as e:
             logger.error(f"Token refresh error: {e}")
             return False
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check whether the user has valid Codex OAuth tokens on disk."""
+        try:
+            return cls().has_valid_tokens
+        except Exception:
+            return False
+
+    @classmethod
+    def get_auth(cls) -> dict[str, str] | None:
+        """Return {access_token, account_id} dict if valid OAuth tokens exist."""
+        try:
+            oauth = cls()
+            token = oauth.get_valid_access_token()
+            if token:
+                return {
+                    "access_token": token,
+                    "account_id": oauth.account_id or "",
+                }
+        except Exception:
+            return None
+        return None
 
     def login(self) -> bool:
         code_verifier, code_challenge = _generate_pkce_pair()

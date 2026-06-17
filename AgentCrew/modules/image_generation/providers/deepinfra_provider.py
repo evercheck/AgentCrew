@@ -38,10 +38,10 @@ class DeepInfraImageProvider(BaseImageProvider):
 
     @property
     def model_id(self) -> str:
-        return "black-forest-labs/FLUX-2-pro"
+        return "black-forest-labs/FLUX-2-klein-9b"
 
     def is_available(self) -> bool:
-        return bool(self._api_key)
+        return bool(self._client)
 
     def supports_reference_images(self) -> bool:
         return True

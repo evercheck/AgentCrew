@@ -326,9 +326,11 @@ class ApplicationSetup:
             if not image_generation_service.has_any_provider():
                 click.echo(
                     "⚠️  Image generation tool not available:"
-                    " No image generation API key found.\n"
+                    " No image generation provider found.\n"
                     "   Set OPENAI_API_KEY, GEMINI_API_KEY,"
-                    " or DEEPINFRA_API_KEY to enable."
+                    " or DEEPINFRA_API_KEY to enable.\n"
+                    "   Or run 'agentcrew chatgpt-auth' to use your"
+                    " ChatGPT subscription for OpenAI gpt-image-2."
                 )
                 image_generation_service = None
         except Exception as e:

@@ -35,7 +35,7 @@ class GeminiImageProvider(BaseImageProvider):
         return "gemini-3.1-flash-image"
 
     def is_available(self) -> bool:
-        return bool(self._api_key) and self._client is not None
+        return bool(self._client)
 
     def supports_reference_images(self) -> bool:
         return True
