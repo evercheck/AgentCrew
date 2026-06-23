@@ -187,13 +187,13 @@ class LocalAgent(BaseAgent):
 
         self.register_tools()
 
-        # Reinitialize MCP session manager for the current agent
+        # Start MCP discovery in background (non-blocking) to reduce activation time
         if not self.is_remoting_mode:
             from AgentCrew.modules.mcpclient import MCPSessionManager
 
             mcp_manager = MCPSessionManager.get_instance()
             if mcp_manager.initialized:
-                mcp_manager.initialize_for_agent(self.name)
+                mcp_manager.discover_mcps_for_agent_background(self.name)
 
         system_prompt = (
             f"<Agent_Instructions>\n{self.get_system_prompt()}\n</Agent_Instructions>"
@@ -226,13 +226,13 @@ class LocalAgent(BaseAgent):
         self.is_active = False
         self.mcps_loading = []
         self._defer_tool_registration = False
-        # Reinitialize MCP session manager for the current agent
+        # Deregister MCP tools (no server shutdown needed — just remove definitions)
         if not self.is_remoting_mode:
             from AgentCrew.modules.mcpclient import MCPSessionManager
 
             mcp_manager = MCPSessionManager.get_instance()
             if mcp_manager.initialized:
-                mcp_manager.cleanup_for_agent(self.name)
+                mcp_manager.deregister_tools_for_agent_sync(self.name)
         return True
 
     def _register_tools_with_llm(self):
