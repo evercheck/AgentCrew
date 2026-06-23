@@ -189,7 +189,7 @@ You must analyze and plan out the steps then execute it with your available tool
                 )
                 if memory_headers:
                     adaptive_messages.append(
-                        f"## Recent conversations:\n- {'\n - '.join(memory_headers)}\n---\nIf the user request related to any recent conversations, call search_memory before responding."
+                        f"## Recent Memories from last conversations:\n- {'\n - '.join(memory_headers)}\n---\nIf the user request related to any recent memories, call search_memory before responding."
                     )
 
             dir_structure = self._get_directory_structure()

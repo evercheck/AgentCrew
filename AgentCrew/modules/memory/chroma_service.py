@@ -83,7 +83,7 @@ class ChromaMemoryService(BaseMemoryService):
 
             voyage_ef = VoyageEmbeddingFunction(
                 api_key=os.getenv("VOYAGE_API_KEY"),
-                model_name="voyage-3.5",
+                model_name="voyage-4",
             )
             self.embedding_function = voyage_ef
         else:
